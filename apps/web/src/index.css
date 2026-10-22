@@ -1,0 +1,27 @@
+@import 'tailwindcss';
+
+/* Design tokens (palette from docs/ART_GUIDE.md). Use as Tailwind utilities: bg-panel, text-accent, ... */
+@theme {
+  --color-table: #0b1426;
+  --color-panel: #111c33;
+  --color-line: #1e2a3b;
+  --color-ink: #e2e8f0;
+  --color-ink-muted: #94a3b8;
+  --color-accent: #22d3ee;
+  --color-sky: #60a5fa;
+  --color-teal: #14b8a6;
+  --color-indigo: #6366f1;
+  --color-alert: #fb7185;
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    @apply h-full overflow-hidden bg-table text-ink antialiased;
+  }
+
+  :root {
+    color-scheme: dark;
+  }
+}

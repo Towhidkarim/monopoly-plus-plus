@@ -1,0 +1,73 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "oxc", "unicorn", "import", "vitest"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn"
+  },
+  "ignorePatterns": ["**/dist/**", ".claude/**"],
+  "rules": {},
+  "overrides": [
+    {
+      "files": ["apps/web/**/*.{ts,tsx}"],
+      "plugins": ["typescript", "oxc", "unicorn", "import", "react", "jsx-a11y"],
+      "rules": {
+        "react/rules-of-hooks": "error",
+        "react/react-in-jsx-scope": "off",
+        "import/no-unassigned-import": ["warn", { "allow": ["**/*.css"] }],
+        "react/exhaustive-deps": "warn",
+        "react/only-export-components": ["warn", { "allowConstantExport": true }]
+      }
+    },
+    {
+      "files": ["packages/engine/**/*.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "pixi.js",
+                  "pixi.js/*",
+                  "react",
+                  "react-*",
+                  "gsap",
+                  "@skyline/board",
+                  "@skyline/web",
+                  "**/apps/**"
+                ],
+                "message": "The engine is pure TypeScript: no rendering, UI, or app imports (CLAUDE.md principle 1)."
+              },
+              {
+                "group": ["node:*", "fs", "path", "os", "crypto"],
+                "message": "The engine must run in any JS runtime: no Node built-ins."
+              }
+            ]
+          }
+        ],
+        "no-restricted-globals": [
+          "error",
+          { "name": "setTimeout", "message": "No timers in the engine. Time enters as actions." },
+          { "name": "setInterval", "message": "No timers in the engine. Time enters as actions." },
+          { "name": "requestAnimationFrame", "message": "No animation in the engine." },
+          { "name": "performance", "message": "No clocks in the engine." },
+          { "name": "crypto", "message": "Use the seeded RNG in state." }
+        ],
+        "no-restricted-properties": [
+          "error",
+          {
+            "object": "Math",
+            "property": "random",
+            "message": "Use the seeded RNG in state (CLAUDE.md principle 2)."
+          },
+          {
+            "object": "Date",
+            "property": "now",
+            "message": "No clocks in the engine. Time enters as actions."
+          }
+        ]
+      }
+    }
+  ]
+}

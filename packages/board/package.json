@@ -1,0 +1,17 @@
+{
+  "name": "@skyline/board",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@skyline/engine": "workspace:*",
+    "pixi.js": "^8.22.0"
+  }
+}
