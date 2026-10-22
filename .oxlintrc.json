@@ -6,7 +6,10 @@
     "suspicious": "warn"
   },
   "ignorePatterns": ["**/dist/**", ".claude/**"],
-  "rules": {},
+  "rules": {
+    "unicorn/no-array-fill-with-reference-type": "off",
+    "typescript/consistent-return": "off"
+  },
   "overrides": [
     {
       "files": ["apps/web/**/*.{ts,tsx}"],

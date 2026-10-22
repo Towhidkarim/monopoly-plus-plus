@@ -1,15 +1,14 @@
+import { useState } from 'react'
+import type { BoardHandle } from '@skyline/board'
 import { BoardCanvas } from './BoardCanvas.tsx'
+import { PlaygroundPanel } from './playground/PlaygroundPanel.tsx'
 
 export function App() {
+  const [handle, setHandle] = useState<BoardHandle | null>(null)
   return (
     <div className="flex h-full">
-      <BoardCanvas />
-      <aside className="w-80 shrink-0 border-l border-line bg-panel p-5">
-        <h1 className="mb-2 text-2xl font-semibold text-accent">Skyline</h1>
-        <p className="leading-relaxed text-ink-muted">
-          Board world renders on the left (Pixi). This panel is the React shell.
-        </p>
-      </aside>
+      <BoardCanvas onReady={setHandle} />
+      <PlaygroundPanel handle={handle} />
     </div>
   )
 }

@@ -13,7 +13,9 @@ Order changed on 2026-10-23 (DECISIONS.md D12): the board view comes before the 
 
 Acceptance: `pnpm dev` shows a Pixi canvas next to a React panel; `pnpm test` runs a trivial test; engine purity enforced by lint (imports, timers, `Math.random`, `Date.now`) and by an engine tsconfig without DOM or Node types.
 
-## Milestone 1: Board feel (visual foundations, spike-heavy)
+## Milestone 1: Board feel (visual foundations, spike-heavy) — in review
+
+Status 2026-10-23: items 1 to 7 implemented (geometry with tests, slab/tiles/icons, placeholder city, custom camera, hover/select with tooltip, token hops and jumps, playground with tuning sliders and auto-play, iso/top-down morph, debug overlay, FPS readout). Pending: real-GPU frame-time check (item 8) and the developer's feel review. Screenshots: `docs/screenshots/m1-*.png`.
 
 Everything in `docs/BOARD.md` sections 2, 3, and 7, with code-drawn placeholder visuals.
 

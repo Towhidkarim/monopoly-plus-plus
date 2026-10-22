@@ -84,6 +84,15 @@ Targets are verified by the bot simulation harness, not guessed. Rules are small
 - City buildings are **code-generated** isometric boxes (three face tones, window grids, roofs) from a seeded layout. This matches the flat-shaded reference style, and gives night window lights for free because window geometry is known. AI art becomes optional polish, not a dependency. (Supersedes the "central plaza is an AI image" line in `ART_GUIDE.md`.)
 - Houses render as a building on the lot that **grows floors** with each house; a hotel becomes a tower. The skyline literally grows during the game.
 
+## D15. Custom tween/spring before GSAP (2026-10-23)
+
+**Decision:** Milestone 1 choreography (hops, slides, morph) uses a ~80-line promise-based `Animator` and a `Spring`, both stepped from the single Pixi ticker. GSAP is deferred until timelines get complex enough to need it (labels, overlaps, scrubbing), likely in the juice pass.
+**Why:** Zero dependency weight, one frame loop, `finishAll()` gives skip-animations for free.
+
+## D16. Heights flatten in the top-down view (2026-10-23)
+
+**Decision:** `project()` scales `z` by `viewT`, so the top-down tactical view is truly flat (walls and buildings collapse to their footprints) and the isometric view has full height. Picking always inverts at the tile surface. Billboards (pawns) are drawn once in screen space and never redrawn by the morph.
+
 ## D14. Tailwind CSS v4 for all DOM UI (2026-10-23)
 
 **Decision:** The React shell is styled with Tailwind v4 utilities (`@tailwindcss/vite`), not hand-written CSS classes. Design tokens (palette) live in one `@theme` block in `apps/web/src/index.css` and are used as utilities (`bg-panel`, `text-accent`). Custom CSS only for things utilities cannot express.
