@@ -65,13 +65,14 @@ function transfer(ctx: Ctx, from: number, to: number, amount: number, reason: Ca
 }
 
 /**
- * `from` owes `amount` to `to` (-1 = bank). Paid immediately when affordable and nothing is
- * already queued; otherwise queued as a debt the debtor must raise money for (or go bankrupt).
+ * `from` owes `amount` to `to` (-1 = bank). Paid immediately when affordable and `from` has no
+ * queued debts; otherwise queued as a debt the debtor must raise money for (or go bankrupt).
  */
 export function pay(ctx: Ctx, from: number, to: number, amount: number, reason: CashReason): void {
   if (amount <= 0 || from === to) return
   const s = ctx.s
-  if (s.debts.length === 0 && s.players[from]!.cash >= amount) {
+  // Only the payer's own unpaid debts force queueing (keeps their creditors in order).
+  if (!s.debts.some((d) => d.debtor === from) && s.players[from]!.cash >= amount) {
     transfer(ctx, from, to, amount, reason)
     return
   }

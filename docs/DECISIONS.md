@@ -98,6 +98,20 @@ Targets are verified by the bot simulation harness, not guessed. Rules are small
 **Decision:** Pieces are code-drawn city objects (taxi, bus, drone, balloon, plus the classic pawn), chosen per player and purely cosmetic. Each kind maps to a movement style in `packages/board/src/pieces/motion.ts`: **drive** (lane-following with a trapezoid speed profile, lean on accelerate/brake/turn), **fly** (lift off, straight line over the city, hover with bob), **float** (slow curved drift with sway, soft landing), **hop** (classic). Vehicles are box parts in a local frame, re-drawn only when their heading (4 per lap) or the view morph changes. Airborne pieces render above the city.
 **Later:** Gemini sprites can replace the shapes per kind (2 images + mirroring cover 4 headings) without touching the motion code.
 
+## D18. Rules engine details settled in Milestone 2 (2026-10-23)
+
+- **Economy:** classic price, rent, and card tables with placeholder names (mechanics are reusable).
+- **Debts:** a payment the payer cannot afford becomes a queued debt (`state.debts`), settled automatically after any action once the debtor has the cash. Only the payer's own queued debts force queueing, so other players are never blocked by someone else's debt. The front debtor blocks turn actions; others keep their any-time actions.
+- **Bankruptcy simplifications:** buildings are sold to the bank at half price first; a creditor receives mortgaged property without paying the 10% interest; properties surrendered to the bank return unowned (no forced auction). Revisit if games feel off.
+- **Auctions:** turn-based English auction (bidders in seat order after the decliner); real-time clocks send TIMEOUT, which passes.
+- **Trades:** validated on propose and accept, re-validated after every action (`pruneTrades`); receiving mortgaged property costs the 10% fee.
+- **Speed die (Turbo):** deferred; Turbo currently means more dealt properties, higher salary, shorter round limit.
+- **Validation pattern:** each rule is a pure `check` plus an `apply`; `legalActions` reuses the checks, so it never clones state.
+
+## D19. Simulation baseline (2026-10-23)
+
+`pnpm sim` (random legal actions, 4 players): Standard preset 10,000 games, all finished, 0 invariant violations, about 405 games/s (24,000 games/min) on the dev laptop. Classic with invariants checked after every action: 1,000 games, about 12M actions, 0 violations. Random players rarely go bankrupt, so Standard games run to the round limit; real game-length tuning waits for heuristic bots (Milestone 3).
+
 ## D14. Tailwind CSS v4 for all DOM UI (2026-10-23)
 
 **Decision:** The React shell is styled with Tailwind v4 utilities (`@tailwindcss/vite`), not hand-written CSS classes. Design tokens (palette) live in one `@theme` block in `apps/web/src/index.css` and are used as utilities (`bg-panel`, `text-accent`). Custom CSS only for things utilities cannot express.

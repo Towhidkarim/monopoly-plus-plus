@@ -7,7 +7,7 @@ export type Deck = 'chance' | 'chest'
 export type CardEffect =
   /** Walk forward to `space`, collecting salary if passing GO. */
   | { type: 'advanceTo'; space: number }
-  /** Walk forward to the nearest space of a kind; railroad rent x`rentMultiplier`, utility pays 10x a fresh roll. */
+  /** Walk forward to the nearest space of a kind; railroad pays double rent, utility pays 10x a fresh roll. */
   | { type: 'advanceToNearest'; kind: 'railroad' | 'utility' }
   /** Move by a signed number of steps (negative = backward, no salary). */
   | { type: 'moveBy'; steps: number }

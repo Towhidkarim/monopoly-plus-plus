@@ -13,7 +13,7 @@ Order changed on 2026-10-23 (DECISIONS.md D12): the board view comes before the 
 
 Acceptance: `pnpm dev` shows a Pixi canvas next to a React panel; `pnpm test` runs a trivial test; engine purity enforced by lint (imports, timers, `Math.random`, `Date.now`) and by an engine tsconfig without DOM or Node types.
 
-## Milestone 1: Board feel (visual foundations, spike-heavy) — in review
+## Milestone 1: Board feel (visual foundations, spike-heavy) — done 2026-10-23
 
 Status 2026-10-23: items 1 to 7 implemented (geometry with tests, slab/tiles/icons, placeholder city, custom camera, hover/select with tooltip, token hops and jumps, playground with tuning sliders and auto-play, iso/top-down morph, debug overlay, FPS readout). Pending: real-GPU frame-time check (item 8) and the developer's feel review. Screenshots: `docs/screenshots/m1-*.png`.
 
@@ -30,7 +30,9 @@ Everything in `docs/BOARD.md` sections 2, 3, and 7, with code-drawn placeholder 
 
 Acceptance: hovering any tile highlights exactly that tile in both views; tokens hop smoothly around the full ring; camera follow feels good; 60 fps on desktop; screenshots in `docs/screenshots` reviewed against `docs/BOARD.md`.
 
-## Milestone 2: Rules engine (no UI)
+## Milestone 2: Rules engine (no UI) — done 2026-10-23
+
+Status: all rule areas implemented and tested (126 tests), fuzz and determinism tests pass, `pnpm sim` 10,000 games with zero violations (DECISIONS.md D18, D19). Speed die deferred.
 
 1. Board data module: 40 spaces, groups, prices, rent tables, house costs, cards (placeholder names).
 2. Seeded RNG (small, fast, serializable, e.g. mulberry32 or xoshiro128) and deterministic shuffle.

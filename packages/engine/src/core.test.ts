@@ -41,9 +41,12 @@ describe('createGame', () => {
   })
 })
 
+/** Turn-flow tests decline purchases; auctions have their own tests. */
+const noAuction = { auctionOnDecline: false }
+
 describe('turn flow and movement', () => {
   it('moves by the dice and ends the turn', () => {
-    let s = rigDice(newGame(), [2, 4])
+    let s = rigDice(newGame(2, noAuction), [2, 4])
     let r = act(s, 'a', { type: 'ROLL' })
     expect(r.s.players[0]!.position).toBe(6)
     expect(types(r.events)).toEqual(['DICE_ROLLED', 'MOVED'])
@@ -63,15 +66,15 @@ describe('turn flow and movement', () => {
 
   it('pays salary when passing GO', () => {
     let s = edit(newGame(), (d) => (d.players[0]!.position = 38))
-    s = rigDice(s, [1, 3])
+    s = rigDice(s, [2, 3])
     const r = act(s, 'a', { type: 'ROLL' })
-    expect(r.s.players[0]!.position).toBe(2)
+    expect(r.s.players[0]!.position).toBe(3)
     expect(r.s.players[0]!.cash).toBe(1700)
-    expect(r.events.find((e) => e.type === 'MOVED')).toMatchObject({ passedGo: true, path: [39, 0, 1, 2] })
+    expect(r.events.find((e) => e.type === 'MOVED')).toMatchObject({ passedGo: true, path: [39, 0, 1, 2, 3] })
   })
 
   it('gives another roll after doubles', () => {
-    const s = rigDice(newGame(), [3, 3])
+    const s = rigDice(newGame(2, noAuction), [3, 3])
     const r = act(s, 'a', { type: 'ROLL' })
     expect(r.s.players[0]!.position).toBe(6)
     const after = act(r.s, 'a', { type: 'DECLINE_BUY' }).s
@@ -80,7 +83,9 @@ describe('turn flow and movement', () => {
   })
 
   it('sends a player to jail on the third double without moving', () => {
-    let s = rigDice(newGame(), [1, 1], [2, 2], [3, 3])
+    // Chest card 7 (a small refund) on top, so landing on 2 does not move the player.
+    let s = edit(newGame(2, noAuction), (d) => (d.decks.chest = [7, ...d.decks.chest.filter((c) => c !== 7)]))
+    s = rigDice(s, [1, 1], [2, 2], [3, 3])
     s = act(s, 'a', { type: 'ROLL' }).s // to 2 (chest)
     s = act(s, 'a', { type: 'ROLL' }).s // to 6
     s = act(s, 'a', { type: 'DECLINE_BUY' }).s
@@ -185,7 +190,7 @@ describe('buying and rent', () => {
 
 describe('jail', () => {
   const jailed = () =>
-    edit(newGame(), (d) => {
+    edit(newGame(2, noAuction), (d) => {
       d.players[0]!.position = JAIL_INDEX
       d.players[0]!.inJail = true
     })
@@ -328,7 +333,7 @@ describe('engine contract', () => {
     const rolled = act(s, 'a', { type: 'TIMEOUT' }).s
     expect(rolled.players[0]!.position).toBe(6)
     const declined = act(rolled, 'a', { type: 'TIMEOUT' }).s
-    expect(declined.pending).toBeNull()
+    expect(declined.pending).toMatchObject({ kind: 'auction', space: 6 })
   })
 
   it('round-trips through JSON', () => {
