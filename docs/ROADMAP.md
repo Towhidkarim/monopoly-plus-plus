@@ -53,7 +53,9 @@ Acceptance: 10,000 random-playout games finish with zero invariant violations; r
 
 Acceptance: heuristic bot beats the random bot decisively over 1,000 games; games terminate; harness runs thousands of games per minute (record the number in `docs/DECISIONS.md`).
 
-## Milestone 4: Playable hotseat game with basic animation
+## Milestone 4: Playable hotseat game with basic animation — done 2026-10-23 (before Milestone 3, see DECISIONS.md D20)
+
+Status: setup screen, hotseat play with humans and bots, action bar from `legalActions`, auctions, debt flow, property cards with build/sell/mortgage, card popups, dice tray, event log, game over, resume from save, speed/skip/instant. Trades UI is in Milestone 8. Bot seats use a simple stand-in bot until Milestone 3.
 
 - Client store: authoritative state, event queue, presented state, `skipAll`.
 - `BoardView.sync` and `BoardView.play` for: `DICE_ROLLED`, `MOVED`, `JUMPED`, `CASH_CHANGED`, `PROPERTY_BOUGHT`, `BUILT`, `JAILED`.

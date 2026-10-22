@@ -190,6 +190,9 @@ importers:
       '@skyline/board':
         specifier: workspace:*
         version: link:../../packages/board
+      '@skyline/bots':
+        specifier: workspace:*
+        version: link:../../packages/bots
       '@skyline/engine':
         specifier: workspace:*
         version: link:../../packages/engine

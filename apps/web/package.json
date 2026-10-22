@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@skyline/board": "workspace:*",
+    "@skyline/bots": "workspace:*",
     "@skyline/engine": "workspace:*",
     "@skyline/protocol": "workspace:*",
     "react": "^19.3.1",

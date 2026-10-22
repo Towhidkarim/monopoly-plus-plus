@@ -121,19 +121,20 @@ export function advanceTurn(ctx: Ctx): void {
     if (!s.players[next]!.bankrupt) break
   }
   const wrapped = next <= s.current
+  const limit = s.config.roundLimit
   s.turnCount++
   s.pending = null
   s.doubles = 0
   s.lastDice = null
+  // The game ends before the turn passes, so `current` never changes without an event.
+  if (wrapped && limit > 0 && s.round + 1 > limit) {
+    endGame(ctx, richest(s), 'roundLimit')
+    return
+  }
   s.phase = 'preRoll'
   s.current = next
   if (wrapped) {
     s.round++
-    const limit = s.config.roundLimit
-    if (limit > 0 && s.round > limit) {
-      endGame(ctx, richest(s), 'roundLimit')
-      return
-    }
     if (limit > 0 && s.round === limit) ctx.events.push({ type: 'FINAL_ROUND', round: s.round })
   }
   ctx.events.push({ type: 'TURN_STARTED', playerId: idOf(s, next), round: s.round })

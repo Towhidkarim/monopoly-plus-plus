@@ -1,13 +1,16 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { mountBoard, type BoardHandle } from '@skyline/board'
 import { TileTooltip } from './TileTooltip.tsx'
 
 interface Props {
   onReady: (handle: BoardHandle | null) => void
+  /** Custom tooltip content for a hovered tile. */
+  renderTooltip?: (index: number) => ReactNode
+  children?: ReactNode
 }
 
 /** Hosts the Pixi board. React owns only the container; Pixi owns everything inside it. */
-export function BoardCanvas({ onReady }: Props) {
+export function BoardCanvas({ onReady, renderTooltip, children }: Props) {
   const hostRef = useRef<HTMLDivElement>(null)
   const tooltipRef = useRef<HTMLDivElement>(null)
   const [hovered, setHovered] = useState<number | null>(null)
@@ -42,13 +45,12 @@ export function BoardCanvas({ onReady }: Props) {
 
   // Canvas is absolutely positioned so it never feeds back into the host's size (resizeTo loop).
   return (
-    <div
-      ref={hostRef}
-      className="relative min-w-0 flex-1 cursor-grab overflow-hidden select-none [&>canvas]:absolute [&>canvas]:inset-0"
-    >
+    <div className="relative min-w-0 flex-1 overflow-hidden select-none">
+      <div ref={hostRef} className="absolute inset-0 cursor-grab [&>canvas]:absolute [&>canvas]:inset-0" />
       <div ref={tooltipRef} className="pointer-events-none absolute top-0 left-0 z-10 will-change-transform">
-        {hovered !== null && <TileTooltip index={hovered} />}
+        {hovered !== null && (renderTooltip ? renderTooltip(hovered) : <TileTooltip index={hovered} />)}
       </div>
+      {children}
     </div>
   )
 }

@@ -5,7 +5,7 @@
 export { mountBoard } from './mount.ts'
 export type { BoardHandle, BoardOptions } from './mount.ts'
 export { Board, DEFAULT_TUNING } from './board.ts'
-export type { BoardListeners, BoardTuning } from './board.ts'
+export type { BoardListeners, BoardPlayer, BoardSnapshot, BoardTuning } from './board.ts'
 export { groupColors, tokenColors } from './palette.ts'
 export { PIECES } from './pieces/shapes.ts'
 export type { PieceKind } from './pieces/shapes.ts'

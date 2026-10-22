@@ -36,6 +36,22 @@ export interface BoardListeners {
 
 const MORPH_MS = 750
 
+export interface BoardPlayer {
+  id: string
+  color: number
+  piece: PieceKind
+}
+
+/** The slice of game state the board shows; the shell maps engine state into this. */
+export interface BoardSnapshot {
+  positions: Record<string, number>
+  /** Owner player id per space, null if unowned. */
+  owner: readonly (string | null)[]
+  houses: readonly number[]
+  mortgaged: readonly boolean[]
+  bankrupt: readonly string[]
+}
+
 export class Board {
   readonly tuning: BoardTuning = { ...DEFAULT_TUNING }
   readonly listeners: BoardListeners = {}
@@ -52,6 +68,10 @@ export class Board {
   private readonly tiles: TileView[] = []
   private readonly city = new CityView()
   private readonly tokens = new Map<string, TokenView>()
+  private readonly colors = new Map<string, number>()
+  private readonly owners: (string | null)[] = Array.from({ length: 40 }, () => null)
+  private readonly levels: number[] = Array.from({ length: 40 }, () => 0)
+  private readonly mortgages: boolean[] = Array.from({ length: 40 }, () => false)
   private readonly animator = new Animator()
   private readonly camera: Camera
 
@@ -104,12 +124,29 @@ export class Board {
 
   addToken(id: string, color: number, space: number, kind: PieceKind = 'pawn'): void {
     if (this.tokens.has(id)) return
+    this.colors.set(id, color)
     const token = new TokenView(id, color, space, tileCenter(space), kind)
     token.heading = SIDE_HEADING[ringFootprint(space).side]!
     this.tokens.set(id, token)
     this.shadowLayer.addChild(token.shadow)
     this.actorLayer.addChild(token.pawn)
     this.layoutTile(space, true)
+  }
+
+  removeToken(id: string): void {
+    const token = this.tokens.get(id)
+    if (!token) return
+    this.tokens.delete(id)
+    token.destroy()
+    this.layoutTile(token.space)
+  }
+
+  /** Replaces all pieces with a new player line-up, everyone on GO. */
+  setPlayers(players: readonly BoardPlayer[]): void {
+    // Deleting the current key while iterating a Map is safe.
+    for (const id of this.tokens.keys()) this.removeToken(id)
+    this.colors.clear()
+    for (const p of players) this.addToken(p.id, p.color, 0, p.piece)
   }
 
   /** Swap a player's piece (taxi, drone, ...). Purely cosmetic. */
@@ -120,16 +157,100 @@ export class Board {
     token.squash.kick(8) // little pop so the swap reads
   }
 
+  /** Completes every running animation immediately (skip). */
+  skipAnimations(): void {
+    this.animator.finishAll()
+  }
+
+  /** Snaps the whole board to a game state with no animation (load, reconnect, skip). */
+  sync(snap: BoardSnapshot): void {
+    this.animator.finishAll()
+    for (let i = 0; i < 40; i++) {
+      this.owners[i] = snap.owner[i] ?? null
+      this.levels[i] = snap.houses[i] ?? 0
+      this.mortgages[i] = snap.mortgaged[i] ?? false
+      this.refreshTile(i, false)
+    }
+    for (const [id, space] of Object.entries(snap.positions)) {
+      const token = this.tokens.get(id)
+      if (!token) continue
+      token.traveling = false
+      token.space = space
+      token.pos.z = token.restZ
+    }
+    for (const id of snap.bankrupt) this.removeToken(id)
+    for (let i = 0; i < 40; i++) this.layoutTile(i, true)
+  }
+
   /** Plays one game event as an animation. Resolves when it is done. */
   async play(event: GameEvent): Promise<void> {
+    this.animator.speed = this.tuning.speed
     switch (event.type) {
       case 'MOVED':
         return this.playMove(event.playerId, event.path)
       case 'JUMPED':
         return this.playJump(event.playerId, event.to)
-      case 'DICE_ROLLED':
-        return // dice tray arrives in Milestone 4
+      case 'TURN_STARTED': {
+        const token = this.tokens.get(event.playerId)
+        if (token && this.tuning.follow) this.camera.setFollow(() => this.worldPos(token), 1.25)
+        token?.squash.kick(5)
+        return
+      }
+      case 'PROPERTY_BOUGHT':
+        return this.setOwner(event.space, event.playerId, 320)
+      case 'AUCTION_ENDED':
+        return event.winner ? this.setOwner(event.space, event.winner, 320) : undefined
+      case 'PROPERTY_TRANSFERRED':
+        return this.setOwner(event.space, event.to === 'bank' ? null : event.to, 140)
+      case 'BUILT':
+      case 'SOLD_BUILDING':
+        this.levels[event.space] = event.level
+        this.refreshTile(event.space, true)
+        return this.animator.wait(240)
+      case 'MORTGAGED':
+      case 'UNMORTGAGED':
+        this.mortgages[event.space] = event.type === 'MORTGAGED'
+        this.refreshTile(event.space, true)
+        return this.animator.wait(180)
+      case 'BANKRUPT':
+        return this.playBankrupt(event.playerId)
+      default:
+        return
     }
+  }
+
+  private setOwner(space: number, owner: string | null, waitMs: number): Promise<void> {
+    this.owners[space] = owner
+    if (owner === null) {
+      this.levels[space] = 0
+      this.mortgages[space] = false
+    }
+    this.refreshTile(space, true)
+    return this.animator.wait(waitMs)
+  }
+
+  private refreshTile(space: number, animate: boolean): void {
+    const owner = this.owners[space] ?? null
+    this.tiles[space]!.setDeco(
+      {
+        owner: owner === null ? null : (this.colors.get(owner) ?? 0xffffff),
+        level: this.levels[space] ?? 0,
+        mortgaged: this.mortgages[space] ?? false,
+      },
+      animate,
+    )
+  }
+
+  private async playBankrupt(id: string): Promise<void> {
+    const token = this.tokens.get(id)
+    if (!token) return
+    token.squash.kick(-10)
+    await this.animator.tween(520, (p) => {
+      token.pawn.alpha = 1 - p
+      token.shadow.alpha = 0.5 * (1 - p)
+      token.pos.z = token.restZ + p * 0.8
+    })
+    this.removeToken(id)
   }
 
   /** Morph between isometric (true) and top-down (false). */

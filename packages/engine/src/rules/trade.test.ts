@@ -162,7 +162,7 @@ describe('mortgaged property and jail cards', () => {
     const r = act(s, 'b', { type: 'ACCEPT_TRADE', tradeId: 1 })
     expect(r.s.players[0]!.jailCards).toEqual(['chest'])
     expect(r.s.players[1]!.jailCards).toEqual(['chance'])
-    expect(r.events).toContainEqual({ type: 'JAIL_CARD_GAINED', playerId: 'b', deck: 'chance' })
+    expect(r.events).toContainEqual({ type: 'JAIL_CARD_GAINED', playerId: 'b', deck: 'chance', from: 'a' })
   })
 
   it('emits MONOPOLY_COMPLETED once per group', () => {

@@ -112,6 +112,16 @@ Targets are verified by the bot simulation harness, not guessed. Rules are small
 
 `pnpm sim` (random legal actions, 4 players): Standard preset 10,000 games, all finished, 0 invariant violations, about 405 games/s (24,000 games/min) on the dev laptop. Classic with invariants checked after every action: 1,000 games, about 12M actions, 0 violations. Random players rarely go bankrupt, so Standard games run to the round limit; real game-length tuning waits for heuristic bots (Milestone 3).
 
+## D20. Playable game before smart bots; client store design (2026-10-23)
+
+- **Order:** Milestone 4 (playable hotseat game) was done before Milestone 3 (heuristic bot), so the game is playable early. A simple stand-in bot (`packages/bots/src/simple.ts`) fills bot seats until the heuristic bot lands.
+- **GameStore** (`apps/web/src/game/store.ts`): framework-agnostic; holds the authoritative engine state, an event queue, and the presented state. Events are played one at a time (`board.play`), each applied to the presented state after its animation; when a batch ends the presented state is reconciled with the engine and any drift is logged (tests prove events alone rebuild the screen, so drift means a bug).
+- **BoardPort:** the store depends on a small `Pick<Board, ...>` interface, so it runs headless in tests with a stub board.
+- **Persistence:** setup plus the action log in localStorage; resume replays the log from the seed (deterministic).
+- **Instant mode** skips animations entirely; **Skip** finishes the current batch; speed 1x/2x/4x; fast bots.
+- **Dev URLs:** `?demo=bots` (four-bot game), `&fast=1`, `&instant=1`; `#playground` for the board playground.
+- No router yet (setup, game, playground only); TanStack Router arrives with online rooms.
+
 ## D14. Tailwind CSS v4 for all DOM UI (2026-10-23)
 
 **Decision:** The React shell is styled with Tailwind v4 utilities (`@tailwindcss/vite`), not hand-written CSS classes. Design tokens (palette) live in one `@theme` block in `apps/web/src/index.css` and are used as utilities (`bg-panel`, `text-accent`). Custom CSS only for things utilities cannot express.

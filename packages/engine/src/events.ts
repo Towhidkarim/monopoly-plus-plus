@@ -43,7 +43,8 @@ export type GameEvent =
   | { type: 'TRADE_CANCELLED'; tradeId: number }
   /** Auto-voided because an involved asset changed or a party left. */
   | { type: 'TRADE_VOIDED'; tradeId: number }
-  | { type: 'JAIL_CARD_GAINED'; playerId: PlayerId; deck: Deck }
+  /** `from` is set when the card came from another player (trade, bankruptcy). */
+  | { type: 'JAIL_CARD_GAINED'; playerId: PlayerId; deck: Deck; from?: PlayerId }
   | { type: 'JAILED'; playerId: PlayerId }
   | { type: 'RELEASED'; playerId: PlayerId; how: 'doubles' | 'fine' | 'card' }
   | { type: 'DEBT_INCURRED'; playerId: PlayerId; amount: number; creditor: Counterparty }

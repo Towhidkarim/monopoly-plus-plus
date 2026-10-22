@@ -11,10 +11,22 @@ const THICK = 0.1
 const LIFT_HOVER = 0.14
 const LIFT_SELECT = 0.2
 
-/** One of the 40 ring tiles: code-drawn geometry, lift spring, highlight rim. */
+/** Game-state decoration on a tile: owner color, buildings, mortgage. */
+export interface TileDeco {
+  /** Owner's color, or null when unowned. */
+  owner: number | null
+  /** 0..4 houses, 5 = hotel. */
+  level: number
+  mortgaged: boolean
+}
+
+const EMPTY_DECO: TileDeco = { owner: null, level: 0, mortgaged: false }
+
+/** One of the 40 ring tiles: code-drawn geometry, lift spring, highlight rim, game decoration. */
 export class TileView {
   readonly container = new Container()
   private readonly base = new Graphics()
+  private readonly decoG = new Graphics()
   private readonly rim = new Graphics()
   private readonly fp: Footprint
   readonly lift = new Spring(0, 260, 18)
@@ -23,6 +35,8 @@ export class TileView {
   /** 0..1 flash from path previews, decays each frame. */
   flash = 0
   private pulseClock = 0
+  private deco: TileDeco = EMPTY_DECO
+  private lastT = 1
 
   readonly index: number
 
@@ -31,10 +45,61 @@ export class TileView {
     this.fp = ringFootprint(index)
     this.container.zIndex = this.fp.col0 + this.fp.row0
     this.rim.alpha = 0
-    this.container.addChild(this.base, this.rim)
+    this.container.addChild(this.base, this.decoG, this.rim)
+  }
+
+  /** Updates ownership/buildings/mortgage. `animate` gives a little bounce and flash. */
+  setDeco(deco: TileDeco, animate: boolean): void {
+    const d = this.deco
+    if (d.owner === deco.owner && d.level === deco.level && d.mortgaged === deco.mortgaged) return
+    this.deco = { ...deco }
+    this.drawDeco(this.lastT)
+    if (animate) {
+      this.lift.kick(deco.level > d.level || deco.owner !== d.owner ? 2.4 : -1.4)
+      this.flash = 1
+    }
+  }
+
+  private drawDeco(t: number): void {
+    const g = this.decoG.clear()
+    const fp = this.fp
+    const { owner, level, mortgaged } = this.deco
+    if (mortgaged) {
+      g.poly(rect(fp.col0 + GAP, fp.row0 + GAP, fp.col1 - GAP, fp.row1 - GAP, 0, t)).fill({
+        color: 0x0b1426,
+        alpha: 0.5,
+      })
+    }
+    if (owner !== null) {
+      // Owner plate along the outer edge, plus a small corner chip so it reads at any zoom.
+      g.poly(quad(fp, 0.06, 0.03, 0.94, 0.13, t)).fill(owner)
+      g.poly(quad(fp, 0.06, 0.03, 0.94, 0.05, t)).fill(shade(owner, 0.7))
+    }
+    if (level === 5) {
+      const c = tilePoint(fp, 0.5, 0.6)
+      isoBox(
+        g,
+        { col0: c.col - 0.17, col1: c.col + 0.17, row0: c.row - 0.17, row1: c.row + 0.17, z0: 0, z1: 0.32 },
+        { top: 0xfda4af, left: 0xe11d48, right: 0x9f1239 },
+        t,
+      )
+    } else {
+      for (let i = 0; i < level; i++) {
+        const c = tilePoint(fp, (i + 0.5) / 4, 0.62)
+        const r = 0.085
+        isoBox(
+          g,
+          { col0: c.col - r, col1: c.col + r, row0: c.row - r, row1: c.row + r, z0: 0, z1: 0.14 },
+          { top: 0x6ee7b7, left: 0x10b981, right: 0x047857 },
+          t,
+        )
+      }
+    }
   }
 
   draw(t: number): void {
+    this.lastT = t
+    this.drawDeco(t)
     const fp = this.fp
     const g = this.base.clear()
     const top = fp.corner ? palette.cornerTop : palette.tileTop

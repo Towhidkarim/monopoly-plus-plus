@@ -55,7 +55,7 @@ export function applyBankruptcy(ctx: Ctx, seat: number): void {
   for (const deck of p.jailCards) {
     if (creditor >= 0) {
       s.players[creditor]!.jailCards.push(deck)
-      ctx.events.push({ type: 'JAIL_CARD_GAINED', playerId: idOf(s, creditor), deck })
+      ctx.events.push({ type: 'JAIL_CARD_GAINED', playerId: idOf(s, creditor), deck, from: p.id })
     } else {
       s.decks[deck].push(jailCardId(deck))
     }

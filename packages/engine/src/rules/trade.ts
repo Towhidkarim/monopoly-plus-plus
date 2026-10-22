@@ -146,7 +146,7 @@ export function applyAcceptTrade(ctx: Ctx, _seat: number, tradeId: number): void
     const cards = s.players[giver]!.jailCards.splice(0, bundle.jailCards)
     for (const deck of cards) {
       s.players[receiver]!.jailCards.push(deck)
-      ctx.events.push({ type: 'JAIL_CARD_GAINED', playerId: idOf(s, receiver), deck })
+      ctx.events.push({ type: 'JAIL_CARD_GAINED', playerId: idOf(s, receiver), deck, from: idOf(s, giver) })
     }
   }
   pay(ctx, t.to, -1, feeFor(s, t.give.spaces), 'trade')
