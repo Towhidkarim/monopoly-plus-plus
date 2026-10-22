@@ -1,13 +1,53 @@
 /**
- * Game events: what happened, for the view to animate. Grows with the rules engine.
- * See docs/ARCHITECTURE.md section 2 for the full planned list.
+ * Game events: what happened, for the view to animate and the log to describe.
+ * Every visible state change produces an event (ARCHITECTURE.md section 2).
  */
 
-export type PlayerId = string
+import type { Deck } from './cards.ts'
+import type { CashReason, PlayerId } from './state.ts'
+
+/** A player id, or `'bank'` (reserved: createGame rejects it as a player id). */
+export type Counterparty = string
 
 export type GameEvent =
+  | { type: 'TURN_STARTED'; playerId: PlayerId; round: number }
   | { type: 'DICE_ROLLED'; playerId: PlayerId; dice: readonly [number, number] }
   /** Step-by-step walk; `path` lists every space entered, ending on the landing space. */
   | { type: 'MOVED'; playerId: PlayerId; path: readonly number[]; passedGo: boolean }
-  /** Direct relocation (cards, go-to-jail): no walking. */
+  /** Direct relocation (go to jail): no walking. */
   | { type: 'JUMPED'; playerId: PlayerId; to: number }
+  | { type: 'CARD_DRAWN'; playerId: PlayerId; deck: Deck; cardId: number }
+  | {
+      type: 'CASH_CHANGED'
+      playerId: PlayerId
+      delta: number
+      reason: CashReason
+      counterparty?: Counterparty
+    }
+  | { type: 'POT_CHANGED'; amount: number }
+  | { type: 'PROPERTY_BOUGHT'; playerId: PlayerId; space: number; price: number }
+  | { type: 'PROPERTY_TRANSFERRED'; space: number; from: Counterparty; to: Counterparty }
+  | { type: 'BUILT'; playerId: PlayerId; space: number; level: number }
+  | { type: 'SOLD_BUILDING'; playerId: PlayerId; space: number; level: number }
+  | { type: 'MORTGAGED'; playerId: PlayerId; space: number }
+  | { type: 'UNMORTGAGED'; playerId: PlayerId; space: number }
+  | { type: 'MONOPOLY_COMPLETED'; playerId: PlayerId; group: number }
+  | { type: 'AUCTION_STARTED'; space: number }
+  | { type: 'BID_PLACED'; playerId: PlayerId; amount: number }
+  | { type: 'BIDDER_PASSED'; playerId: PlayerId }
+  /** `winner` is null when everyone passed and the space stays unowned. */
+  | { type: 'AUCTION_ENDED'; space: number; winner: PlayerId | null; amount: number }
+  | { type: 'TRADE_PROPOSED'; tradeId: number; from: PlayerId; to: PlayerId }
+  | { type: 'TRADE_ACCEPTED'; tradeId: number }
+  | { type: 'TRADE_REJECTED'; tradeId: number }
+  | { type: 'TRADE_CANCELLED'; tradeId: number }
+  /** Auto-voided because an involved asset changed or a party left. */
+  | { type: 'TRADE_VOIDED'; tradeId: number }
+  | { type: 'JAIL_CARD_GAINED'; playerId: PlayerId; deck: Deck }
+  | { type: 'JAILED'; playerId: PlayerId }
+  | { type: 'RELEASED'; playerId: PlayerId; how: 'doubles' | 'fine' | 'card' }
+  | { type: 'DEBT_INCURRED'; playerId: PlayerId; amount: number; creditor: Counterparty }
+  | { type: 'DEBT_SETTLED'; playerId: PlayerId }
+  | { type: 'BANKRUPT'; playerId: PlayerId; to: Counterparty }
+  | { type: 'FINAL_ROUND'; round: number }
+  | { type: 'GAME_OVER'; winner: PlayerId; reason: 'lastStanding' | 'roundLimit' }

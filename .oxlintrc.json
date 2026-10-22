@@ -12,6 +12,12 @@
   },
   "overrides": [
     {
+      "files": ["**/*.test.ts", "**/testkit.ts"],
+      "rules": {
+        "unicorn/consistent-function-scoping": "off"
+      }
+    },
+    {
       "files": ["apps/web/**/*.{ts,tsx}"],
       "plugins": ["typescript", "oxc", "unicorn", "import", "react", "jsx-a11y"],
       "rules": {
