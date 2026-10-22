@@ -3,6 +3,8 @@ import type { GameEvent } from '@skyline/engine'
 import { Animator, ease } from './anim/animator.ts'
 import { project, unproject, type Pos } from './geometry/project.ts'
 import { BOARD, ringFootprint, tileAt, tileCenter, tokenAnchor } from './geometry/ring.ts'
+import { jump, travel, type MotionContext } from './pieces/motion.ts'
+import { SIDE_HEADING, type PieceKind } from './pieces/shapes.ts'
 import { Camera, type Bounds } from './view/camera.ts'
 import { CityView, GroundView } from './view/city.ts'
 import { rect } from './view/draw.ts'
@@ -100,13 +102,22 @@ export class Board {
     Object.assign(this.listeners, listeners)
   }
 
-  addToken(id: string, color: number, space: number): void {
+  addToken(id: string, color: number, space: number, kind: PieceKind = 'pawn'): void {
     if (this.tokens.has(id)) return
-    const token = new TokenView(id, color, space, tileCenter(space))
+    const token = new TokenView(id, color, space, tileCenter(space), kind)
+    token.heading = SIDE_HEADING[ringFootprint(space).side]!
     this.tokens.set(id, token)
     this.shadowLayer.addChild(token.shadow)
     this.actorLayer.addChild(token.pawn)
     this.layoutTile(space, true)
+  }
+
+  /** Swap a player's piece (taxi, drone, ...). Purely cosmetic. */
+  setPiece(id: string, kind: PieceKind): void {
+    const token = this.tokens.get(id)
+    if (!token || token.kind === kind) return
+    token.setKind(kind)
+    token.squash.kick(8) // little pop so the swap reads
   }
 
   /** Plays one game event as an animation. Resolves when it is done. */
@@ -150,6 +161,12 @@ export class Board {
     this.camera.recenter()
   }
 
+  /** Zoom the camera onto a space. */
+  focus(space: number, zoomFactor = 2.6, instant = false): void {
+    const p = project({ ...tileCenter(space), z: 0 }, this.viewT)
+    this.camera.focusOn(p.x, p.y, zoomFactor, instant)
+  }
+
   /** Current frames per second (for the perf readout). */
   get fps(): number {
     return this.app.ticker.FPS
@@ -173,27 +190,9 @@ export class Board {
   private async playMove(playerId: string, path: readonly number[]): Promise<void> {
     const token = this.tokens.get(playerId)
     if (!token || path.length === 0) return
-    const tune = this.tuning
-    this.animator.speed = tune.speed
-    if (tune.follow) this.camera.setFollow(() => this.worldPos(token))
-
-    const origin = token.space
-    // Preview: the landing tile flashes first, then the walk.
-    this.tiles[path[path.length - 1]!]!.flash = 1
-    token.squash.kick(4 * tune.squash) // crouch before the first hop
-    await this.animator.wait(90)
-
-    for (let i = 0; i < path.length; i++) {
-      const next = path[i]!
-      const last = i === path.length - 1
-      token.space = next
-      if (i === 0) this.layoutTile(origin) // others on the origin tile spread back out
-      const to = last ? this.slotFor(token, next) : tokenAnchor(next, 0, 1)
-      await this.hop(token, to, tune.hopHeight, tune.stepMs)
-      this.land(token, next, last ? 1 : 0.55)
-    }
-    this.layoutTile(path[path.length - 1]!)
-    await this.animator.wait(120)
+    this.animator.speed = this.tuning.speed
+    if (this.tuning.follow) this.camera.setFollow(() => this.worldPos(token))
+    await travel(this.motion, token, path)
   }
 
   private async playJump(playerId: string, to: number): Promise<void> {
@@ -201,36 +200,24 @@ export class Board {
     if (!token) return
     this.animator.speed = this.tuning.speed
     if (this.tuning.follow) this.camera.setFollow(() => this.worldPos(token))
-    const origin = token.space
-    token.space = to
-    this.layoutTile(origin)
-    this.tiles[to]!.flash = 1
-    token.squash.kick(6 * this.tuning.squash)
-    await this.animator.wait(110)
-    await this.hop(token, this.slotFor(token, to), this.tuning.hopHeight * 3 + 0.8, 760)
-    this.land(token, to, 1.4)
-    this.layoutTile(to)
+    await jump(this.motion, token, to)
     await this.animator.wait(150)
   }
 
-  private hop(token: TokenView, to: { col: number; row: number }, height: number, ms: number): Promise<void> {
-    const from = { col: token.pos.col, row: token.pos.row }
-    token.squash.target = -0.12 * this.tuning.squash // stretch in the air
-    return this.animator.tween(ms, (p) => {
-      const h = ease.inOutSine(p)
-      token.pos.col = from.col + (to.col - from.col) * h
-      token.pos.row = from.row + (to.row - from.row) * h
-      token.pos.z = 4 * p * (1 - p) * height
-    })
-  }
-
-  private land(token: TokenView, space: number, strength: number): void {
-    token.pos.z = 0
-    token.squash.target = 0
-    token.squash.kick(7 * strength * this.tuning.squash)
-    const tile = this.tiles[space]!
-    tile.lift.kick(-1.6 * strength)
-    tile.flash = Math.max(tile.flash, 0.7)
+  /** What movement styles may touch on the board. */
+  private readonly motion: MotionContext = {
+    animator: this.animator,
+    tuning: this.tuning,
+    bump: (space, strength) => {
+      const tile = this.tiles[space]!
+      tile.lift.kick(-1.6 * strength)
+      tile.flash = Math.max(tile.flash, 0.7 * Math.min(1, strength + 0.3))
+    },
+    flash: (space) => {
+      this.tiles[space]!.flash = 1
+    },
+    slotFor: (token, space) => this.slotFor(token, space),
+    layoutTile: (space) => this.layoutTile(space),
   }
 
   /** Where `token` should stand on `space` given everyone else already there. */
@@ -248,6 +235,7 @@ export class Board {
   private layoutTile(space: number, instant = false): void {
     const here = this.tokensOn(space)
     here.forEach((token, slot) => {
+      if (token.traveling) return // its own motion owns the position
       const to = tokenAnchor(space, slot, here.length)
       if (instant) {
         token.pos.col = to.col

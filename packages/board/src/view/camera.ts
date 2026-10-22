@@ -62,6 +62,15 @@ export class Camera {
     if (instant) this.snap()
   }
 
+  /** Glide to a world point at `zoomFactor` x the fit zoom. */
+  focusOn(x: number, y: number, zoomFactor: number, instant = false): void {
+    this.follow = null
+    this.tx = x
+    this.ty = y
+    this.tz = this.fitZoom * zoomFactor
+    if (instant) this.snap()
+  }
+
   setFollow(target: (() => { x: number; y: number }) | null, zoomIn = 1.5): void {
     this.follow = target
     if (target) this.tz = Math.max(this.tz, this.fitZoom * zoomIn)

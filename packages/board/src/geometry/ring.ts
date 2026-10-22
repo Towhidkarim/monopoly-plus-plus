@@ -143,7 +143,10 @@ export function tokenAnchor(index: number, slot: number, count: number): { col: 
   const v = 0.2 + ((r + 0.5) / rows) * 0.5
   if (fp.corner) {
     const span = fp.col1 - fp.col0
-    return { col: fp.col0 + span * (0.25 + 0.5 * u), row: fp.row0 + span * (0.25 + 0.5 * ((r + 0.5) / rows)) }
+    return {
+      col: fp.col0 + span * (0.12 + 0.76 * u),
+      row: fp.row0 + span * (0.12 + 0.76 * ((r + 0.5) / rows)),
+    }
   }
   return tilePoint(fp, u, v)
 }

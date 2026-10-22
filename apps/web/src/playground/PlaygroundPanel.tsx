@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { DEFAULT_TUNING, type BoardHandle, type BoardTuning } from '@skyline/board'
+import { DEFAULT_TUNING, PIECES, type BoardHandle, type BoardTuning } from '@skyline/board'
 import { cssHex, spaceInfo } from '../spaceInfo.ts'
 import { Button, Section, Slider, Toggle } from './controls.tsx'
 import { PLAYERS, usePlayground } from './usePlayground.ts'
@@ -27,6 +27,8 @@ export function PlaygroundPanel({ handle }: { handle: BoardHandle | null }) {
     const sel = params.get('select')
     if (sel !== null) board.select(Number(sel))
     if (params.get('auto') === '1') setAuto(true)
+    const focus = params.get('focus')
+    if (focus !== null) board.focus(Number(focus), 3, true)
   }, [board, setAuto])
 
   // Polled twice a second; never per frame through React.
@@ -71,6 +73,25 @@ export function PlaygroundPanel({ handle }: { handle: BoardHandle | null }) {
             />
           ))}
         </div>
+        <fieldset className="grid grid-cols-3 gap-1.5">
+          <legend className="sr-only">Piece for the active player</legend>
+          {PIECES.map((piece) => {
+            const on = pg.pieces[pg.active] === piece.kind
+            return (
+              <button
+                key={piece.kind}
+                type="button"
+                aria-pressed={on}
+                onClick={() => pg.setPiece(pg.active, piece.kind)}
+                className={`rounded-md px-2 py-1.5 text-xs font-medium transition-transform active:scale-95 ${
+                  on ? 'bg-accent text-table' : 'border border-line bg-white/5 text-ink hover:bg-white/10'
+                }`}
+              >
+                {piece.label}
+              </button>
+            )
+          })}
+        </fieldset>
         <div className="flex items-center gap-3">
           <span className="text-4xl leading-none text-ink">
             {pg.dice ? `${PIPS[pg.dice[0] - 1]}${PIPS[pg.dice[1] - 1]}` : '⚀⚀'}

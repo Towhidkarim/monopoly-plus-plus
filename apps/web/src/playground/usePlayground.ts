@@ -1,18 +1,19 @@
 import { useEffect, useEffectEvent, useRef, useState } from 'react'
 import { GO_TO_JAIL_INDEX, JAIL_INDEX, walkPath, type GameEvent } from '@skyline/engine'
-import { tokenColors, type Board } from '@skyline/board'
+import { tokenColors, type Board, type PieceKind } from '@skyline/board'
 
 export interface PlayerToken {
   id: string
   name: string
   color: number
+  piece: PieceKind
 }
 
 export const PLAYERS: PlayerToken[] = [
-  { id: 'p1', name: 'Coral', color: tokenColors[0] },
-  { id: 'p2', name: 'Cyan', color: tokenColors[1] },
-  { id: 'p3', name: 'Amber', color: tokenColors[2] },
-  { id: 'p4', name: 'Violet', color: tokenColors[3] },
+  { id: 'p1', name: 'Coral', color: tokenColors[0], piece: 'taxi' },
+  { id: 'p2', name: 'Cyan', color: tokenColors[1], piece: 'drone' },
+  { id: 'p3', name: 'Amber', color: tokenColors[2], piece: 'balloon' },
+  { id: 'p4', name: 'Violet', color: tokenColors[3], piece: 'bus' },
 ]
 
 const rollDie = () => 1 + Math.floor(Math.random() * 6) // cosmetic playground only, not the engine
@@ -27,14 +28,20 @@ export function usePlayground(board: Board | null) {
   const [active, setActive] = useState(0)
   const [dice, setDice] = useState<[number, number] | null>(null)
   const [auto, setAuto] = useState(false)
+  const [pieces, setPieces] = useState<PieceKind[]>(() => PLAYERS.map((p) => p.piece))
 
   useEffect(() => {
     if (!board) return
     for (const p of PLAYERS) {
       positions.current[p.id] = 0
-      board.addToken(p.id, p.color, 0)
+      board.addToken(p.id, p.color, 0, p.piece)
     }
   }, [board])
+
+  const setPiece = (playerIndex: number, kind: PieceKind) => {
+    setPieces((prev) => prev.map((k, i) => (i === playerIndex ? kind : k)))
+    board?.setPiece(PLAYERS[playerIndex]!.id, kind)
+  }
 
   /** Runs events one after another; resolves when this batch has finished playing. */
   const enqueue = (events: GameEvent[]): Promise<void> => {
@@ -106,5 +113,7 @@ export function usePlayground(board: Board | null) {
     roll: (fixed?: number) => roll(fixed),
     jumpToJail,
     nextPlayer,
+    pieces,
+    setPiece,
   }
 }

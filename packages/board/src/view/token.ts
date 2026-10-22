@@ -1,65 +1,124 @@
 import { Container, Graphics } from 'pixi.js'
 import { Spring } from '../anim/spring.ts'
 import { project, type Pos } from '../geometry/project.ts'
-import { shade } from '../palette.ts'
+import {
+  drawBalloon,
+  drawDrone,
+  drawPawn,
+  drawVehicle,
+  type Heading,
+  type PieceKind,
+} from '../pieces/shapes.ts'
+
+/** Per-kind resting behavior. */
+const REST: Record<PieceKind, { hoverZ: number; bob: number; bobHz: number }> = {
+  taxi: { hoverZ: 0, bob: 0, bobHz: 0 },
+  bus: { hoverZ: 0, bob: 0, bobHz: 0 },
+  pawn: { hoverZ: 0, bob: 0, bobHz: 0 },
+  drone: { hoverZ: 0.32, bob: 0.035, bobHz: 1.6 },
+  balloon: { hoverZ: 0.28, bob: 0.05, bobHz: 0.45 },
+}
 
 /**
- * A player pawn. Drawn once in screen space (a billboard), so the morph never redraws it;
- * only its position, squash, and shadow change per frame.
+ * A player piece. Vehicles are re-drawn only when their heading or the view morph changes;
+ * everything else per frame is position, scale, and skew.
  */
 export class TokenView {
   readonly pawn = new Container()
   readonly shadow = new Graphics()
   private readonly body = new Graphics()
+  readonly id: string
+  readonly color: number
+  kind: PieceKind = 'pawn'
   /** Board position; `z` is height above the tile surface. */
   readonly pos: Pos
   /** Positive = squashed flat, negative = stretched tall. */
   readonly squash = new Spring(0, 420, 14)
-  /** Space index the token currently stands on (logical, updated as it walks). */
+  /** Horizontal lean (skew), for braking, acceleration, and tilting into flight. */
+  readonly lean = new Spring(0, 160, 9)
+  heading: Heading = 2
+  /** Space index the token currently stands on (logical, updated as it travels). */
   space: number
+  /** True while a travel animation owns `pos.z` (disables idle bob). */
+  traveling = false
+  private clock = Math.random() * 10_000 // cosmetic phase so pieces do not bob in sync
+  private drawnHeading: Heading | -1 = -1
+  private drawnT = -1
 
-  readonly id: string
-
-  constructor(id: string, color: number, space: number, start: { col: number; row: number }) {
+  constructor(
+    id: string,
+    color: number,
+    space: number,
+    start: { col: number; row: number },
+    kind: PieceKind,
+  ) {
     this.id = id
+    this.color = color
     this.space = space
     this.pos = { col: start.col, row: start.row, z: 0 }
-    drawPawn(this.body, color)
     this.pawn.addChild(this.body)
     this.shadow.ellipse(0, 0, 17, 8).fill({ color: 0x0b1426, alpha: 0.35 })
+    this.setKind(kind)
+  }
+
+  get restZ(): number {
+    return REST[this.kind].hoverZ
+  }
+
+  get airborne(): boolean {
+    return this.pos.z > 0.6
+  }
+
+  setKind(kind: PieceKind): void {
+    this.kind = kind
+    this.pos.z = REST[kind].hoverZ
+    this.drawnHeading = -1
+    this.drawnT = -1
+    if (kind === 'pawn') drawPawn(this.body, this.color)
+    if (kind === 'balloon') drawBalloon(this.body, this.color)
+    const wide = kind === 'taxi' || kind === 'bus'
+    this.shadow.scale.set(wide ? 1.35 : 1, 1)
   }
 
   /** `groundZ` is the height of the surface under the token (tile lift). */
   update(dtMs: number, t: number, groundZ: number): void {
+    this.redrawIfNeeded(t)
+    this.clock += dtMs
     this.squash.step(dtMs)
+    this.lean.step(dtMs)
     const s = this.squash.value
     this.pawn.scale.set(1 + s * 0.6, 1 - s)
+    this.pawn.skew.x = this.lean.value
 
+    const rest = REST[this.kind]
+    const bob = this.traveling ? 0 : Math.sin((this.clock / 1000) * rest.bobHz * Math.PI * 2) * rest.bob
+    const z = this.pos.z + bob
     const ground = project({ col: this.pos.col, row: this.pos.row, z: groundZ }, t)
-    const top = project({ col: this.pos.col, row: this.pos.row, z: groundZ + this.pos.z }, t)
+    const top = project({ col: this.pos.col, row: this.pos.row, z: groundZ + z }, t)
     this.shadow.position.set(ground.x, ground.y)
-    const shrink = 1 / (1 + this.pos.z * 1.5)
-    this.shadow.scale.set(shrink)
-    this.shadow.alpha = 0.5 + 0.5 * shrink
+    const shrink = 1 / (1 + z * 1.5)
+    const wide = this.kind === 'taxi' || this.kind === 'bus'
+    this.shadow.scale.set(shrink * (wide ? 1.35 : 1), shrink)
+    this.shadow.alpha = 0.4 + 0.6 * shrink
     this.pawn.position.set(top.x, top.y)
-    this.pawn.zIndex = this.pos.col + this.pos.row + 0.5
+    // Airborne pieces fly over the city, so they render above everything.
+    this.pawn.zIndex = this.airborne ? 1000 + z : this.pos.col + this.pos.row + 0.5
+  }
+
+  private redrawIfNeeded(t: number): void {
+    const k = this.kind
+    if (k === 'pawn' || k === 'balloon') return // billboards: drawn once
+    if (k === 'drone') {
+      if (t !== this.drawnT) drawDrone(this.body, this.color, t)
+    } else if (t !== this.drawnT || this.heading !== this.drawnHeading) {
+      drawVehicle(this.body, k, this.color, this.heading, t)
+    }
+    this.drawnT = t
+    this.drawnHeading = this.heading
   }
 
   destroy(): void {
     this.pawn.destroy({ children: true })
     this.shadow.destroy()
   }
-}
-
-/** Pawn with its foot at (0, 0): base, tapered body, head with a highlight. */
-function drawPawn(g: Graphics, color: number): void {
-  const dark = shade(color, 0.55)
-  const mid = shade(color, 0.8)
-  g.ellipse(0, -4, 15, 7).fill(dark)
-  g.ellipse(0, -7, 15, 7).fill(mid)
-  g.poly([-11, -8, 11, -8, 6, -30, -6, -30]).fill(color)
-  g.poly([2, -8, 11, -8, 6, -30, 1, -30]).fill(mid)
-  g.ellipse(0, -30, 8, 3.5).fill(mid)
-  g.circle(0, -40, 10).fill(color)
-  g.circle(-3.5, -43.5, 3.5).fill({ color: 0xffffff, alpha: 0.55 })
 }
