@@ -10,7 +10,8 @@ import { HEADING_DX, headingOf, SIDE_HEADING } from './shapes.ts'
  */
 
 export interface MotionTuning {
-  hopHeight: number
+  /** Peak hop height. */
+  height: number
   stepMs: number
   squash: number
 }
@@ -26,6 +27,12 @@ export interface MotionContext {
   slotFor(token: TokenView, space: number): { col: number; row: number }
   /** Slide every token on `space` into its slot. */
   layoutTile(space: number): void
+  /** Beats for sound and juice: a tile passed, the final landing, leaving the ground. */
+  step(space: number): void
+  landed(space: number, strength: number): void
+  liftoff(): void
+  /** Reduced motion: smaller arcs. */
+  reduced(): boolean
 }
 
 type Point = { col: number; row: number }
@@ -71,8 +78,11 @@ export async function jump(ctx: MotionContext, token: TokenView, to: number): Pr
   else {
     token.squash.kick(6 * ctx.tuning.squash)
     await ctx.animator.wait(110)
-    await arc(ctx, token, ctx.slotFor(token, to), ctx.tuning.hopHeight * 3 + 0.8, 760)
+    ctx.liftoff()
+    const height = ctx.reduced() ? ctx.tuning.height + 0.3 : ctx.tuning.height * 3 + 0.8
+    await arc(ctx, token, ctx.slotFor(token, to), height, 760)
     land(ctx, token, to, 1.4)
+    ctx.landed(to, 1.4)
     token.heading = SIDE_HEADING[ringFootprint(to).side]!
   }
   token.traveling = false
@@ -89,8 +99,10 @@ async function hopAlong(ctx: MotionContext, token: TokenView, path: readonly num
     const space = path[i]!
     const last = i === path.length - 1
     const to = last ? ctx.slotFor(token, space) : tokenAnchor(space, 0, 1)
-    await arc(ctx, token, to, tune.hopHeight, tune.stepMs)
+    await arc(ctx, token, to, tune.height, tune.stepMs)
     land(ctx, token, space, last ? 1 : 0.55)
+    if (last) ctx.landed(space, 1)
+    else ctx.step(space)
   }
   await ctx.animator.wait(120)
 }
@@ -176,6 +188,7 @@ async function drive(
     // Tiles rumble as the vehicle rolls over them.
     while (passed < i - 1 && passed < path.length - 1) {
       ctx.bump(path[passed]!, 0.3)
+      ctx.step(path[passed]!)
       passed++
     }
     if (!braking && p > 0.7) {
@@ -185,6 +198,7 @@ async function drive(
   })
   token.squash.kick(4 * style.bounce * tune.squash)
   ctx.bump(path[path.length - 1]!, 0.7)
+  ctx.landed(path[path.length - 1]!, 0.7)
   await ctx.animator.wait(160)
 }
 
@@ -207,6 +221,7 @@ async function fly(ctx: MotionContext, token: TokenView, to: number): Promise<vo
   const from = { col: token.pos.col, row: token.pos.row }
   const z0 = token.pos.z
   const anim = ctx.animator
+  ctx.liftoff()
   await anim.tween(280, (p) => (token.pos.z = z0 + (CRUISE_Z - z0) * p), ease.outCubic)
 
   const dist = Math.hypot(target.col - from.col, target.row - from.row)
@@ -226,6 +241,7 @@ async function fly(ctx: MotionContext, token: TokenView, to: number): Promise<vo
   await anim.tween(320, (p) => (token.pos.z = CRUISE_Z + (token.restZ - CRUISE_Z) * p), ease.outCubic)
   token.squash.kick(2.5 * ctx.tuning.squash)
   ctx.bump(to, 0.45)
+  ctx.landed(to, 0.45)
 }
 
 // ---- float (balloon) ------------------------------------------------------
@@ -238,6 +254,7 @@ async function float(ctx: MotionContext, token: TokenView, to: number): Promise<
   const from = { col: token.pos.col, row: token.pos.row }
   const z0 = token.pos.z
   const anim = ctx.animator
+  ctx.liftoff()
   await anim.tween(520, (p) => (token.pos.z = z0 + (BALLOON_Z - z0) * p), ease.inOutSine)
 
   const dc = target.col - from.col
@@ -262,4 +279,5 @@ async function float(ctx: MotionContext, token: TokenView, to: number): Promise<
   await anim.tween(700, (p) => (token.pos.z = BALLOON_Z + (token.restZ - BALLOON_Z) * p), ease.outCubic)
   token.squash.kick(1.5 * ctx.tuning.squash)
   ctx.bump(to, 0.3)
+  ctx.landed(to, 0.3)
 }

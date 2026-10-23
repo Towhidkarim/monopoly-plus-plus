@@ -22,6 +22,21 @@ export interface TileDeco {
 
 const EMPTY_DECO: TileDeco = { owner: null, level: 0, mortgaged: false }
 
+/** How a newly built house falls into place. */
+export interface DropTuning {
+  dropHeight: number
+  gravity: number
+  bounce: number
+}
+
+/** A building in mid-fall: height above its slot and vertical speed (z units, per second). */
+interface Drop {
+  z: number
+  v: number
+  bounced: boolean
+  tune: DropTuning
+}
+
 /** One of the 40 ring tiles: code-drawn geometry, lift spring, highlight rim, game decoration. */
 export class TileView {
   readonly container = new Container()
@@ -37,6 +52,9 @@ export class TileView {
   private pulseClock = 0
   private deco: TileDeco = EMPTY_DECO
   private lastT = 1
+  private drop: Drop | null = null
+  /** Called when a dropped building first hits the tile, with the new building level. */
+  onImpact: ((tile: TileView, level: number) => void) | null = null
 
   readonly index: number
 
@@ -48,16 +66,47 @@ export class TileView {
     this.container.addChild(this.base, this.decoG, this.rim)
   }
 
-  /** Updates ownership/buildings/mortgage. `animate` gives a little bounce and flash. */
-  setDeco(deco: TileDeco, animate: boolean): void {
+  /**
+   * Updates ownership/buildings/mortgage. `animate` gives a bounce (`lift`) and a flash; with
+   * `drop`, a newly built house or hotel falls from above and calls `onImpact` when it lands.
+   */
+  setDeco(deco: TileDeco, animate: boolean, drop: DropTuning | null = null, lift = 2.4): void {
     const d = this.deco
     if (d.owner === deco.owner && d.level === deco.level && d.mortgaged === deco.mortgaged) return
     this.deco = { ...deco }
-    this.drawDeco(this.lastT)
-    if (animate) {
-      this.lift.kick(deco.level > d.level || deco.owner !== d.owner ? 2.4 : -1.4)
+    this.drop = null
+    const built = deco.level > d.level
+    if (animate && built && drop) {
+      this.drop = { z: drop.dropHeight, v: 0, bounced: false, tune: drop }
+    } else if (animate) {
+      this.lift.kick(built || deco.owner !== d.owner ? lift : -1.4)
       this.flash = 1
     }
+    this.drawDeco(this.lastT)
+  }
+
+  /** True while a building is still falling or bouncing. */
+  get dropping(): boolean {
+    return this.drop !== null
+  }
+
+  private stepDrop(dtMs: number): void {
+    const d = this.drop!
+    const dt = Math.min(dtMs, 50) / 1000
+    d.v -= d.tune.gravity * dt
+    d.z += d.v * dt
+    if (d.z <= 0) {
+      d.z = 0
+      if (d.bounced || d.tune.bounce <= 0) this.drop = null
+      if (!d.bounced) {
+        d.bounced = true
+        this.lift.kick(Math.min(3, -d.v * 0.5))
+        this.flash = 1
+        this.onImpact?.(this, this.deco.level)
+        d.v = -d.v * d.tune.bounce
+      }
+    }
+    this.drawDeco(this.lastT)
   }
 
   private drawDeco(t: number): void {
@@ -75,11 +124,20 @@ export class TileView {
       g.poly(quad(fp, 0.06, 0.03, 0.94, 0.13, t)).fill(owner)
       g.poly(quad(fp, 0.06, 0.03, 0.94, 0.05, t)).fill(shade(owner, 0.7))
     }
+    // The newest building may be mid-fall.
+    const dz = this.drop?.z ?? 0
     if (level === 5) {
       const c = tilePoint(fp, 0.5, 0.6)
       isoBox(
         g,
-        { col0: c.col - 0.17, col1: c.col + 0.17, row0: c.row - 0.17, row1: c.row + 0.17, z0: 0, z1: 0.32 },
+        {
+          col0: c.col - 0.17,
+          col1: c.col + 0.17,
+          row0: c.row - 0.17,
+          row1: c.row + 0.17,
+          z0: dz,
+          z1: dz + 0.32,
+        },
         { top: 0xfda4af, left: 0xe11d48, right: 0x9f1239 },
         t,
       )
@@ -87,9 +145,10 @@ export class TileView {
       for (let i = 0; i < level; i++) {
         const c = tilePoint(fp, (i + 0.5) / 4, 0.62)
         const r = 0.085
+        const z = i === level - 1 ? dz : 0
         isoBox(
           g,
-          { col0: c.col - r, col1: c.col + r, row0: c.row - r, row1: c.row + r, z0: 0, z1: 0.14 },
+          { col0: c.col - r, col1: c.col + r, row0: c.row - r, row1: c.row + r, z0: z, z1: z + 0.14 },
           { top: 0x6ee7b7, left: 0x10b981, right: 0x047857 },
           t,
         )
@@ -125,7 +184,9 @@ export class TileView {
       .stroke({ color: 0xffffff, width: 3, alignment: 1, join: 'round' })
   }
 
-  update(dtMs: number, t: number): void {
+  /** `speed` scales falling buildings with the game speed (springs stay real-time). */
+  update(dtMs: number, t: number, speed = 1): void {
+    if (this.drop) this.stepDrop(dtMs * speed)
     this.lift.target = this.selected ? LIFT_SELECT : this.hovered ? LIFT_HOVER : 0
     this.lift.step(dtMs)
     this.container.y = -this.lift.value * zScale(t)

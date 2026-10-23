@@ -11,9 +11,9 @@ export const TIMINGS = {
   /** Pause after rent or tax so the payment registers. */
   paymentBeat: 260,
   /** Coins flying between two player cards. */
-  coinFlight: 640,
+  coinFlight: 950,
   /** Gap between consecutive coins in one transfer. */
-  coinStagger: 55,
+  coinStagger: 85,
   /** Floating "+₵200" over a player card. */
   numberPop: 1100,
   /** HUD cash counting up or down to its new value. */
@@ -31,3 +31,10 @@ export const TIMINGS = {
 
 /** Rent at or above this (or any rent a human pays or receives) gets a center callout. */
 export const BIG_RENT = 150
+
+/** Coins in one flying transfer: more money, more coins (also paces the coin sounds). */
+export const coinCount = (amount: number) => Math.max(3, Math.min(9, Math.round(3 + amount / 120)))
+
+/** When the last coin of a transfer lands (the payee's "+₵" pops then), at 1x. */
+export const coinsLandMs = (amount: number) =>
+  TIMINGS.coinFlight + (coinCount(amount) - 1) * TIMINGS.coinStagger

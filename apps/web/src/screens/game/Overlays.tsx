@@ -1,6 +1,8 @@
-import { useState, type ReactNode } from 'react'
+import { useState, useSyncExternalStore, type ReactNode } from 'react'
 import { CHANCE_CARDS, CHEST_CARDS, netWorth } from '@skyline/engine'
 import type { GameStore, Snapshot } from '../../game/store.ts'
+import { sound } from '../../audio/engine.ts'
+import { usePanelSound } from '../../audio/usePanelSound.ts'
 import { cssHex } from '../../spaceInfo.ts'
 import { Icon } from './icons.tsx'
 import { SPEEDS, type SpeedChoice } from './format.ts'
@@ -107,6 +109,7 @@ const SHORTCUTS: [string, string][] = [
 
 /** Rules in brief plus keyboard shortcuts. */
 export function HelpOverlay({ onClose }: { onClose: () => void }) {
+  usePanelSound()
   return (
     <div className="pointer-events-auto absolute inset-0 z-30 flex items-center justify-center bg-table/60 p-4 backdrop-blur-sm">
       <Panel className="flex max-h-full w-180 max-w-full animate-pop flex-col overflow-hidden">
@@ -180,6 +183,8 @@ export function GameMenu({
   fastBots,
   onSpeed,
   onFastBots,
+  reducedMotion,
+  onReducedMotion,
   onLog,
   onQuit,
   onClose,
@@ -188,10 +193,13 @@ export function GameMenu({
   fastBots: boolean
   onSpeed: (v: SpeedChoice) => void
   onFastBots: () => void
+  reducedMotion: boolean
+  onReducedMotion: () => void
   onLog: () => void
   onQuit: () => void
   onClose: () => void
 }) {
+  usePanelSound()
   const [confirm, setConfirm] = useState(false)
   return (
     <>
@@ -222,6 +230,19 @@ export function GameMenu({
           Fast bots
           <input type="checkbox" checked={fastBots} onChange={onFastBots} className="size-4 accent-accent" />
         </label>
+        <label
+          className="flex items-center justify-between text-sm"
+          title="No shake, confetti, or flying coins"
+        >
+          Reduced motion
+          <input
+            type="checkbox"
+            checked={reducedMotion}
+            onChange={onReducedMotion}
+            className="size-4 accent-accent"
+          />
+        </label>
+        <SoundSettings />
         <Btn onClick={onLog} className="justify-start">
           Game log
         </Btn>
@@ -241,5 +262,40 @@ export function GameMenu({
         )}
       </Panel>
     </>
+  )
+}
+
+/** Volume and mute, straight on the sound engine (it saves its own settings). */
+function SoundSettings() {
+  useSyncExternalStore(sound.subscribe, sound.getVersion)
+  const s = sound.settings
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Eyebrow className="text-ink-muted">Sound</Eyebrow>
+      <div className="flex items-center gap-2.5">
+        <button
+          type="button"
+          aria-pressed={s.muted}
+          onClick={() => sound.setSettings({ muted: !s.muted })}
+          className={seg(!s.muted).replace('flex-1 ', '') + ' min-w-14 bg-table'}
+        >
+          {s.muted ? 'Off' : 'On'}
+        </button>
+        <input
+          type="range"
+          aria-label="Volume"
+          min={0}
+          max={1}
+          step={0.01}
+          value={s.master}
+          disabled={s.muted}
+          onChange={(e) => sound.setSettings({ master: Number(e.target.value) })}
+          className="min-w-0 flex-1 accent-accent disabled:opacity-40"
+        />
+      </div>
+      <a href="#sounds" className="text-xs text-ink-muted hover:text-ink">
+        Sound board (try and pick sounds)
+      </a>
+    </div>
   )
 }

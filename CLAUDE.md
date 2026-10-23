@@ -81,5 +81,6 @@ pnpm typecheck    # tsc (TS 7) across packages
 pnpm lint         # oxlint --type-aware
 pnpm fmt          # oxfmt (write); pnpm fmt:check to verify
 pnpm check        # fmt:check + lint + typecheck + test; run before declaring work done
+pnpm assets:audio # rebuild sound packs from tools/assets/audio (after changing sound files)
 pnpm sim          # bot matchups: pnpm sim --bots heuristic,random,random,random --games 1000 (--fuzz for random-play invariants)
 ```

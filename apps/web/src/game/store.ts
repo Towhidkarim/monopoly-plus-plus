@@ -13,12 +13,13 @@ import {
 import type { Board, BoardSnapshot } from '@skyline/board'
 
 /** What the store needs from a board view (the Pixi Board satisfies it; tests use a stub). */
-export type BoardPort = Pick<Board, 'setPlayers' | 'sync' | 'play' | 'setTuning' | 'skipAnimations'>
+export type BoardPort = Pick<Board, 'setPlayers' | 'sync' | 'play' | 'setTuning' | 'skipAnimations' | 'punch'>
 import { PERSONALITIES, botRng, createHeuristicBot, type Bot, type BotRng } from '@skyline/bots'
 import { describe, type LogEntry } from './log.ts'
 import { applyEvent, desyncs, presentFrom, type Presented } from './presented.ts'
+import { loadPrefs } from './prefs.ts'
 import { saveGame, type GameSetup, type SavedGame } from './setup.ts'
-import { BIG_RENT, TIMINGS } from './timings.ts'
+import { BIG_RENT, TIMINGS, coinsLandMs } from './timings.ts'
 
 export interface CardShown {
   deck: 'chance' | 'chest'
@@ -63,6 +64,8 @@ export interface StoreSettings {
   fastBots: boolean
   /** Skip all animations: the board snaps to each new state. */
   instant: boolean
+  /** No shake, hit-stop, confetti, flying coins, or big motion. */
+  reducedMotion: boolean
 }
 
 const LOG_LIMIT = 200
@@ -73,10 +76,11 @@ const LOG_LIMIT = 200
  */
 export class GameStore {
   readonly setup: GameSetup
-  readonly settings: StoreSettings = { speed: 1, fastBots: false, instant: false }
+  readonly settings: StoreSettings = { speed: 1, fastBots: false, instant: false, reducedMotion: false }
   private snap: Snapshot
   private readonly listeners = new Set<() => void>()
   private readonly fxListeners = new Set<(fx: Fx) => void>()
+  private readonly eventListeners = new Set<(e: GameEvent) => void>()
   private readonly actions: SavedGame['actions'] = []
   private readonly queue: GameEvent[] = []
   private pumping = false
@@ -94,6 +98,7 @@ export class GameStore {
 
   constructor(setup: GameSetup, replay: SavedGame['actions'] = []) {
     this.setup = setup
+    Object.assign(this.settings, loadPrefs())
     this.rng = botRng(setup.seed ^ 0x5bd1e995)
     // Bots trade among themselves; humans get offers once the trade screen exists (Milestone 8).
     const canTradeWith = (id: string) => this.seatKind(id) === 'bot'
@@ -149,6 +154,12 @@ export class GameStore {
     return () => this.fxListeners.delete(fn)
   }
 
+  /** Each event as it starts playing (not while skipping), for sound. */
+  onEvent = (fn: (e: GameEvent) => void): (() => void) => {
+    this.eventListeners.add(fn)
+    return () => this.eventListeners.delete(fn)
+  }
+
   private set(patch: Partial<Snapshot>): void {
     this.snap = { ...this.snap, ...patch }
     for (const fn of this.listeners) fn()
@@ -164,6 +175,7 @@ export class GameStore {
   attach(board: BoardPort | null): void {
     this.board = board
     if (!board) return
+    board.setTuning({ speed: this.settings.speed, reducedMotion: this.settings.reducedMotion })
     board.setPlayers(this.setup.seats.map((s) => ({ id: s.id, color: s.color, piece: s.piece })))
     board.sync(boardSnapshot(this.snap.state))
     this.scheduleBot()
@@ -214,6 +226,7 @@ export class GameStore {
 
   setSettings(patch: Partial<StoreSettings>): void {
     Object.assign(this.settings, patch)
+    this.board?.setTuning({ speed: this.settings.speed, reducedMotion: this.settings.reducedMotion })
   }
 
   /** Personality name of a bot seat ("Tycoon"), or null for humans. */
@@ -247,6 +260,7 @@ export class GameStore {
     this.cardAck?.()
     this.listeners.clear()
     this.fxListeners.clear()
+    this.eventListeners.clear()
   }
 
   // ---- event playback -----------------------------------------------------
@@ -278,6 +292,7 @@ export class GameStore {
 
   private async play(e: GameEvent): Promise<void> {
     const speed = this.settings.speed
+    for (const fn of this.eventListeners) fn(e)
     if (e.type === 'DICE_ROLLED') {
       this.set({ dice: e.dice, diceRoll: this.snap.diceRoll + 1 })
       await wait(TIMINGS.dice / speed)
@@ -295,7 +310,7 @@ export class GameStore {
     if (e.type === 'CASH_CHANGED') return this.playCash(e, speed)
     this.callout(e)
     if (this.board) {
-      this.board.setTuning({ speed })
+      this.board.setTuning({ speed, reducedMotion: this.settings.reducedMotion })
       await this.board.play(e)
     }
   }
@@ -308,8 +323,11 @@ export class GameStore {
       if (e.reason === 'rent') this.rentCallout(e.playerId, other, -e.delta)
       return
     }
-    if (other) await wait(TIMINGS.coinFlight / speed)
+    if (other) await wait(coinsLandMs(e.delta) / speed)
     this.emit({ kind: 'pop', playerId: e.playerId, delta: e.delta })
+    // A big rent lands with a jolt (hit-stop and shake, scaled by the amount).
+    if (other && e.reason === 'rent' && e.delta >= BIG_RENT && !this.skipping)
+      this.board?.punch(Math.min(1, e.delta / 800))
     if (!other && (e.reason === 'tax' || e.reason === 'rent')) await wait(TIMINGS.paymentBeat / speed)
   }
 

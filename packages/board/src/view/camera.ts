@@ -1,5 +1,6 @@
 import type { Container, FederatedPointerEvent, FederatedWheelEvent } from 'pixi.js'
 import { smooth } from '../anim/spring.ts'
+import { Shake } from '../juice/shake.ts'
 
 /** Screen pixels covered by UI on each side; the board frames itself in what is left. */
 export interface Insets {
@@ -43,6 +44,10 @@ export class Camera {
   private pinchDist = 0
   /** True once the current press moved past the threshold (so it is not a click). */
   dragging = false
+  /** Screen shake on top of the camera position (never moves the logical center). */
+  readonly shake = new Shake()
+  shakeTuning = { maxPx: 14, decay: 2.2, hz: 18 }
+  private offset = { x: 0, y: 0 }
 
   private readonly world: Container
 
@@ -130,6 +135,7 @@ export class Camera {
     this.cx = smooth(this.cx, this.tx, k, dtMs)
     this.cy = smooth(this.cy, this.ty, k, dtMs)
     this.zoom = smooth(this.zoom, this.tz, 10, dtMs)
+    this.offset = this.shake.step(dtMs, this.shakeTuning)
     this.apply()
   }
 
@@ -216,7 +222,10 @@ export class Camera {
   private apply(): void {
     this.world.scale.set(this.zoom)
     const a = this.anchor()
-    this.world.position.set(a.x - this.cx * this.zoom, a.y - this.cy * this.zoom)
+    this.world.position.set(
+      a.x - this.cx * this.zoom + this.offset.x,
+      a.y - this.cy * this.zoom + this.offset.y,
+    )
   }
 
   private pinchDistance(): number {

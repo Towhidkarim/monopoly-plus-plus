@@ -1,3 +1,4 @@
+import { usePanelSound } from '../../audio/usePanelSound.ts'
 import type { ReactNode } from 'react'
 import {
   GROUPS,
@@ -57,6 +58,7 @@ export function MyCity({
   onClose: () => void
   onFocus: (space: number) => void
 }) {
+  usePanelSound()
   const s = snap.state
   const p = snap.presented
   const me = p.players[seat]!

@@ -176,8 +176,10 @@ All Pixi code lives in `packages/board`, exposed through `mountBoard(host)` and 
 
 Juice toolkit (`packages/board/src/juice/`):
 
-- `Spring` (stiffness, damping, clamped `dt`), `smooth` (exponential damping), `shake` (decaying noise on the world container), `hitStop(ms)` (pauses ticker-driven ambient motion briefly), `numberPop`, `squash(sprite)`, `idleBob`.
-- One physics-style ticker loop. GSAP handles timelines. Do not run two competing per-frame loops for the same object.
+- `Spring` and `smooth` (`anim/`), `Shake` (trauma squared times smooth noise, applied as a camera offset), hit-stop (`board.hitStop(ms)`: the world steps at 3% speed, the camera keeps running), `Particles` (pooled confetti, sparkles, dust), squash and idle bob on tokens.
+- Every tuned number is in `juice/config.ts` (`DEFAULT_JUICE`); the playground's Juice tab edits a live copy (`board.setJuice`).
+- One ticker loop drives tweens, springs, particles and the camera. Do not run two competing per-frame loops for the same object.
+- The board emits **beats** (`BoardListeners.beat`) as motion reaches its moments (each hop, the landing, a house hitting its lot, each tile of a set lighting up) so the shell can play sounds in sync. Sound lives in `apps/web/src/audio/` (mixer, synth, catalog, event-to-sound map), never in `packages/board`.
 
 Standard choreographies (each is `play(event) => Timeline`):
 

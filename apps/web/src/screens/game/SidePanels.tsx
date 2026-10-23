@@ -31,7 +31,12 @@ export function LeftColumn({
     <div className="pointer-events-none absolute top-26 left-4 flex w-72 flex-col gap-3">
       {snap.dice && (
         <div className="pointer-events-auto flex items-center gap-3 rounded-2xl border border-line bg-panel/95 px-4 py-3.5">
-          <DiceTray dice={snap.dice} roll={snap.diceRoll} />
+          <DiceTray
+            dice={snap.dice}
+            roll={snap.diceRoll}
+            speed={store.settings.speed}
+            reduced={store.settings.reducedMotion}
+          />
           <div className="flex flex-col">
             <span className="text-xs text-ink-muted">Last roll</span>
             <span className="text-[15px] font-semibold">

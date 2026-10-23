@@ -14,6 +14,7 @@ function stubBoard(): BoardPort & { played: string[] } {
       played.push(e.type)
     },
     setTuning: () => {},
+    punch: () => {},
     skipAnimations: () => {},
   }
 }

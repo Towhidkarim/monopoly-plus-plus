@@ -2,6 +2,9 @@ import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { SPACES, isOwnable, rentFor } from '@skyline/engine'
 import type { BoardHandle } from '@skyline/board'
 import { BoardCanvas } from '../BoardCanvas.tsx'
+import { connectSound } from '../audio/connect.ts'
+import { sound } from '../audio/engine.ts'
+import { savePrefs } from '../game/prefs.ts'
 import { buildableGroups } from '@skyline/bots'
 import type { GameStore, Snapshot } from '../game/store.ts'
 import { spaceInfo } from '../spaceInfo.ts'
@@ -39,17 +42,24 @@ export function GameScreen({ store, onQuit }: { store: GameStore; onQuit: () => 
     store.settings.instant ? 'instant' : (SPEEDS.find((v) => v === store.settings.speed) ?? 1),
   )
   const [fastBots, setFastBots] = useState(store.settings.fastBots)
+  const [reducedMotion, setReducedMotion] = useState(store.settings.reducedMotion)
   const [cityOpen, setCityOpen] = useState(() => initialPanel() === 'city')
   const [help, setHelp] = useState(() => initialPanel() === 'help')
   const [menu, setMenu] = useState(false)
   const [showLog, setShowLog] = useState(false)
 
   useEffect(() => {
+    const audio = connectSound(store)
+    // Dev console handle (and for scripted screenshots).
+    if (import.meta.env.DEV) Object.assign(window, { skylineStore: store })
     store.attach(handle?.board ?? null)
-    handle?.board.setListeners({ select: setSelected })
+    handle?.board.setListeners({ select: setSelected, beat: audio.beat })
     // Frame the board between the HUD and turn banner above and the action dock below.
     handle?.board.setInsets({ top: 130, right: 0, bottom: 110, left: 0 })
-    return () => store.attach(null)
+    return () => {
+      audio.disconnect()
+      store.attach(null)
+    }
   }, [handle, store])
 
   const turn = turnView(snap, store)
@@ -58,9 +68,15 @@ export function GameScreen({ store, onQuit }: { store: GameStore; onQuit: () => 
   const cityBadge =
     viewerId && store.seatKind(viewerId) === 'human' ? buildableGroups(snap.state, viewerId) : 0
 
+  /** Menu choices are remembered for the next game. */
+  const persist = () => {
+    const s = store.settings
+    savePrefs({ speed: s.speed, fastBots: s.fastBots, instant: s.instant, reducedMotion: s.reducedMotion })
+  }
   const changeSpeed = (v: SpeedChoice) => {
     store.setSettings(v === 'instant' ? { instant: true } : { speed: v, instant: false })
     setSpeed(v)
+    persist()
   }
   const select = (space: number | null) => handle?.board.select(space)
   const toggleCity = () => viewer !== null && setCityOpen((v) => !v)
@@ -92,6 +108,7 @@ export function GameScreen({ store, onQuit }: { store: GameStore; onQuit: () => 
     if (key === 'c') return press(toggleCity)
     if (key === 'l') return press(() => setShowLog((v) => !v))
     if (key === 's') return press(() => store.skip())
+    if (key === 'm') return press(() => sound.setSettings({ muted: !sound.settings.muted }))
     const hit = momentKey(turn, key) ?? turn.secondary.find((c) => c.hotkey?.toLowerCase() === key)?.run
     if (hit) press(hit)
   }
@@ -159,6 +176,13 @@ export function GameScreen({ store, onQuit }: { store: GameStore; onQuit: () => 
               onFastBots={() => {
                 store.setSettings({ fastBots: !fastBots })
                 setFastBots(!fastBots)
+                persist()
+              }}
+              reducedMotion={reducedMotion}
+              onReducedMotion={() => {
+                store.setSettings({ reducedMotion: !reducedMotion })
+                setReducedMotion(!reducedMotion)
+                persist()
               }}
               onLog={() => {
                 setShowLog(true)

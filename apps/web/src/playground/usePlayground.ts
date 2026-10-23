@@ -22,7 +22,7 @@ const rollDie = () => 1 + Math.floor(Math.random() * 6) // cosmetic playground o
  * Scripted events for the board playground (no rules engine yet). Positions are tracked here
  * the way the engine will later; the board only animates.
  */
-export function usePlayground(board: Board | null) {
+export function usePlayground(board: Board | null, onEvent?: (e: GameEvent) => void) {
   const positions = useRef<Record<string, number>>({})
   const queue = useRef<Promise<void>>(Promise.resolve())
   const [active, setActive] = useState(0)
@@ -46,7 +46,11 @@ export function usePlayground(board: Board | null) {
   /** Runs events one after another; resolves when this batch has finished playing. */
   const enqueue = (events: GameEvent[]): Promise<void> => {
     const run = async () => {
-      if (board) for (const e of events) await board.play(e)
+      if (!board) return
+      for (const e of events) {
+        onEvent?.(e)
+        await board.play(e)
+      }
     }
     queue.current = queue.current.then(run)
     return queue.current
@@ -70,6 +74,7 @@ export function usePlayground(board: Board | null) {
   const roll = (fixed?: number, playerIndex = active): Promise<void> => {
     const d: [number, number] = fixed ? [Math.ceil(fixed / 2), Math.floor(fixed / 2)] : [rollDie(), rollDie()]
     setDice(d)
+    onEvent?.({ type: 'DICE_ROLLED', playerId: PLAYERS[playerIndex]!.id, dice: d })
     return moveBy(playerIndex, d[0] + d[1])
   }
 

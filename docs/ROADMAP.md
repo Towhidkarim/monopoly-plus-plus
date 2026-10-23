@@ -86,6 +86,8 @@ Acceptance: the developer approves the mockup and then the built screens; every 
 
 ## Milestone 5: Juice pass 1 (feel)
 
+Status 2026-10-23: implemented (DECISIONS.md D23), awaiting the developer's feel and sound review. Juice toolkit, effects, playground Juice tab, sound system with Kenney CC0 samples plus code-generated sounds, sound board at `#sounds`, reduced motion. Pending: real-GPU 60 fps check with a 4-bot game. Screenshots: `docs/screenshots/m5-*.png`.
+
 - Juice toolkit: `Spring`, smoothing, shake, hit-stop, squash, number pop, idle bob.
 - Tune: token hop, landing squash, dice tumble with shadow, number ticks, purchase pop, build drop with dust, monopoly celebration (particles, band pulse, hit-stop), camera follow.
 - Extend the playground page with every effect in isolation and live tuning sliders.

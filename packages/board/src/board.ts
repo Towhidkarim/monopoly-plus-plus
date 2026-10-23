@@ -1,7 +1,9 @@
 import { Container, Graphics, Text, type Application, type FederatedPointerEvent } from 'pixi.js'
-import type { GameEvent } from '@skyline/engine'
+import { GROUPS, type GameEvent } from '@skyline/engine'
 import { Animator, ease } from './anim/animator.ts'
 import { project, unproject, type Pos } from './geometry/project.ts'
+import { cloneJuice, type JuiceConfig } from './juice/config.ts'
+import { Particles } from './juice/particles.ts'
 import { BOARD, ringFootprint, tileAt, tileCenter, tokenAnchor } from './geometry/ring.ts'
 import { jump, travel, type MotionContext } from './pieces/motion.ts'
 import { SIDE_HEADING, type PieceKind } from './pieces/shapes.ts'
@@ -11,20 +13,30 @@ import { rect } from './view/draw.ts'
 import { TileView } from './view/tiles.ts'
 import { TokenView } from './view/token.ts'
 
+/** Runtime switches. Feel numbers live in `JuiceConfig` (juice/config.ts). */
 export interface BoardTuning {
-  /** Peak hop height in z units. */
-  hopHeight: number
-  /** Duration of one tile hop. */
-  stepMs: number
-  /** Landing squash strength. */
-  squash: number
   /** Camera follows the moving token. */
   follow: boolean
   /** Global animation speed multiplier. */
   speed: number
+  /** No shake, hit-stop, confetti, or falling buildings; smaller arcs. */
+  reducedMotion: boolean
 }
 
-export const DEFAULT_TUNING: BoardTuning = { hopHeight: 0.45, stepMs: 190, squash: 1, follow: true, speed: 1 }
+export const DEFAULT_TUNING: BoardTuning = { follow: true, speed: 1, reducedMotion: false }
+
+/**
+ * Moments the board reaches while animating, for sound and other listeners. They fire in step
+ * with the motion (a hop's beat fires as that hop lands), so sounds stay in sync at any speed.
+ */
+export type BoardBeat =
+  | { kind: 'step'; piece: PieceKind; space: number; step: number }
+  | { kind: 'land'; piece: PieceKind; space: number; strength: number }
+  | { kind: 'liftoff'; piece: PieceKind }
+  | { kind: 'build'; space: number; level: number }
+  | { kind: 'own'; space: number }
+  | { kind: 'pulse'; space: number; step: number }
+  | { kind: 'punch'; strength: number }
 
 export interface BoardListeners {
   /** Hovered tile changed (null = none). */
@@ -32,6 +44,7 @@ export interface BoardListeners {
   /** Every frame while a tile is hovered: tile top center in canvas CSS px (for tooltips). */
   hoverPosition?: (x: number, y: number) => void
   select?: (index: number | null) => void
+  beat?: (beat: BoardBeat) => void
 }
 
 const MORPH_MS = 750
@@ -54,6 +67,8 @@ export interface BoardSnapshot {
 
 export class Board {
   readonly tuning: BoardTuning = { ...DEFAULT_TUNING }
+  /** Live feel config; edited in place so every view holding a section sees changes. */
+  readonly juice: JuiceConfig = cloneJuice()
   readonly listeners: BoardListeners = {}
 
   private readonly world = new Container()
@@ -61,6 +76,7 @@ export class Board {
   private readonly tileLayer = new Container({ sortableChildren: true })
   private readonly shadowLayer = new Container()
   private readonly actorLayer = new Container({ sortableChildren: true })
+  private readonly particles = new Particles()
   private readonly debugLayer = new Container()
   private readonly debugLines = new Graphics()
   private readonly debugLabels: Text[] = []
@@ -76,6 +92,11 @@ export class Board {
   private readonly camera: Camera
 
   private viewT = 1
+  /** Remaining hit-stop: the world crawls while the camera (and its shake) keeps running. */
+  private freezeMs = 0
+  /** Tiles passed in the current move, for rising step sounds. */
+  private stepCount = 0
+  private mover: TokenView | null = null
   private morphing = false
   private hovered: number | null = null
   private selected: number | null = null
@@ -86,15 +107,18 @@ export class Board {
   constructor(app: Application) {
     this.app = app
     this.camera = new Camera(this.world)
+    this.camera.shakeTuning = this.juice.shake
     this.world.addChild(
       this.ground.graphics,
       this.tileLayer,
       this.shadowLayer,
       this.actorLayer,
+      this.particles.container,
       this.debugLayer,
     )
     for (let i = 0; i < 40; i++) {
       const tile = new TileView(i)
+      tile.onImpact = this.onBuildImpact
       this.tiles.push(tile)
       this.tileLayer.addChild(tile.container)
     }
@@ -116,6 +140,32 @@ export class Board {
 
   setTuning(tuning: Partial<BoardTuning>): void {
     Object.assign(this.tuning, tuning)
+  }
+
+  /** Replaces feel values in place (the playground's live sliders). */
+  setJuice(juice: JuiceConfig): void {
+    const own = (key: string): key is keyof JuiceConfig => key in this.juice
+    for (const [key, section] of Object.entries(juice)) if (own(key)) Object.assign(this.juice[key], section)
+  }
+
+  /** A hit the shell wants felt (big rent): hit-stop and shake scaled by `strength` (0..1). */
+  punch(strength: number): void {
+    const s = Math.min(1, Math.max(0, strength))
+    this.hitStop(this.juice.punch.hitStopMs * s)
+    this.addTrauma(this.juice.punch.trauma * s)
+    this.emit({ kind: 'punch', strength: s })
+  }
+
+  /** Freezes board motion for `ms` (skipped with reduced motion). */
+  hitStop(ms: number): void {
+    if (this.tuning.reducedMotion) return
+    this.freezeMs = Math.max(this.freezeMs, ms)
+  }
+
+  /** Screen shake (skipped with reduced motion). */
+  addTrauma(amount: number): void {
+    if (this.tuning.reducedMotion) return
+    this.camera.shake.add(amount)
   }
 
   setListeners(listeners: BoardListeners): void {
@@ -192,21 +242,25 @@ export class Board {
         return this.playJump(event.playerId, event.to)
       case 'TURN_STARTED': {
         const token = this.tokens.get(event.playerId)
-        if (token && this.tuning.follow) this.camera.setFollow(() => this.worldPos(token), 1.25)
+        if (token && this.tuning.follow)
+          this.camera.setFollow(() => this.worldPos(token), this.juice.camera.followZoom * 0.83)
         token?.squash.kick(5)
         return
       }
       case 'PROPERTY_BOUGHT':
-        return this.setOwner(event.space, event.playerId, 320)
+        return this.purchase(event.space, event.playerId)
       case 'AUCTION_ENDED':
-        return event.winner ? this.setOwner(event.space, event.winner, 320) : undefined
+        return event.winner ? this.purchase(event.space, event.winner) : undefined
       case 'PROPERTY_TRANSFERRED':
         return this.setOwner(event.space, event.to === 'bank' ? null : event.to, 140)
       case 'BUILT':
+        return this.playBuild(event.space, event.level)
       case 'SOLD_BUILDING':
         this.levels[event.space] = event.level
         this.refreshTile(event.space, true)
         return this.animator.wait(240)
+      case 'MONOPOLY_COMPLETED':
+        return this.celebrate(event.group, event.playerId)
       case 'MORTGAGED':
       case 'UNMORTGAGED':
         this.mortgages[event.space] = event.type === 'MORTGAGED'
@@ -219,17 +273,102 @@ export class Board {
     }
   }
 
-  private setOwner(space: number, owner: string | null, waitMs: number): Promise<void> {
+  private setOwner(space: number, owner: string | null, waitMs: number, lift?: number): Promise<void> {
     this.owners[space] = owner
     if (owner === null) {
       this.levels[space] = 0
       this.mortgages[space] = false
     }
-    this.refreshTile(space, true)
+    this.refreshTile(space, true, false, lift)
     return this.animator.wait(waitMs)
   }
 
-  private refreshTile(space: number, animate: boolean): void {
+  /** The deed changes hands: the tile stamps up and sparkles in the buyer's color. */
+  private purchase(space: number, owner: string): Promise<void> {
+    const j = this.juice.purchase
+    const color = this.colors.get(owner) ?? 0xffffff
+    if (!this.tuning.reducedMotion) {
+      const p = this.tileTop(space)
+      this.particles.burst(p.x, p.y, {
+        shape: 'sparkle',
+        count: j.sparkles,
+        colors: [color, 0xffffff, color],
+        speed: this.juice.particles.speed * 0.8,
+        spread: Math.PI * 1.1,
+        gravity: this.juice.particles.gravity * 0.7,
+        lifeMs: this.juice.particles.lifeMs * 0.7,
+        scale: 1.1,
+      })
+    }
+    this.addTrauma(j.trauma)
+    this.emit({ kind: 'own', space })
+    return this.setOwner(space, owner, 320, j.lift)
+  }
+
+  /** A house drops onto its slot; dust and a thump when it lands (see onBuildImpact). */
+  private async playBuild(space: number, level: number): Promise<void> {
+    this.levels[space] = level
+    const drop = !this.tuning.reducedMotion
+    this.refreshTile(space, true, drop)
+    if (!drop) {
+      this.emit({ kind: 'build', space, level })
+      return this.animator.wait(240)
+    }
+    const b = this.juice.build
+    const fallMs = 1000 * Math.sqrt((2 * b.dropHeight) / Math.max(1, b.gravity))
+    await this.animator.wait(fallMs + 140)
+  }
+
+  private readonly onBuildImpact = (tile: TileView, level: number): void => {
+    const b = this.juice.build
+    const p = this.tileTop(tile.index)
+    this.particles.burst(p.x, p.y + 6, {
+      shape: 'dust',
+      count: b.dust * (level === 5 ? 2 : 1),
+      colors: [0xcbd5e1, 0x94a3b8, 0xe2e8f0],
+      speed: this.juice.particles.speed * 0.45,
+      spread: Math.PI * 1.6,
+      gravity: -40,
+      lifeMs: 650,
+      drag: 0.04,
+      scale: 0.7,
+      grow: 1.6,
+    })
+    this.addTrauma(level === 5 ? b.hotelTrauma : b.trauma)
+    this.emit({ kind: 'build', space: tile.index, level })
+  }
+
+  /** Completed set: a beat of hit-stop, then the group lights up tile by tile with confetti. */
+  private async celebrate(group: number, playerId: string): Promise<void> {
+    const c = this.juice.celebrate
+    const spaces = GROUPS[group] ?? []
+    const color = this.colors.get(playerId) ?? 0xffffff
+    this.hitStop(c.hitStopMs)
+    this.addTrauma(c.trauma)
+    await this.animator.wait(c.hitStopMs * 0.5)
+    for (const [step, space] of spaces.entries()) {
+      const tile = this.tiles[space]!
+      tile.lift.kick(c.lift)
+      tile.flash = 1
+      if (!this.tuning.reducedMotion) {
+        const p = this.tileTop(space)
+        this.particles.burst(p.x, p.y, {
+          shape: 'confetti',
+          count: c.confetti,
+          colors: [color, 0xfbbf24, 0xffffff, 0x22d3ee],
+          speed: this.juice.particles.speed,
+          spread: Math.PI * 0.9,
+          gravity: this.juice.particles.gravity,
+          lifeMs: this.juice.particles.lifeMs,
+        })
+      }
+      this.emit({ kind: 'pulse', space, step })
+      await this.animator.wait(c.pulseStepMs)
+    }
+    await this.animator.wait(c.holdMs)
+  }
+
+  private refreshTile(space: number, animate: boolean, drop = false, lift?: number): void {
     const owner = this.owners[space] ?? null
     this.tiles[space]!.setDeco(
       {
@@ -238,7 +377,18 @@ export class Board {
         mortgaged: this.mortgages[space] ?? false,
       },
       animate,
+      drop ? this.juice.build : null,
+      lift,
     )
+  }
+
+  /** Top center of a tile in world pixels (where effects spawn). */
+  private tileTop(space: number): { x: number; y: number } {
+    return project({ ...tileCenter(space), z: this.tiles[space]!.lift.value }, this.viewT)
+  }
+
+  private emit(beat: BoardBeat): void {
+    this.listeners.beat?.(beat)
   }
 
   private async playBankrupt(id: string): Promise<void> {
@@ -310,6 +460,7 @@ export class Board {
     this.app.ticker.remove(this.tick)
     this.app.renderer.off('resize', this.onResize)
     this.animator.finishAll()
+    this.particles.destroy()
   }
 
   // ---- choreography ------------------------------------------------------
@@ -318,23 +469,28 @@ export class Board {
     const token = this.tokens.get(playerId)
     if (!token || path.length === 0) return
     this.animator.speed = this.tuning.speed
-    if (this.tuning.follow) this.camera.setFollow(() => this.worldPos(token))
+    if (this.tuning.follow) this.camera.setFollow(() => this.worldPos(token), this.juice.camera.followZoom)
+    this.mover = token
+    this.stepCount = 0
     await travel(this.motion, token, path)
+    this.mover = null
   }
 
   private async playJump(playerId: string, to: number): Promise<void> {
     const token = this.tokens.get(playerId)
     if (!token) return
     this.animator.speed = this.tuning.speed
-    if (this.tuning.follow) this.camera.setFollow(() => this.worldPos(token))
+    if (this.tuning.follow) this.camera.setFollow(() => this.worldPos(token), this.juice.camera.followZoom)
+    this.mover = token
     await jump(this.motion, token, to)
+    this.mover = null
     await this.animator.wait(150)
   }
 
   /** What movement styles may touch on the board. */
   private readonly motion: MotionContext = {
     animator: this.animator,
-    tuning: this.tuning,
+    tuning: this.juice.hop,
     bump: (space, strength) => {
       const tile = this.tiles[space]!
       tile.lift.kick(-1.6 * strength)
@@ -345,6 +501,15 @@ export class Board {
     },
     slotFor: (token, space) => this.slotFor(token, space),
     layoutTile: (space) => this.layoutTile(space),
+    step: (space) => {
+      this.emit({ kind: 'step', piece: this.mover?.kind ?? 'pawn', space, step: this.stepCount++ })
+    },
+    landed: (space, strength) => {
+      if (strength > 1) this.addTrauma(this.juice.land.jumpTrauma)
+      this.emit({ kind: 'land', piece: this.mover?.kind ?? 'pawn', space, strength })
+    },
+    liftoff: () => this.emit({ kind: 'liftoff', piece: this.mover?.kind ?? 'pawn' }),
+    reduced: () => this.tuning.reducedMotion,
   }
 
   /** Where `token` should stand on `space` given everyone else already there. */
@@ -388,15 +553,19 @@ export class Board {
   // ---- frame loop --------------------------------------------------------
 
   private readonly tick = (ticker: { deltaMS: number }): void => {
-    const dt = ticker.deltaMS
+    const real = ticker.deltaMS
+    // Hit-stop: the world nearly freezes for a beat; the camera (and its shake) keeps going.
+    const dt = this.freezeMs > 0 ? real * 0.03 : real
+    this.freezeMs = Math.max(0, this.freezeMs - real)
     this.animator.step(dt)
     const t = this.viewT
-    for (const tile of this.tiles) tile.update(dt, t)
+    for (const tile of this.tiles) tile.update(dt, t, this.animator.speed)
     for (const token of this.tokens.values()) {
       const under = tileAt(token.pos.col, token.pos.row)
       token.update(dt, t, under === null ? 0 : this.tiles[under]!.lift.value)
     }
-    this.camera.update(dt)
+    this.particles.update(dt)
+    this.camera.update(real)
     if (this.hovered !== null && this.listeners.hoverPosition) {
       const c = tileCenter(this.hovered)
       const p = this.world.toGlobal(project({ ...c, z: this.tiles[this.hovered]!.lift.value }, t))

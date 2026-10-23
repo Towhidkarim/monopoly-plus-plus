@@ -14,6 +14,8 @@ const PATHS = {
   lock: 'M6 11h12v10H6zM8 11V7a4 4 0 0 1 8 0v4',
   chance: 'M12 3l8 9-8 9-8-9z',
   fund: 'M4 10h16M6 10v8M10 10v8M14 10v8M18 10v8M3 21h18M12 3l9 5H3z',
+  sound: 'M11 5 6 9H3v6h3l5 4zM15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13',
+  muted: 'M11 5 6 9H3v6h3l5 4zM22 9l-6 6M16 9l6 6',
 } as const
 
 export type IconName = keyof typeof PATHS

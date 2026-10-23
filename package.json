@@ -13,7 +13,8 @@
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",
     "check": "pnpm fmt:check && pnpm lint && pnpm typecheck && pnpm test",
-    "sim": "pnpm --filter @skyline/bots sim"
+    "sim": "pnpm --filter @skyline/bots sim",
+    "assets:audio": "node tools/assets/pack-audio.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",

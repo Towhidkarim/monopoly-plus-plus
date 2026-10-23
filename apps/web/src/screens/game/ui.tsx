@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, type ReactNode } from 'react'
 import { TIMINGS } from '../../game/timings.ts'
+import { sound } from '../../audio/engine.ts'
 import { fmtMoney } from './format.ts'
 
 /** Small shared building blocks for the game screen. */
@@ -31,7 +32,10 @@ export function Btn({
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={() => {
+        sound.play('ui.click')
+        onClick?.()
+      }}
       disabled={disabled}
       title={title}
       className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition duration-100 active:scale-95 disabled:pointer-events-none disabled:opacity-40 ${BTN_STYLES[kind]} ${className}`}

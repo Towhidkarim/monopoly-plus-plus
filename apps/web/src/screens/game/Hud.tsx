@@ -1,5 +1,6 @@
-import type { ReactNode } from 'react'
+import { useSyncExternalStore, type ReactNode } from 'react'
 import { GROUP_COUNT, GROUPS, SPACES } from '@skyline/engine'
+import { sound } from '../../audio/engine.ts'
 import type { GameStore, Snapshot } from '../../game/store.ts'
 import { cssHex, groupColor } from '../../spaceInfo.ts'
 import { Icon } from './icons.tsx'
@@ -26,9 +27,11 @@ export function Hud({
   const p = snap.presented
   const limit = snap.state.config.roundLimit
   const solo = store.setup.seats.filter((x) => x.kind === 'human').length === 1
+  useSyncExternalStore(sound.subscribe, sound.getVersion)
+  const muted = sound.settings.muted
   return (
     <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start gap-4 bg-linear-to-b from-table via-table/80 to-transparent px-5 pt-4 pb-8">
-      <div className="pointer-events-auto flex w-44 shrink-0 flex-col gap-1">
+      <div className="pointer-events-auto flex w-52 shrink-0 flex-col gap-1">
         <div className="text-2xl font-bold tracking-tight text-accent">Skyline</div>
         <div className="flex gap-1.5 text-xs text-ink-muted">
           <span className="rounded-full bg-panel-2 px-2 py-0.5">{PRESET_LABEL[store.setup.preset]}</span>
@@ -120,9 +123,16 @@ export function Hud({
         })}
       </div>
 
-      <div className="pointer-events-auto flex w-44 shrink-0 justify-end gap-1.5">
+      <div className="pointer-events-auto flex w-52 shrink-0 justify-end gap-1.5">
         <HudButton onClick={onSpeed} label="Game speed" title="Animation speed (click to change)">
           <span className="text-[13px] font-semibold">{speedLabel}</span>
+        </HudButton>
+        <HudButton
+          onClick={() => sound.setSettings({ muted: !muted })}
+          label={muted ? 'Sound off' : 'Sound on'}
+          title={muted ? 'Sound is off (M)' : 'Sound is on (M)'}
+        >
+          <Icon name={muted ? 'muted' : 'sound'} size={18} />
         </HudButton>
         <HudButton onClick={onHelp} label="Help and rules" title="Help (?)">
           <Icon name="help" size={18} />
