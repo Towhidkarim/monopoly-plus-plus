@@ -6,6 +6,7 @@ export { randomBot, simpleBot } from './simple.ts'
 export { createHeuristicBot, type HeuristicOptions } from './heuristic/bot.ts'
 export { BALANCED, PERSONALITIES, type BotParams } from './heuristic/params.ts'
 export { LANDING } from './heuristic/landing.ts'
+export { accepts, tradeScore, type Offer } from './heuristic/trades.ts'
 export { playMatch, type MatchOptions, type MatchResult } from './match.ts'
 export {
   buildEvenlyPlan,

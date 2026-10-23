@@ -98,12 +98,15 @@ Acceptance: each effect has tuned parameters stored in one config file; a 4-bot 
 
 ## Milestone 6: City and art pass 1
 
-- Code-generated buildings (`docs/BOARD.md` section 5): `isoBox`, window grids, roof variants, seeded plaza city baked to a texture.
-- Development visuals: lot buildings grow floors per house, hotel tower.
-- Group patterns, owner markers, mortgage overlay, tokens, dice faces in the target palette.
-- Optional AI art for hero pieces only (see `ART_GUIDE.md`), with tooling in `tools/assets` if used.
+1. **Art style page** (`#art`): the real renderer draws one lot growing through every level, a corner tile, a city block and a train on a short track, in 2 or 3 style directions side by side, with a Reroll button. The developer picks or mixes the direction before anything is scaled up.
+2. **Modelling kit** (`docs/BOARD.md` section 5): shaded boxes with contact shadows, pitched roofs, cylinders, low-poly trees, window grids as data, roads/sidewalks/crosswalks/rails/park pieces, all driven by a style object.
+3. **Building generators** (seeded): gable house, townhouse row, brick walk-up with water tower, office block, glass tower, landmark.
+4. **Development visuals:** for-sale lot, owned house, terrace, apartment block with setback, hotel tower with beacon; each step drops in with the existing juice.
+5. **Dynamic seeded city** (DECISIONS.md D25): a different central city every game from a city seed saved with the game (separate from the dice seed, cosmetic only). Layout, building mix, landmark and each group's lot architecture vary; ring, corners, cross roads and rail loop stay fixed. Setup screen preview with a "New city" button. Every generated city must look as neat as the reference image (`docs/reference/board-layout-ref.png`), enforced by the layout rules in BOARD.md section 5.
+6. Group patterns, corner tiles, owner markers, mortgage overlay, tokens and dice in the chosen palette.
+7. Optional AI art for hero pieces only (see `ART_GUIDE.md`); not planned.
 
-Acceptance: board looks coherent in the target palette and close to the reference layout; every group is distinguishable with color removed; asset sources logged in `docs/ASSETS.md`.
+Acceptance: the board looks coherent in the chosen style and at least as neat as the reference image; a sheet of 12 rerolled cities is reviewed and every one passes the layout rules (no overlaps, clear streets, tall-in-the-middle skyline); every group is distinguishable with color removed (grayscale screenshot); a 4-bot game stays at 60 fps with the full city; asset sources logged in `docs/ASSETS.md`.
 
 ## Milestone 7: Living board
 
@@ -115,6 +118,8 @@ Acceptance: board looks coherent in the target palette and close to the referenc
 Acceptance: ambient adds less than a defined frame-time budget (record it); toggle fully disables traffic and blinking.
 
 ## Milestone 8: Cards, auctions, trades, polish UI
+
+Status 2026-10-24: the structured trade screen (offers both ways, bot verdicts, counter-offers, bot offers to humans) was pulled forward and is done (DECISIONS.md D24). The rest of this milestone, including the card-styled look of the trade screen, is still to do.
 
 - Flat overlay cards: title deeds, Chance/Chest draw with launch from the deck stack, flip, reveal, return.
 - Auction UI with bid animations and timers (`TIMEOUT` actions); structured trade UI (offer sets, cash, accept/reject, counter).

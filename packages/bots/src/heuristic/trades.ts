@@ -30,12 +30,20 @@ function gains(s: GameState, seat: number, o: Offer, p: BotParams): [number, num
 
 const score = (mine: number, theirs: number, p: BotParams) => mine - p.envy * Math.max(0, theirs - mine)
 
-/** Would `seat` accept this offer? Also refuses deals that would leave it nearly broke. */
-export function accepts(s: GameState, seat: number, o: Offer, p: BotParams): boolean {
+/**
+ * How much `seat` likes an offer, in money terms above its acceptance bar: positive means yes.
+ * A deal that would leave it nearly broke is -Infinity. Drives the trade screen's meter.
+ */
+export function tradeScore(s: GameState, seat: number, o: Offer, p: BotParams): number {
   const cashOut = o.to === seat ? o.get.cash - o.give.cash : o.give.cash - o.get.cash
-  if (cashOut > 0 && s.players[seat]!.cash - cashOut < reserveFor(s, seat, p) * 0.5) return false
+  if (cashOut > 0 && s.players[seat]!.cash - cashOut < reserveFor(s, seat, p) * 0.5) return -Infinity
   const [mine, theirs] = gains(s, seat, o, p)
-  return score(mine, theirs, p) > p.tradeMargin
+  return score(mine, theirs, p) - p.tradeMargin
+}
+
+/** Would `seat` accept this offer? */
+export function accepts(s: GameState, seat: number, o: Offer, p: BotParams): boolean {
+  return tradeScore(s, seat, o, p) > 0
 }
 
 /** Spaces the seat could hand over without hurting its own sets. */

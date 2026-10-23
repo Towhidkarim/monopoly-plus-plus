@@ -101,6 +101,9 @@ const SHORTCUTS: [string, string][] = [
   ['B / A', 'Buy / auction the space you landed on'],
   ['P / U', 'Pay the Lockup fine / use a free card'],
   ['C', 'Open or close My city'],
+  ['T', 'Propose a trade'],
+  ['Y / N', 'Accept / decline an offer'],
+  ['M', 'Sound on or off'],
   ['L', 'Full game log'],
   ['S', 'Skip animations'],
   ['?', 'This help'],
@@ -185,6 +188,8 @@ export function GameMenu({
   onFastBots,
   reducedMotion,
   onReducedMotion,
+  botOffers,
+  onBotOffers,
   onLog,
   onQuit,
   onClose,
@@ -195,6 +200,8 @@ export function GameMenu({
   onFastBots: () => void
   reducedMotion: boolean
   onReducedMotion: () => void
+  botOffers: boolean
+  onBotOffers: () => void
   onLog: () => void
   onQuit: () => void
   onClose: () => void
@@ -239,6 +246,15 @@ export function GameMenu({
             type="checkbox"
             checked={reducedMotion}
             onChange={onReducedMotion}
+            className="size-4 accent-accent"
+          />
+        </label>
+        <label className="flex items-center justify-between text-sm" title="Bots may propose deals to you">
+          Offers from bots
+          <input
+            type="checkbox"
+            checked={botOffers}
+            onChange={onBotOffers}
             className="size-4 accent-accent"
           />
         </label>

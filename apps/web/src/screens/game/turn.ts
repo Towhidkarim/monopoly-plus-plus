@@ -1,4 +1,4 @@
-import { SPACES, expectedActor, legalActions, type Action } from '@skyline/engine'
+import { SPACES, expectedActor, legalActions, type Action, type TradeOffer } from '@skyline/engine'
 import type { GameStore, Snapshot } from '../../game/store.ts'
 
 /** A button the shell offers for the current decision. */
@@ -24,7 +24,9 @@ export interface TurnView {
   /** Dispatches for the waiting player. The UI only offers legal actions, so errors are ignored. */
   act: (a: Action) => void
   /** Which decision panel is open, if any. */
-  moment: 'buy' | 'auction' | 'debt' | null
+  moment: 'buy' | 'auction' | 'debt' | 'offer' | null
+  /** An offer a human must answer before play goes on (the bots wait too). */
+  offer: TradeOffer | null
   primary: Choice | null
   secondary: Choice[]
   title: string
@@ -50,7 +52,7 @@ export function turnView(snap: Snapshot, store: GameStore): TurnView {
   const find = <T extends Action['type']>(t: T) =>
     legal.find((a): a is Extract<Action, { type: T }> => a.type === t)
 
-  const base = { actorSeat, actorId: actor.id, human, canAct, legal, act: dispatch, title }
+  const base = { actorSeat, actorId: actor.id, human, canAct, legal, act: dispatch, title, offer: null }
 
   // A human's drawn card waits for a click, even while the rest of the batch is queued.
   if (snap.card?.waiting) {
@@ -60,6 +62,20 @@ export function turnView(snap: Snapshot, store: GameStore): TurnView {
       primary: { label: 'Continue', hotkey: 'Space', run: () => store.ackCard() },
       secondary: [],
       subtitle: 'Read your card, then continue.',
+    }
+  }
+
+  const offer = snap.busy
+    ? undefined
+    : s.trades.find((t) => store.setup.seats[t.to]?.kind === 'human' && !s.players[t.to]!.bankrupt)
+  if (offer) {
+    return {
+      ...base,
+      offer,
+      moment: 'offer',
+      primary: null,
+      secondary: [],
+      subtitle: `${s.players[offer.to]!.name} has an offer to answer.`,
     }
   }
 

@@ -504,6 +504,31 @@ export const CATALOG = {
     ],
   },
 
+  'trade.card': {
+    label: 'Card to the table',
+    group: 'Property',
+    bus: 'ui',
+    when: 'A card slides into or out of a trade',
+    pick: 0,
+    variants: [
+      { name: 'Card slide', layers: [sample(CARD_SLIDE, { gain: 0.45, rate: 1.1 })], mix: { vary: 0.3 } },
+      { name: 'Card place', layers: [sample(CARD_PLACE, { gain: 0.45 })], mix: { vary: 0.3 } },
+      OFF,
+    ],
+  },
+  'trade.declined': {
+    label: 'Deal declined',
+    group: 'Property',
+    bus: 'sfx',
+    when: 'A trade offer is turned down',
+    pick: 0,
+    variants: [
+      { name: 'Soft no', layers: [...wood(-5, 0, 0.3, 110), ...wood(-10, 120, 0.28, 160)], mix: { vary: 0 } },
+      { name: 'Card shove', layers: [sample(CARD_SHOVE, { gain: 0.5, rate: 0.8 })] },
+      OFF,
+    ],
+  },
+
   // Building
   'build.house': {
     label: 'House',

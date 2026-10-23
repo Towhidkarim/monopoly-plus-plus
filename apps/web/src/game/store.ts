@@ -14,7 +14,16 @@ import type { Board, BoardSnapshot } from '@skyline/board'
 
 /** What the store needs from a board view (the Pixi Board satisfies it; tests use a stub). */
 export type BoardPort = Pick<Board, 'setPlayers' | 'sync' | 'play' | 'setTuning' | 'skipAnimations' | 'punch'>
-import { PERSONALITIES, botRng, createHeuristicBot, type Bot, type BotRng } from '@skyline/bots'
+import {
+  PERSONALITIES,
+  botRng,
+  createHeuristicBot,
+  type Bot,
+  type BotParams,
+  type BotRng,
+  tradeScore,
+} from '@skyline/bots'
+import { describeBundle } from './trade.ts'
 import { describe, type LogEntry } from './log.ts'
 import { applyEvent, desyncs, presentFrom, type Presented } from './presented.ts'
 import { loadPrefs } from './prefs.ts'
@@ -55,6 +64,8 @@ export interface Snapshot {
    * on, else the last such human. Null when no human is seated.
    */
   viewer: number | null
+  /** How finished offers ended, by trade id (for the trade screen's result stamp). */
+  tradeOutcomes: Readonly<Record<number, TradeOutcome>>
 }
 
 export interface StoreSettings {
@@ -66,7 +77,34 @@ export interface StoreSettings {
   instant: boolean
   /** No shake, hit-stop, confetti, flying coins, or big motion. */
   reducedMotion: boolean
+  /** Bots may propose deals to human players. */
+  botOffers: boolean
 }
+
+/** What a trade partner thinks of a deal before it is sent (bots only; humans decide live). */
+export type TradeVerdict =
+  | { kind: 'human' }
+  | {
+      kind: 'bot'
+      accepts: boolean
+      /** Least extra cash that would make the bot accept, or null if no affordable amount does. */
+      more: number | null
+      /** How the bot feels about it, 0..1; 0.5 is where it starts saying yes (for the deal meter). */
+      mood: number
+    }
+
+/** How an offer ended, once it has (for the trade screen's result stamp). */
+export type TradeOutcome = 'accepted' | 'declined' | 'withdrawn'
+
+const TRADE_ENDS: Partial<Record<GameEvent['type'], TradeOutcome>> = {
+  TRADE_ACCEPTED: 'accepted',
+  TRADE_REJECTED: 'declined',
+  TRADE_CANCELLED: 'withdrawn',
+  TRADE_VOIDED: 'withdrawn',
+}
+
+/** A bot makes a human at most one offer per this many rounds. */
+const OFFER_GAP_ROUNDS = 2
 
 const LOG_LIMIT = 200
 
@@ -76,7 +114,13 @@ const LOG_LIMIT = 200
  */
 export class GameStore {
   readonly setup: GameSetup
-  readonly settings: StoreSettings = { speed: 1, fastBots: false, instant: false, reducedMotion: false }
+  readonly settings: StoreSettings = {
+    speed: 1,
+    fastBots: false,
+    instant: false,
+    reducedMotion: false,
+    botOffers: true,
+  }
   private snap: Snapshot
   private readonly listeners = new Set<() => void>()
   private readonly fxListeners = new Set<(fx: Fx) => void>()
@@ -87,8 +131,11 @@ export class GameStore {
   private skipping = false
   private cardAck: (() => void) | null = null
   private board: BoardPort | null = null
-  /** One brain per bot seat (null for humans). */
+  /** One brain per bot seat (null for humans), and its personality for trade verdicts. */
   private readonly bots: (Bot | null)[]
+  private readonly botParams: (BotParams | null)[]
+  /** Round of the last bot offer to each human, to keep offers occasional. */
+  private readonly lastOfferTo = new Map<string, number>()
   /** Open offers as proposed, so an accepted deal can be described when it plays. */
   private readonly offers = new Map<number, { from: string; to: string; summary: string }>()
   private readonly rng: BotRng
@@ -100,19 +147,17 @@ export class GameStore {
     this.setup = setup
     Object.assign(this.settings, loadPrefs())
     this.rng = botRng(setup.seed ^ 0x5bd1e995)
-    // Bots trade among themselves; humans get offers once the trade screen exists (Milestone 8).
-    const canTradeWith = (id: string) => this.seatKind(id) === 'bot'
+    // Bots trade freely among themselves; offers to humans are occasional and can be turned off.
+    const canTradeWith = (id: string) => this.seatKind(id) === 'bot' || this.mayOfferTo(id)
     let botIndex = 0
-    this.bots = setup.seats.map((seat) =>
+    this.botParams = setup.seats.map((seat) =>
       seat.kind === 'bot'
-        ? createHeuristicBot(
-            PERSONALITIES[
-              seat.personality ?? DEFAULT_PERSONALITIES[botIndex++ % DEFAULT_PERSONALITIES.length]!
-            ] ?? PERSONALITIES.balanced!,
-            { canTradeWith },
-          )
+        ? (PERSONALITIES[
+            seat.personality ?? DEFAULT_PERSONALITIES[botIndex++ % DEFAULT_PERSONALITIES.length]!
+          ] ?? PERSONALITIES.balanced!)
         : null,
     )
+    this.bots = this.botParams.map((p) => (p ? createHeuristicBot(p, { canTradeWith }) : null))
     let state = createGame(
       setup.seats.map((s) => ({ id: s.id, name: s.name })),
       setup.seed,
@@ -135,6 +180,7 @@ export class GameStore {
       card: null,
       thinking: null,
       viewer: null,
+      tradeOutcomes: {},
     }
     this.snap.viewer = this.viewerFor(state)
     if (replay.length > 0) this.pushLog({ text: 'Game resumed', tone: 'muted' })
@@ -190,13 +236,18 @@ export class GameStore {
     if (!r.ok) return r.error
     this.actions.push({ playerId, action })
     saveGame({ version: 1, setup: this.setup, actions: this.actions })
+    let outcomes = this.snap.tradeOutcomes
     for (const e of r.events) {
+      const ended = TRADE_ENDS[e.type]
+      if (ended && 'tradeId' in e) outcomes = { ...outcomes, [e.tradeId]: ended }
       if (e.type !== 'TRADE_PROPOSED') continue
       const offer = r.state.trades.find((t) => t.id === e.tradeId)
       if (offer)
         this.offers.set(offer.id, { from: e.from, to: e.to, summary: summarize(offer.give, offer.get) })
+      if (this.seatKind(e.from) === 'bot' && this.seatKind(e.to) === 'human')
+        this.lastOfferTo.set(e.to, r.state.round)
     }
-    this.snap = { ...this.snap, state: r.state, viewer: this.viewerFor(r.state) }
+    this.snap = { ...this.snap, state: r.state, viewer: this.viewerFor(r.state), tradeOutcomes: outcomes }
     this.queue.push(...r.events)
     void this.pump()
     return null
@@ -227,6 +278,44 @@ export class GameStore {
   setSettings(patch: Partial<StoreSettings>): void {
     Object.assign(this.settings, patch)
     this.board?.setTuning({ speed: this.settings.speed, reducedMotion: this.settings.reducedMotion })
+  }
+
+  /**
+   * How seat `to` would answer an offer from seat `from` (give/get from the proposer's side),
+   * judged by the bot's own model on its own view. Also finds the least extra cash that would
+   * turn a no into a yes.
+   */
+  tradeVerdict(s: GameState, from: number, to: number, give: Bundle, get: Bundle): TradeVerdict {
+    const params = this.botParams[to]
+    if (!params) return { kind: 'human' }
+    const view = observe(s, s.players[to]!.id)
+    const scoreWith = (extra: number) =>
+      tradeScore(view, to, { from, to, give: { ...give, cash: give.cash + extra }, get }, params)
+    const judge = (extra: number) => scoreWith(extra) > 0
+    const score = scoreWith(0)
+    // Logistic curve: about ₵150 either side of the bar spans most of the meter.
+    const mood = score === -Infinity ? 0 : 1 / (1 + Math.exp(-score / 90))
+    if (score > 0) return { kind: 'bot', accepts: true, more: null, mood }
+    const room = s.players[from]!.cash - give.cash
+    if (room < 10 || !judge(room)) return { kind: 'bot', accepts: false, more: null, mood }
+    // Binary search in steps of 10 for the smallest extra that is accepted.
+    let lo = 0
+    let hi = Math.floor(room / 10)
+    while (hi - lo > 1) {
+      const mid = (lo + hi) >> 1
+      if (judge(mid * 10)) hi = mid
+      else lo = mid
+    }
+    return { kind: 'bot', accepts: false, more: hi * 10, mood }
+  }
+
+  /** Whether a bot may propose to human `id` now (setting, one open offer, rate limit). */
+  private mayOfferTo(id: string): boolean {
+    if (!this.settings.botOffers) return false
+    const s = this.snap.state
+    if (s.trades.some((t) => s.players[t.to]!.id === id)) return false
+    const last = this.lastOfferTo.get(id)
+    return last === undefined || s.round - last >= OFFER_GAP_ROUNDS
   }
 
   /** Personality name of a bot seat ("Tycoon"), or null for humans. */
@@ -357,6 +446,17 @@ export class GameStore {
       })
     } else if (e.type === 'BANKRUPT') {
       this.emit({ kind: 'callout', tone: 'bad', title: `${this.nameOf(e.playerId)} went bankrupt` })
+    } else if (e.type === 'TRADE_REJECTED') {
+      const deal = this.offers.get(e.tradeId)
+      if (deal && this.seatKind(deal.from) === 'human') {
+        this.emit({
+          kind: 'callout',
+          tone: 'bad',
+          title: `${this.nameOf(deal.to)} declined the offer`,
+          detail: `${this.nameOf(deal.from)} asked for ${deal.summary}`,
+          seat: this.seatIndex(deal.to),
+        })
+      }
     } else if (e.type === 'TRADE_ACCEPTED') {
       const deal = this.offers.get(e.tradeId)
       if (deal) {
@@ -380,11 +480,15 @@ export class GameStore {
 
   // ---- bots ---------------------------------------------------------------
 
-  /** The bot seat the game needs to hear from: one answering an offer first, else the expected actor. */
+  /**
+   * The bot seat the game needs to hear from: one answering an offer first, else the expected
+   * actor. While a human has an offer to answer, the bots wait.
+   */
   private botToAct(s: GameState): number | null {
     if (s.phase === 'gameOver') return null
     const offer = s.trades.find((t) => this.bots[t.to] && !s.players[t.to]!.bankrupt)
     if (offer) return offer.to
+    if (s.trades.some((t) => !this.bots[t.to] && !s.players[t.to]!.bankrupt)) return null
     const actor = expectedActor(s)
     return this.bots[actor] ? actor : null
   }
@@ -425,15 +529,8 @@ const DEFAULT_PERSONALITIES = ['balanced', 'tycoon', 'shark', 'banker']
 
 /** "Bazaar Alley for ₵300" style summary of a trade, from the proposer's side. */
 function summarize(give: Bundle, get: Bundle): string {
-  return `${tradeSide(get)} for ${tradeSide(give)}`
+  return `${describeBundle(get)} for ${describeBundle(give)}`
 }
-
-const tradeSide = (b: Bundle) =>
-  [
-    ...b.spaces.map((i) => SPACES[i]!.name),
-    ...(b.cash > 0 ? [`₵${b.cash.toLocaleString()}`] : []),
-    ...(b.jailCards > 0 ? ['a free card'] : []),
-  ].join(' + ') || 'nothing'
 
 function wait(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms))

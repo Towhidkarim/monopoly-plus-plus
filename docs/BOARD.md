@@ -60,6 +60,16 @@ Each change is an animated event (`BUILT`, `SOLD_BUILDING`): floors drop in with
 
 The plaza city is built once from a seeded layout and baked with `cacheAsTexture`. Window lights live on a separate additive layer.
 
+**Dynamic city (a new one every game, DECISIONS.md D25).** A city seed picks the layout from hand-designed templates plus seeded variation, never free-form random placement. Rules that keep every city neat:
+
+- **Grid first:** blocks snap to a fixed street grid inside the rail loop; the two cross roads and the loop never move. Buildings sit on lots inside blocks with a constant sidewalk margin, so nothing overlaps a street or another building.
+- **Zoning by distance from the center:** towers and the landmark in the middle, mid-rise offices and walk-ups around them, low houses, parks and trees toward the edges. This gives the clean "tall in the middle" silhouette of the reference image.
+- **Few parts per city:** each city uses a limited set of building types and a limited color set from the style palette (one accent family per district), so it reads as designed, not noisy.
+- **Rhythm:** similar heights along a street, setbacks aligned, rooftops kept simple; detail (water towers, antennas, trees) is sprinkled with a density cap.
+- **Always present:** one landmark, at least one park, clear crossings at the cross roads, open space at the rail curves for trains.
+- **Lot architecture per group:** each color group gets one architecture family for the whole game (e.g. brick townhouses, glass apartments), so a street looks consistent as it develops.
+- **Validation:** the generator checks its own output (overlaps, blocked streets, height ordering) and rerolls a block that fails; a test renders many seeds and asserts the rules.
+
 ## 6. Living world (cosmetic only)
 
 - **Day/night:** `clock.night` 0..1 drives a multiply tint over the world and the alpha of the window-light layer; street lamps and beacons fade in.

@@ -15,6 +15,8 @@ import { DebtPanel } from './game/DebtPanel.tsx'
 import { CalloutLayer, FxLayer } from './game/Fx.tsx'
 import { Hud } from './game/Hud.tsx'
 import { MyCity } from './game/MyCity.tsx'
+import { OfferPanel } from './game/OfferPanel.tsx'
+import { TradeComposer, type TradeDraft } from './game/TradeComposer.tsx'
 import { SPEEDS, type SpeedChoice } from './game/format.ts'
 import { CardPopup, GameMenu, GameOver, HelpOverlay } from './game/Overlays.tsx'
 import { ActivityFeed, LeftColumn } from './game/SidePanels.tsx'
@@ -43,6 +45,8 @@ export function GameScreen({ store, onQuit }: { store: GameStore; onQuit: () => 
   )
   const [fastBots, setFastBots] = useState(store.settings.fastBots)
   const [reducedMotion, setReducedMotion] = useState(store.settings.reducedMotion)
+  const [botOffers, setBotOffers] = useState(store.settings.botOffers)
+  const [trade, setTrade] = useState<(TradeDraft & { me: number }) | null>(null)
   const [cityOpen, setCityOpen] = useState(() => initialPanel() === 'city')
   const [help, setHelp] = useState(() => initialPanel() === 'help')
   const [menu, setMenu] = useState(false)
@@ -67,11 +71,25 @@ export function GameScreen({ store, onQuit }: { store: GameStore; onQuit: () => 
   const viewerId = viewer !== null ? snap.state.players[viewer]!.id : null
   const cityBadge =
     viewerId && store.seatKind(viewerId) === 'human' ? buildableGroups(snap.state, viewerId) : 0
+  const canTrade =
+    viewer !== null &&
+    viewerId !== null &&
+    store.seatKind(viewerId) === 'human' &&
+    !snap.state.players[viewer]!.bankrupt &&
+    snap.state.phase !== 'gameOver' &&
+    snap.state.players.some((p, i) => i !== viewer && !p.bankrupt)
+  const openTrade = canTrade ? () => setTrade({ me: viewer }) : null
 
   /** Menu choices are remembered for the next game. */
   const persist = () => {
     const s = store.settings
-    savePrefs({ speed: s.speed, fastBots: s.fastBots, instant: s.instant, reducedMotion: s.reducedMotion })
+    savePrefs({
+      speed: s.speed,
+      fastBots: s.fastBots,
+      instant: s.instant,
+      reducedMotion: s.reducedMotion,
+      botOffers: s.botOffers,
+    })
   }
   const changeSpeed = (v: SpeedChoice) => {
     store.setSettings(v === 'instant' ? { instant: true } : { speed: v, instant: false })
@@ -91,7 +109,8 @@ export function GameScreen({ store, onQuit }: { store: GameStore; onQuit: () => 
     }
     if (key === 'escape') {
       return press(() => {
-        if (help) setHelp(false)
+        if (trade) setTrade(null)
+        else if (help) setHelp(false)
         else if (menu) setMenu(false)
         else if (cityOpen) setCityOpen(false)
         else if (showLog) setShowLog(false)
@@ -99,17 +118,19 @@ export function GameScreen({ store, onQuit }: { store: GameStore; onQuit: () => 
       })
     }
     if (key === '?' || key === 'h') return press(() => setHelp((v) => !v))
-    if (help || menu) return
+    if (help || menu || trade) return
     if (key === ' ' || key === 'enter') {
       // Swallow Space even with no action, so it never clicks whatever button has focus.
       e.preventDefault()
       return turn.primary?.run()
     }
     if (key === 'c') return press(toggleCity)
+    if (key === 't' && openTrade) return press(openTrade)
     if (key === 'l') return press(() => setShowLog((v) => !v))
     if (key === 's') return press(() => store.skip())
     if (key === 'm') return press(() => sound.setSettings({ muted: !sound.settings.muted }))
-    const hit = momentKey(turn, key) ?? turn.secondary.find((c) => c.hotkey?.toLowerCase() === key)?.run
+    const hit =
+      momentKey(turn, key, store) ?? turn.secondary.find((c) => c.hotkey?.toLowerCase() === key)?.run
     if (hit) press(hit)
   }
   // Subscribe once; the listener always calls the latest handler (it closes over this render).
@@ -153,11 +174,13 @@ export function GameScreen({ store, onQuit }: { store: GameStore; onQuit: () => 
             cityBadge={cityBadge}
             cityOpen={cityOpen}
             onCity={toggleCity}
+            onTrade={openTrade}
           />
           <CalloutLayer store={store} />
           <AuctionPanel snap={snap} store={store} turn={turn} />
           <BuyMoment snap={snap} turn={turn} onCity={() => setCityOpen(true)} />
           <DebtPanel snap={snap} store={store} turn={turn} />
+          <OfferPanel snap={snap} store={store} turn={turn} onCounter={setTrade} />
           <CardPopup snap={snap} store={store} />
           {cityOpen && viewer !== null && (
             <MyCity
@@ -184,6 +207,12 @@ export function GameScreen({ store, onQuit }: { store: GameStore; onQuit: () => 
                 setReducedMotion(!reducedMotion)
                 persist()
               }}
+              botOffers={botOffers}
+              onBotOffers={() => {
+                store.setSettings({ botOffers: !botOffers })
+                setBotOffers(!botOffers)
+                persist()
+              }}
               onLog={() => {
                 setShowLog(true)
                 setCityOpen(false)
@@ -191,6 +220,15 @@ export function GameScreen({ store, onQuit }: { store: GameStore; onQuit: () => 
               }}
               onQuit={onQuit}
               onClose={() => setMenu(false)}
+            />
+          )}
+          {trade && (
+            <TradeComposer
+              snap={snap}
+              store={store}
+              me={trade.me}
+              draft={trade}
+              onClose={() => setTrade(null)}
             />
           )}
           {help && <HelpOverlay onClose={() => setHelp(false)} />}
@@ -202,8 +240,14 @@ export function GameScreen({ store, onQuit }: { store: GameStore; onQuit: () => 
   )
 }
 
-/** B and A answer the buy moment. */
-function momentKey(turn: TurnView, key: string): (() => void) | undefined {
+/** B and A answer the buy moment; Y and N answer an offer. */
+function momentKey(turn: TurnView, key: string, store: GameStore): (() => void) | undefined {
+  const offer = turn.offer
+  if (turn.moment === 'offer' && offer && (key === 'y' || key === 'n')) {
+    const to = store.getSnapshot().state.players[offer.to]!.id
+    const type = key === 'y' ? 'ACCEPT_TRADE' : 'REJECT_TRADE'
+    return () => void store.dispatch(to, { type, tradeId: offer.id })
+  }
   if (turn.moment !== 'buy') return undefined
   const type = key === 'b' ? 'BUY' : key === 'a' ? 'DECLINE_BUY' : null
   const action = type && turn.legal.find((a) => a.type === type)

@@ -23,7 +23,10 @@ export async function mountBoard(host: HTMLElement, options: BoardOptions = {}):
     resizeTo: host,
     background: options.background ?? palette.table,
     antialias: true,
-    resolution: Math.min(window.devicePixelRatio, 2),
+    // Never below 2x: on standard-density screens the zoomed-out board has few pixels per shape,
+    // so thin lines and edges shimmer. Rendering at 2x and letting the browser scale the canvas
+    // down is cheap supersampling for flat vector art (cost: 4x the pixels on a 1x screen).
+    resolution: Math.max(2, Math.min(window.devicePixelRatio, 2)),
     autoDensity: true,
   })
   host.appendChild(app.canvas)

@@ -119,3 +119,68 @@ describe('GameStore playback', () => {
     store.dispose()
   }, 60_000)
 })
+
+describe('GameStore trades with humans', () => {
+  beforeEach(() => vi.useFakeTimers())
+  afterEach(() => vi.useRealTimers())
+
+  const gift = (cash: number) => ({ spaces: [], cash, jailCards: 0 })
+  const nothing = gift(0)
+
+  it('a bot answers a human offer: a token gift is declined (with a callout), a big one accepted', async () => {
+    const store = new GameStore({ preset: 'turbo', seed: 4, seats: seats(['human', 'bot']) })
+    store.setSettings({ fastBots: true, speed: 50 })
+    const callouts: string[] = []
+    store.onFx((fx) => fx.kind === 'callout' && callouts.push(fx.title))
+    store.attach(stubBoard())
+    expect(store.dispatch('p1', { type: 'PROPOSE_TRADE', to: 'p2', give: gift(1), get: nothing })).toBeNull()
+    await vi.advanceTimersByTimeAsync(2000)
+    expect(store.getSnapshot().state.trades).toEqual([])
+    expect(callouts.some((t) => /declined/.test(t))).toBe(true)
+
+    const before = store.getSnapshot().state.players[1]!.cash
+    store.dispatch('p1', { type: 'PROPOSE_TRADE', to: 'p2', give: gift(300), get: nothing })
+    await vi.advanceTimersByTimeAsync(2000)
+    expect(store.getSnapshot().state.players[1]!.cash).toBe(before + 300)
+    store.dispose()
+  })
+
+  it('the bots wait while a human has an offer to answer', async () => {
+    const store = new GameStore({ preset: 'turbo', seed: 4, seats: seats(['bot', 'human']) })
+    store.setSettings({ fastBots: true, speed: 50 })
+    store.attach(stubBoard())
+    // Before the bot's first move fires, it offers the human a deal.
+    store.dispatch('p1', { type: 'PROPOSE_TRADE', to: 'p2', give: gift(10), get: nothing })
+    await vi.advanceTimersByTimeAsync(5000)
+    expect(store.getSnapshot().state.turnCount).toBe(0)
+    expect(store.getSnapshot().state.lastDice).toBeNull()
+    expect(store.getSnapshot().state.trades).toHaveLength(1)
+
+    const tradeId = store.getSnapshot().state.trades[0]!.id
+    store.dispatch('p2', { type: 'REJECT_TRADE', tradeId })
+    await vi.advanceTimersByTimeAsync(5000)
+    expect(store.getSnapshot().state.turnCount).toBeGreaterThan(0)
+    store.dispose()
+  })
+
+  it('tells the human what a bot would want, and that amount is enough', () => {
+    const store = new GameStore({ preset: 'turbo', seed: 4, seats: seats(['human', 'bot']) })
+    const s = store.getSnapshot().state
+    const theirs = s.owner.findIndex((o) => o === 1)
+    expect(theirs).toBeGreaterThanOrEqual(0)
+    const want = { spaces: [theirs], cash: 0, jailCards: 0 }
+    const ask = store.tradeVerdict(store.getSnapshot().state, 0, 1, nothing, want)
+    expect(ask).toMatchObject({ kind: 'bot', accepts: false })
+    const more = ask.kind === 'bot' ? (ask.more ?? 0) : 0
+    expect(more).toBeGreaterThan(0)
+    expect(store.tradeVerdict(store.getSnapshot().state, 0, 1, gift(more), want)).toMatchObject({
+      kind: 'bot',
+      accepts: true,
+    })
+    expect(store.tradeVerdict(store.getSnapshot().state, 0, 1, gift(more - 10), want)).toMatchObject({
+      accepts: false,
+    })
+    expect(store.tradeVerdict(store.getSnapshot().state, 1, 0, nothing, nothing)).toEqual({ kind: 'human' })
+    store.dispose()
+  })
+})

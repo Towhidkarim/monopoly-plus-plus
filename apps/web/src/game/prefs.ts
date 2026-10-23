@@ -2,8 +2,8 @@ import type { StoreSettings } from './store.ts'
 
 const KEY = 'skyline.prefs'
 
-/** Player preferences that outlive a game: speed, fast bots, reduced motion. */
-export type Prefs = Pick<StoreSettings, 'speed' | 'fastBots' | 'instant' | 'reducedMotion'>
+/** Player preferences that outlive a game: speed, fast bots, reduced motion, bot offers. */
+export type Prefs = Pick<StoreSettings, 'speed' | 'fastBots' | 'instant' | 'reducedMotion' | 'botOffers'>
 
 export function loadPrefs(): Partial<Prefs> {
   const saved: Partial<Prefs> = {}
@@ -15,6 +15,7 @@ export function loadPrefs(): Partial<Prefs> {
       if (typeof r.fastBots === 'boolean') saved.fastBots = r.fastBots
       if (typeof r.instant === 'boolean') saved.instant = r.instant
       if (typeof r.reducedMotion === 'boolean') saved.reducedMotion = r.reducedMotion
+      if (typeof r.botOffers === 'boolean') saved.botOffers = r.botOffers
     }
   } catch {
     // Storage blocked or corrupt: defaults.

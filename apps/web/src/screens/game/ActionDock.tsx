@@ -15,6 +15,7 @@ export function ActionDock({
   cityBadge,
   cityOpen,
   onCity,
+  onTrade,
 }: {
   snap: Snapshot
   store: GameStore
@@ -22,9 +23,17 @@ export function ActionDock({
   cityBadge: number
   cityOpen: boolean
   onCity: () => void
+  /** Opens the trade screen, or null when the viewer cannot trade. */
+  onTrade: (() => void) | null
 }) {
-  // Buy, debt and a waiting card carry their own buttons.
-  if (snap.presented.over || turn.moment === 'buy' || turn.moment === 'debt' || snap.card?.waiting)
+  // Buy, debt, an offer and a waiting card carry their own buttons.
+  if (
+    snap.presented.over ||
+    turn.moment === 'buy' ||
+    turn.moment === 'debt' ||
+    turn.moment === 'offer' ||
+    snap.card?.waiting
+  )
     return null
   const { primary, secondary } = turn
   return (
@@ -75,7 +84,12 @@ export function ActionDock({
           </DockButton>
         ))}
 
-        <DockButton onClick={() => {}} disabled title="Trading arrives with the trade screen (Milestone 8)">
+        <DockButton
+          onClick={onTrade ?? (() => {})}
+          disabled={!onTrade}
+          hotkey="T"
+          title={onTrade ? 'Propose a trade (T)' : 'No one to trade with'}
+        >
           <Icon name="trade" />
           Trade
         </DockButton>

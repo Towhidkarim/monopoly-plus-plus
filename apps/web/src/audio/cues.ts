@@ -57,6 +57,8 @@ export class CueMapper {
         return [{ sound: 'prop.mortgage' }]
       case 'UNMORTGAGED':
         return [{ sound: 'prop.unmortgage' }]
+      case 'TRADE_REJECTED':
+        return [{ sound: 'trade.declined' }]
       case 'TRADE_ACCEPTED':
         return [{ sound: 'trade.deal' }]
       case 'MONOPOLY_COMPLETED':

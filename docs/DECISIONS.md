@@ -158,6 +158,27 @@ Targets are verified by the bot simulation harness, not guessed. Rules are small
 - **Settings:** reduced motion (defaults to the system setting) turns off shake, hit-stop, confetti, falling buildings, flying coins and dice spin, and lowers jump arcs. Sound on/off and volume in the menu, a HUD speaker button, and the M key. Speed, fast bots, instant and reduced motion are remembered between games.
 - **Cost:** board tick about 0.02 ms idle and 0.8 ms with 400 live particles (headless Chrome, CPU only); the web bundle grew by about 15 KB gzipped (229 KB). The real-GPU 60 fps check with a 4-bot game is for the developer's machine (playground FPS readout).
 
+## D24. Human trading pulled forward from Milestone 8 (2026-10-24)
+
+- **Why now:** bots traded only with each other, so a human could not finish sets the way bots do (a non-trading bot wins about 8% instead of 25%). The trade screen fixes that fairness gap before the art milestones.
+- **Composer** (Trade button or T): pick a partner, tick properties, set cash and Lockup cards for both sides. The engine checks the deal live (`reduce` dry run, refusals translated in `game/trade.ts`). Notes show sets completed, sets handed to the partner or broken, and the mortgage takeover fee (same formula as the engine).
+- **Bot verdict:** `GameStore.tradeVerdict` runs the bot's own `accepts` on its own `observe` view, and binary-searches the least extra cash that turns a no into a yes ("Nova wants about ₵X more", one click to add it). It is the same judgement the bot uses when the offer arrives, so the hint never lies.
+- **Offers to humans:** bots may now propose to humans, at most one open offer per human and one per two rounds per human; a menu toggle turns them off. While a human has an offer to answer, the game (and the bots) wait; the offer panel shows Accept (Y), Decline (N) and Counter (opens the composer prefilled and swapped; sending it declines the original). Hotseat offers between humans use the same panel.
+- **Feedback:** a declined human offer gets a callout; accepted deals keep the existing "Deal" callout.
+- **Trade table look (same day):** your hand left, the partner's right, the deal in the middle. Properties are mini cards grouped by set with progress; clicking one flies it onto the table (FLIP with WAAPI) with a card sound. A deal meter (from \`tradeScore\`, logistic around the bot's acceptance bar) and a speech bubble whose lines depend on the bot's personality (\`game/trade.ts\`: Balanced, Banker, Tycoon, Shark) replace the text verdict. One-click suggestions ask for a set's missing piece at the bot's own price. Cash has an editable amount and +10/+50/+100 chips. After sending, the bot "thinks", then a DEAL! or DECLINED stamp lands; on a deal the cards slide toward their new owners and the table closes, on a refusal it stays open with the bot's last word. Incoming offers use the same cards, trays and a pitch line.
+- **React Compiler gotcha:** store methods whose result depends on store state must take that state as an argument (\`tradeVerdict(state, ...)\`) or read it from the snapshot (\`snap.tradeOutcomes\`); the compiler memoizes calls on their arguments.
+- **Still in Milestone 8:** the card-styled visual pass for the trade screen, bots countering human offers, and online trade timeouts.
+
+## D25. A different city every game, from a seed (2026-10-24, planned for Milestone 6)
+
+**Context:** The developer wants the central city to change every game, while staying as neat as the reference image.
+**Decision:**
+- The city is generated from a **city seed** stored in `GameSetup` (saved with the game, so resume, replays and online rooms show the same city). It is separate from the dice seed and purely cosmetic: rerolling the city never changes the game.
+- Generation uses **templates plus seeded variation** inside fixed structure (ring, corners, cross roads, rail loop), with zoning, a limited palette per city and self-validation (BOARD.md section 5), rather than unconstrained random placement.
+- Varies per game: block layout, park and plaza placement, building mix, landmark type, each group's lot architecture, tree density and color. Fixed: the 40 tiles, group colors, routes for trains and cars, the chosen art style.
+- Setup screen shows a city preview with "New city"; the art style page has Reroll to judge the style across many cities.
+**Why:** variety makes each game feel new at almost no runtime cost (generation takes milliseconds, then the city is baked to a texture); templates and rules are what keep procedural cities from looking messy.
+
 ## D14. Tailwind CSS v4 for all DOM UI (2026-10-23)
 
 **Decision:** The React shell is styled with Tailwind v4 utilities (`@tailwindcss/vite`), not hand-written CSS classes. Design tokens (palette) live in one `@theme` block in `apps/web/src/index.css` and are used as utilities (`bg-panel`, `text-accent`). Custom CSS only for things utilities cannot express.
