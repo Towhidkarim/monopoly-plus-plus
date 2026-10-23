@@ -1,144 +1,189 @@
-import { useEffect, useState, useSyncExternalStore } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { SPACES, isOwnable, rentFor } from '@skyline/engine'
 import type { BoardHandle } from '@skyline/board'
 import { BoardCanvas } from '../BoardCanvas.tsx'
+import { buildableGroups } from '../game/plans.ts'
 import type { GameStore, Snapshot } from '../game/store.ts'
 import { spaceInfo } from '../spaceInfo.ts'
-import { ActionBar } from './game/ActionBar.tsx'
-import { DiceTray } from './game/DiceTray.tsx'
-import { CardPopup, EventLog, GameOver } from './game/Overlays.tsx'
-import { PlayersPanel } from './game/PlayersPanel.tsx'
-import { PropertyCard } from './game/PropertyCard.tsx'
-import { Btn, Money } from './game/ui.tsx'
+import { ActionDock } from './game/ActionDock.tsx'
+import { AuctionPanel } from './game/AuctionPanel.tsx'
+import { BuyMoment } from './game/BuyMoment.tsx'
+import { DebtPanel } from './game/DebtPanel.tsx'
+import { CalloutLayer, FxLayer } from './game/Fx.tsx'
+import { Hud } from './game/Hud.tsx'
+import { MyCity } from './game/MyCity.tsx'
+import { SPEEDS, type SpeedChoice } from './game/format.ts'
+import { CardPopup, GameMenu, GameOver, HelpOverlay } from './game/Overlays.tsx'
+import { ActivityFeed, LeftColumn } from './game/SidePanels.tsx'
+import { TurnBanner } from './game/TurnBanner.tsx'
+import { turnView, type TurnView } from './game/turn.ts'
+import { Money } from './game/ui.tsx'
+
+/**
+ * Text fields keep every key. A focused button keeps Enter (keyboard activation) but not Space:
+ * Space is always the main action, so clicking My city and then pressing Space still rolls.
+ */
+const ownsKey = (t: EventTarget | null, key: string) =>
+  t instanceof HTMLElement &&
+  (t.closest('input, textarea, select, [contenteditable]') !== null ||
+    (key === 'Enter' && t.closest('button') !== null))
+
+/** `?open=city` or `?open=help` opens a panel on load (dev and screenshots). */
+const initialPanel = () => new URLSearchParams(window.location.search).get('open')
 
 export function GameScreen({ store, onQuit }: { store: GameStore; onQuit: () => void }) {
   const snap = useSyncExternalStore(store.subscribe, store.getSnapshot)
   const [handle, setHandle] = useState<BoardHandle | null>(null)
   const [selected, setSelected] = useState<number | null>(null)
-  const [speed, setSpeed] = useState(store.settings.speed)
+  const [speed, setSpeed] = useState<SpeedChoice>(
+    store.settings.instant ? 'instant' : (SPEEDS.find((v) => v === store.settings.speed) ?? 1),
+  )
   const [fastBots, setFastBots] = useState(store.settings.fastBots)
-  const [instant, setInstant] = useState(store.settings.instant)
-  const [confirmQuit, setConfirmQuit] = useState(false)
+  const [cityOpen, setCityOpen] = useState(() => initialPanel() === 'city')
+  const [help, setHelp] = useState(() => initialPanel() === 'help')
+  const [menu, setMenu] = useState(false)
+  const [showLog, setShowLog] = useState(false)
 
   useEffect(() => {
     store.attach(handle?.board ?? null)
     handle?.board.setListeners({ select: setSelected })
+    // Frame the board between the HUD and turn banner above and the action dock below.
+    handle?.board.setInsets({ top: 130, right: 0, bottom: 110, left: 0 })
     return () => store.attach(null)
   }, [handle, store])
 
-  const changeSpeed = (v: number) => {
-    store.setSettings({ speed: v, instant: false })
-    setSpeed(v)
-    setInstant(false)
-  }
-  const goInstant = () => {
-    store.setSettings({ instant: true })
-    setInstant(true)
-  }
-  const toggleFastBots = () => {
-    store.setSettings({ fastBots: !fastBots })
-    setFastBots(!fastBots)
-  }
+  const turn = turnView(snap, store)
+  const viewer = snap.viewer
+  const viewerId = viewer !== null ? snap.state.players[viewer]!.id : null
+  const cityBadge =
+    viewerId && store.seatKind(viewerId) === 'human' ? buildableGroups(snap.state, viewerId) : 0
 
-  const s = snap.state
-  const limit = s.config.roundLimit
+  const changeSpeed = (v: SpeedChoice) => {
+    store.setSettings(v === 'instant' ? { instant: true } : { speed: v, instant: false })
+    setSpeed(v)
+  }
+  const select = (space: number | null) => handle?.board.select(space)
+  const toggleCity = () => viewer !== null && setCityOpen((v) => !v)
+
+  const onKey = (e: KeyboardEvent) => {
+    if (e.repeat || e.ctrlKey || e.metaKey || e.altKey) return
+    if (e.key !== 'Escape' && ownsKey(e.target, e.key)) return
+    const key = e.key.toLowerCase()
+    const press = (fn: () => void) => {
+      e.preventDefault()
+      fn()
+    }
+    if (key === 'escape') {
+      return press(() => {
+        if (help) setHelp(false)
+        else if (menu) setMenu(false)
+        else if (cityOpen) setCityOpen(false)
+        else if (showLog) setShowLog(false)
+        else select(null)
+      })
+    }
+    if (key === '?' || key === 'h') return press(() => setHelp((v) => !v))
+    if (help || menu) return
+    if (key === ' ' || key === 'enter') {
+      // Swallow Space even with no action, so it never clicks whatever button has focus.
+      e.preventDefault()
+      return turn.primary?.run()
+    }
+    if (key === 'c') return press(toggleCity)
+    if (key === 'l') return press(() => setShowLog((v) => !v))
+    if (key === 's') return press(() => store.skip())
+    const hit = momentKey(turn, key) ?? turn.secondary.find((c) => c.hotkey?.toLowerCase() === key)?.run
+    if (hit) press(hit)
+  }
+  // Subscribe once; the listener always calls the latest handler (it closes over this render).
+  const keyRef = useRef(onKey)
+  useEffect(() => {
+    keyRef.current = onKey
+  })
+  useEffect(() => {
+    const listener = (e: KeyboardEvent) => keyRef.current(e)
+    window.addEventListener('keydown', listener)
+    return () => window.removeEventListener('keydown', listener)
+  }, [])
+
   return (
     <div className="flex h-full">
       <BoardCanvas onReady={setHandle} renderTooltip={(i) => <GameTooltip index={i} snap={snap} />}>
         <div className="pointer-events-none absolute inset-0">
-          <div className="absolute top-4 left-4 flex flex-col gap-3">
-            <div className="pointer-events-auto flex items-center gap-2 rounded-xl border border-line bg-panel/90 px-3 py-2 text-sm backdrop-blur">
-              <span className="text-ink-muted">Round</span>
-              <span className="font-semibold text-ink">
-                {snap.presented.round}
-                {limit > 0 && <span className="text-ink-muted"> / {limit}</span>}
-              </span>
-            </div>
-            <DiceTray dice={snap.dice} roll={snap.diceRoll} />
-          </div>
-
-          <div className="pointer-events-auto absolute top-4 right-4 flex items-center gap-1 rounded-xl border border-line bg-panel/90 p-1 backdrop-blur">
-            {[1, 2, 4].map((v) => (
-              <button
-                key={v}
-                type="button"
-                aria-pressed={!instant && speed === v}
-                onClick={() => changeSpeed(v)}
-                className={`rounded-lg px-2.5 py-1 text-xs font-semibold ${!instant && speed === v ? 'bg-accent text-table' : 'text-ink-muted hover:text-ink'}`}
-              >
-                {v}×
-              </button>
-            ))}
-            <button
-              type="button"
-              aria-pressed={instant}
-              onClick={goInstant}
-              title="Skip all animations"
-              className={`rounded-lg px-2.5 py-1 text-xs font-semibold ${instant ? 'bg-accent text-table' : 'text-ink-muted hover:text-ink'}`}
-            >
-              Instant
-            </button>
-            <button
-              type="button"
-              aria-pressed={fastBots}
-              onClick={toggleFastBots}
-              className={`rounded-lg px-2.5 py-1 text-xs font-semibold ${fastBots ? 'bg-accent text-table' : 'text-ink-muted hover:text-ink'}`}
-            >
-              Fast bots
-            </button>
-            <button
-              type="button"
-              disabled={!snap.busy}
-              onClick={() => store.skip()}
-              className="rounded-lg px-2.5 py-1 text-xs font-semibold text-ink-muted hover:text-ink disabled:opacity-30"
-            >
-              Skip ⏭
-            </button>
-          </div>
-
-          <div className="absolute inset-x-0 bottom-5 flex justify-center px-4">
-            <ActionBar snap={snap} store={store} />
-          </div>
+          <Hud
+            snap={snap}
+            store={store}
+            speedLabel={speed === 'instant' ? 'Instant' : `${speed}×`}
+            onSpeed={() => changeSpeed(SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length]!)}
+            onHelp={() => setHelp(true)}
+            onMenu={() => setMenu((v) => !v)}
+          />
+          <TurnBanner snap={snap} store={store} turn={turn} />
+          <LeftColumn
+            snap={snap}
+            store={store}
+            selected={selected}
+            onCity={() => setCityOpen(true)}
+            onDeselect={() => select(null)}
+          />
+          {!cityOpen && (
+            <ActivityFeed snap={snap} showLog={showLog} onToggleLog={() => setShowLog((v) => !v)} />
+          )}
+          <ActionDock
+            snap={snap}
+            store={store}
+            turn={turn}
+            cityBadge={cityBadge}
+            cityOpen={cityOpen}
+            onCity={toggleCity}
+          />
+          <CalloutLayer store={store} />
+          <AuctionPanel snap={snap} store={store} turn={turn} />
+          <BuyMoment snap={snap} turn={turn} onCity={() => setCityOpen(true)} />
+          <DebtPanel snap={snap} store={store} turn={turn} />
           <CardPopup snap={snap} store={store} />
+          {cityOpen && viewer !== null && (
+            <MyCity
+              snap={snap}
+              store={store}
+              seat={viewer}
+              onClose={() => setCityOpen(false)}
+              onFocus={(i) => select(i)}
+            />
+          )}
+          {menu && (
+            <GameMenu
+              speed={speed}
+              fastBots={fastBots}
+              onSpeed={changeSpeed}
+              onFastBots={() => {
+                store.setSettings({ fastBots: !fastBots })
+                setFastBots(!fastBots)
+              }}
+              onLog={() => {
+                setShowLog(true)
+                setCityOpen(false)
+                setMenu(false)
+              }}
+              onQuit={onQuit}
+              onClose={() => setMenu(false)}
+            />
+          )}
+          {help && <HelpOverlay onClose={() => setHelp(false)} />}
         </div>
         <GameOver snap={snap} store={store} onQuit={onQuit} />
       </BoardCanvas>
-
-      <aside className="flex w-80 shrink-0 flex-col border-l border-line bg-panel">
-        <header className="flex items-center justify-between px-4 pt-4 pb-3">
-          <h1 className="text-xl font-bold text-accent">Skyline</h1>
-          {confirmQuit ? (
-            <span className="flex gap-1">
-              <Btn kind="danger" onClick={onQuit} className="px-2 py-1 text-xs">
-                Quit game
-              </Btn>
-              <Btn kind="ghost" onClick={() => setConfirmQuit(false)} className="px-2 py-1 text-xs">
-                Cancel
-              </Btn>
-            </span>
-          ) : (
-            <Btn kind="ghost" onClick={() => setConfirmQuit(true)} className="px-2 py-1 text-xs">
-              New game
-            </Btn>
-          )}
-        </header>
-        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pb-4">
-          <PlayersPanel snap={snap} store={store} />
-          {selected !== null ? (
-            <PropertyCard index={selected} snap={snap} store={store} />
-          ) : (
-            <p className="rounded-xl border border-dashed border-line px-4 py-3 text-xs text-ink-muted">
-              Click any tile to see its card. Drag to pan, scroll to zoom.
-            </p>
-          )}
-          <div>
-            <h2 className="mb-2 text-[11px] font-semibold tracking-widest text-ink-muted uppercase">Log</h2>
-            <EventLog snap={snap} />
-          </div>
-        </div>
-      </aside>
+      <FxLayer store={store} />
     </div>
   )
+}
+
+/** B and A answer the buy moment. */
+function momentKey(turn: TurnView, key: string): (() => void) | undefined {
+  if (turn.moment !== 'buy') return undefined
+  const type = key === 'b' ? 'BUY' : key === 'a' ? 'DECLINE_BUY' : null
+  const action = type && turn.legal.find((a) => a.type === type)
+  return action ? () => turn.act(action) : undefined
 }
 
 function GameTooltip({ index, snap }: { index: number; snap: Snapshot }) {
@@ -147,9 +192,9 @@ function GameTooltip({ index, snap }: { index: number; snap: Snapshot }) {
   const rent = isOwnable(index) && owner >= 0 ? rentFor(snap.state, index, 7) : 0
   return (
     <div className="-translate-x-1/2 -translate-y-[calc(100%+18px)]">
-      <div className="min-w-44 overflow-hidden rounded-lg border border-line bg-panel/95 shadow-xl shadow-black/40 backdrop-blur">
-        {info.color && <div className="h-2" style={{ background: info.color }} />}
-        <div className="px-3 py-2">
+      <div className="min-w-48 overflow-hidden rounded-xl border border-line bg-panel/95 shadow-xl shadow-black/40 backdrop-blur">
+        {info.color && <div className="h-1" style={{ background: info.color }} />}
+        <div className="px-3.5 py-2.5">
           <div className="text-sm font-semibold text-ink">{info.name}</div>
           {isOwnable(index) ? (
             <div className="text-xs text-ink-muted">
@@ -172,6 +217,7 @@ function GameTooltip({ index, snap }: { index: number; snap: Snapshot }) {
                   For sale · <Money value={SPACES[index]!.price} />
                 </>
               )}
+              <div className="mt-0.5 text-[11px]">Click for the full card</div>
             </div>
           ) : (
             <div className="text-xs text-ink-muted">{info.kind}</div>

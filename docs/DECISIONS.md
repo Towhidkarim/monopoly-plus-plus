@@ -119,8 +119,21 @@ Targets are verified by the bot simulation harness, not guessed. Rules are small
 - **BoardPort:** the store depends on a small `Pick<Board, ...>` interface, so it runs headless in tests with a stub board.
 - **Persistence:** setup plus the action log in localStorage; resume replays the log from the seed (deterministic).
 - **Instant mode** skips animations entirely; **Skip** finishes the current batch; speed 1x/2x/4x; fast bots.
-- **Dev URLs:** `?demo=bots` (four-bot game), `&fast=1`, `&instant=1`; `#playground` for the board playground.
+- **Dev URLs:** `?demo=bots` (four-bot game), `&fast=1`, `&instant=1`; `?demo=play&scene=...` (D21); `#playground` for the board playground.
 - No router yet (setup, game, playground only); TanStack Router arrives with online rooms.
+
+## D21. Game screen UX built from the approved mockup (2026-10-23, Milestone 4.5)
+
+- **Layout:** full-bleed board with DOM overlays (no sidebar): top HUD with a card per player, turn banner, left column (last roll, hint or the clicked tile's deed), right activity toasts with the full log on demand, bottom action dock. The board camera takes **insets** (`board.setInsets`) so it frames itself between the HUD and the dock.
+- **One source of truth for "what now":** `screens/game/turn.ts` derives the banner text, the primary action, secondary actions and the open decision panel (buy, auction, debt) from the snapshot. The dock, the panels and the keyboard handler all read it, so they cannot disagree.
+- **Keys:** Space is always the primary action (also when a button has focus; Enter keeps native button activation). B/A buy or auction, P/U jail fine or card, C My city, L log, S skip, ? help, Esc closes.
+- **Cards wait for a click** for humans (`GameStore.ackCard`); bot cards close after `TIMINGS.botCard`. Instant mode and Skip do not stop for cards (the log and toasts still show them).
+- **One-click plans** (`game/plans.ts`): "Build evenly", "Sell", and "Raise ₵X automatically" are planned by simulating `reduce`, then dispatched as ordinary actions one by one (`GameStore.run`). The raise plan mortgages lone properties, stations and utilities first, then sells houses where rent drops least, and breaks up sets last.
+- **Money feedback:** the store emits one-shot effects (`onFx`: number pops, coin transfers, callouts for big rents, completed sets, bankruptcies). The DOM layer animates them with the Web Animations API (transform and opacity only); HUD cash counts with direct `textContent` writes. Nothing per-frame goes through React state.
+- **All shell timings** live in `apps/web/src/game/timings.ts`.
+- **Deviation from the mockup:** no auction countdown in local play. Hotseat humans should not be rushed; timers arrive with online rooms, where the server sends `TIMEOUT`.
+- **Viewer seat:** My city and hints show the human the game is waiting on, else the last such human (hotseat friendly).
+- **Dev scenes:** `?demo=play` seats you against three bots; `&scene=buy|auction|debt|build|card` fast-forwards until you face that moment (seeds 7 and 17 reach all of them); `&open=city|help` opens a panel on load.
 
 ## D14. Tailwind CSS v4 for all DOM UI (2026-10-23)
 

@@ -1,6 +1,14 @@
 import type { Container, FederatedPointerEvent, FederatedWheelEvent } from 'pixi.js'
 import { smooth } from '../anim/spring.ts'
 
+/** Screen pixels covered by UI on each side; the board frames itself in what is left. */
+export interface Insets {
+  top: number
+  right: number
+  bottom: number
+  left: number
+}
+
 export interface Bounds {
   minX: number
   minY: number
@@ -27,6 +35,7 @@ export class Camera {
   private bounds: Bounds = { minX: 0, minY: 0, maxX: 0, maxY: 0 }
   private width = 1
   private height = 1
+  private insets: Insets = { top: 0, right: 0, bottom: 0, left: 0 }
 
   private follow: (() => { x: number; y: number }) | null = null
   private pointers = new Map<number, { x: number; y: number }>()
@@ -44,13 +53,43 @@ export class Camera {
   setViewport(width: number, height: number): void {
     this.width = width
     this.height = height
+    this.refit()
   }
 
   setBounds(b: Bounds): void {
     this.bounds = b
-    const bw = b.maxX - b.minX
-    const bh = b.maxY - b.minY
-    this.fitZoom = Math.min(this.width / (bw * 1.08), this.height / (bh * 1.12))
+    this.refit()
+  }
+
+  setInsets(insets: Insets): void {
+    this.insets = insets
+    this.refit()
+  }
+
+  private refit(): void {
+    const b = this.bounds
+    const bw = Math.max(1, b.maxX - b.minX)
+    const bh = Math.max(1, b.maxY - b.minY)
+    const { w, h } = this.safeSize()
+    this.fitZoom = Math.min(w / (bw * 1.04), h / (bh * 1.04))
+  }
+
+  /** The uncovered part of the screen (never collapses below a third of the viewport). */
+  private safeSize(): { w: number; h: number } {
+    const i = this.insets
+    return {
+      w: Math.max(this.width / 3, this.width - i.left - i.right),
+      h: Math.max(this.height / 3, this.height - i.top - i.bottom),
+    }
+  }
+
+  /** Screen point the camera center maps to: the middle of the uncovered area. */
+  private anchor(): { x: number; y: number } {
+    const { w, h } = this.safeSize()
+    return {
+      x: Math.min(this.insets.left, this.width - w) + w / 2,
+      y: Math.min(this.insets.top, this.height - h) + h / 2,
+    }
   }
 
   /** Frame the whole board. */
@@ -152,11 +191,12 @@ export class Camera {
       this.fitZoom * ZOOM_MAX_FACTOR,
       Math.max(this.fitZoom * ZOOM_MIN_FACTOR, this.tz * factor),
     )
-    const wx = this.tx + (screen.x - this.width / 2) / this.tz
-    const wy = this.ty + (screen.y - this.height / 2) / this.tz
+    const a = this.anchor()
+    const wx = this.tx + (screen.x - a.x) / this.tz
+    const wy = this.ty + (screen.y - a.y) / this.tz
     this.tz = nz
-    this.tx = wx - (screen.x - this.width / 2) / nz
-    this.ty = wy - (screen.y - this.height / 2) / nz
+    this.tx = wx - (screen.x - a.x) / nz
+    this.ty = wy - (screen.y - a.y) / nz
   }
 
   private clampTarget(): void {
@@ -175,7 +215,8 @@ export class Camera {
 
   private apply(): void {
     this.world.scale.set(this.zoom)
-    this.world.position.set(this.width / 2 - this.cx * this.zoom, this.height / 2 - this.cy * this.zoom)
+    const a = this.anchor()
+    this.world.position.set(a.x - this.cx * this.zoom, a.y - this.cy * this.zoom)
   }
 
   private pinchDistance(): number {

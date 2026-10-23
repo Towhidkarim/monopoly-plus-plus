@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react' // useEffect: hash listener
 import { tokenColors } from '@skyline/board'
 import { GameStore } from './game/store.ts'
+import { SCENES, playToScene } from './game/scenes.ts'
 import { clearSavedGame, type GameSetup, type SavedGame } from './game/setup.ts'
 import { PlaygroundScreen } from './playground/PlaygroundScreen.tsx'
 import { GameScreen } from './screens/GameScreen.tsx'
@@ -16,23 +17,35 @@ function useHash(): string {
   return hash
 }
 
-/** `?demo=bots` starts a four-bot game straight away (handy for watching and screenshots). */
+/**
+ * Dev shortcuts (handy for watching and screenshots):
+ * `?demo=bots` starts a four-bot game; `?demo=play` seats you against three bots, and
+ * `&scene=buy|auction|debt|build` fast-forwards until you face that moment.
+ */
 function demoStore(): GameStore | null {
   const params = new URLSearchParams(window.location.search)
-  if (params.get('demo') !== 'bots') return null
+  const demo = params.get('demo')
+  if (demo !== 'bots' && demo !== 'play') return null
   const pieces = ['taxi', 'drone', 'balloon', 'bus'] as const
-  const names = ['Nova', 'Atlas', 'Juno', 'Orion']
+  const names = demo === 'play' ? ['You', 'Nova', 'Atlas', 'Juno'] : ['Nova', 'Atlas', 'Juno', 'Orion']
   const store = new GameStore({
     preset: 'standard',
-    seed: 7,
+    seed: Number(params.get('seed') ?? 7),
     seats: pieces.map((piece, i) => ({
       id: `p${i + 1}`,
       name: names[i]!,
-      kind: 'bot',
+      kind: demo === 'play' && i === 0 ? 'human' : 'bot',
       piece,
       color: tokenColors[i]!,
     })),
   })
+  const scene = SCENES.find((x) => x === params.get('scene'))
+  if (scene) {
+    store.setSettings({ instant: true })
+    if (!playToScene(store, scene)) console.warn(`[skyline] scene "${scene}" not reached; try another seed`)
+    store.setSettings({ instant: false })
+    if (scene === 'card') store.dispatch('p1', { type: 'ROLL' })
+  }
   if (params.get('fast') === '1') store.setSettings({ speed: 4, fastBots: true })
   if (params.get('instant') === '1') store.setSettings({ instant: true, fastBots: true })
   return store

@@ -153,6 +153,7 @@ interface Store {
 - `BoardView.play(event)` choreographs one event. It must be safe to kill and fall back to `sync`.
 - Bots and the network use `authoritative`. They never wait on animations, except that bot "thinking delay" is a UI concern.
 - Settings: animation speed multiplier, skip-animations, reduced motion (respect `prefers-reduced-motion`), bots-fast mode.
+- One-shot visual effects (money pops, coin transfers, callouts) are emitted by the store during playback (`onFx`) and animated by a DOM layer; a human's drawn card pauses the queue until acknowledged (DECISIONS.md D21).
 
 ## 5. Board view (Pixi)
 

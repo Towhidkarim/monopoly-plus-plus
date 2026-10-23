@@ -1,5 +1,6 @@
 import {
   PRESETS,
+  SPACES,
   createGame,
   expectedActor,
   observe,
@@ -16,12 +17,21 @@ import { botRng, simpleBot, type Bot, type BotRng } from '@skyline/bots'
 import { describe, type LogEntry } from './log.ts'
 import { applyEvent, desyncs, presentFrom, type Presented } from './presented.ts'
 import { saveGame, type GameSetup, type SavedGame } from './setup.ts'
+import { BIG_RENT, TIMINGS } from './timings.ts'
 
 export interface CardShown {
   deck: 'chance' | 'chest'
   cardId: number
   playerId: string
+  /** A human's card waits for `ackCard()`; a bot's closes by itself. */
+  waiting: boolean
 }
+
+/** One-shot visual effects for the DOM layer (number pops, flying coins, callouts). */
+export type Fx =
+  | { kind: 'pop'; playerId: string; delta: number }
+  | { kind: 'transfer'; from: string; to: string; amount: number }
+  | { kind: 'callout'; tone: 'good' | 'bad' | 'info'; title: string; detail?: string; seat?: number }
 
 /** Everything React reads. Replaced (never mutated) on every change, for useSyncExternalStore. */
 export interface Snapshot {
@@ -38,6 +48,11 @@ export interface Snapshot {
   card: CardShown | null
   /** Bot currently "thinking", for a UI hint. */
   thinking: string | null
+  /**
+   * Seat whose point of view the shell shows (My city, hints): the human the game is waiting
+   * on, else the last such human. Null when no human is seated.
+   */
+  viewer: number | null
 }
 
 export interface StoreSettings {
@@ -60,10 +75,12 @@ export class GameStore {
   readonly settings: StoreSettings = { speed: 1, fastBots: false, instant: false }
   private snap: Snapshot
   private readonly listeners = new Set<() => void>()
+  private readonly fxListeners = new Set<(fx: Fx) => void>()
   private readonly actions: SavedGame['actions'] = []
   private readonly queue: GameEvent[] = []
   private pumping = false
   private skipping = false
+  private cardAck: (() => void) | null = null
   private board: BoardPort | null = null
   private readonly bot: Bot = simpleBot
   private readonly rng: BotRng
@@ -95,7 +112,9 @@ export class GameStore {
       diceRoll: 0,
       card: null,
       thinking: null,
+      viewer: null,
     }
+    this.snap.viewer = this.viewerFor(state)
     if (replay.length > 0) this.pushLog({ text: 'Game resumed', tone: 'muted' })
   }
 
@@ -108,9 +127,19 @@ export class GameStore {
 
   getSnapshot = (): Snapshot => this.snap
 
+  onFx = (fn: (fx: Fx) => void): (() => void) => {
+    this.fxListeners.add(fn)
+    return () => this.fxListeners.delete(fn)
+  }
+
   private set(patch: Partial<Snapshot>): void {
     this.snap = { ...this.snap, ...patch }
     for (const fn of this.listeners) fn()
+  }
+
+  private emit(fx: Fx): void {
+    if (this.skipping) return
+    for (const fn of this.fxListeners) fn(fx)
   }
 
   // ---- board --------------------------------------------------------------
@@ -132,10 +161,24 @@ export class GameStore {
     if (!r.ok) return r.error
     this.actions.push({ playerId, action })
     saveGame({ version: 1, setup: this.setup, actions: this.actions })
-    this.snap = { ...this.snap, state: r.state }
+    this.snap = { ...this.snap, state: r.state, viewer: this.viewerFor(r.state) }
     this.queue.push(...r.events)
     void this.pump()
     return null
+  }
+
+  /** Dispatches a planned sequence (Build evenly, Raise money); stops at the first rejection. */
+  run(playerId: string, actions: readonly Action[]): string | null {
+    for (const a of actions) {
+      const err = this.dispatch(playerId, a)
+      if (err) return err
+    }
+    return null
+  }
+
+  /** Closes a card that is waiting for its human drawer. */
+  ackCard(): void {
+    this.cardAck?.()
   }
 
   /** Jump to the end of all pending animations (skip). */
@@ -143,6 +186,7 @@ export class GameStore {
     if (!this.pumping) return
     this.skipping = true
     this.board?.skipAnimations()
+    this.cardAck?.()
   }
 
   setSettings(patch: Partial<StoreSettings>): void {
@@ -153,13 +197,28 @@ export class GameStore {
     return this.setup.seats.find((s) => s.id === playerId)?.kind ?? 'human'
   }
 
+  private seatIndex(id: string): number {
+    return this.setup.seats.findIndex((x) => x.id === id)
+  }
+
+  private viewerFor(s: GameState): number | null {
+    const actor = s.phase === 'gameOver' ? s.current : expectedActor(s)
+    if (this.setup.seats[actor]?.kind === 'human') return actor
+    const prev = this.snap?.viewer
+    if (prev !== undefined && prev !== null) return prev
+    const first = this.setup.seats.findIndex((x) => x.kind === 'human')
+    return first >= 0 ? first : null
+  }
+
   nameOf = (id: string): string =>
     id === 'bank' ? 'the bank' : (this.setup.seats.find((s) => s.id === id)?.name ?? id)
 
   dispose(): void {
     this.disposed = true
     if (this.botTimer) clearTimeout(this.botTimer)
+    this.cardAck?.()
     this.listeners.clear()
+    this.fxListeners.clear()
   }
 
   // ---- event playback -----------------------------------------------------
@@ -193,24 +252,72 @@ export class GameStore {
     const speed = this.settings.speed
     if (e.type === 'DICE_ROLLED') {
       this.set({ dice: e.dice, diceRoll: this.snap.diceRoll + 1 })
-      await wait(620 / speed)
+      await wait(TIMINGS.dice / speed)
       return
     }
     if (e.type === 'CARD_DRAWN') {
-      this.set({ card: { deck: e.deck, cardId: e.cardId, playerId: e.playerId } })
-      await wait(1900 / speed)
+      const waiting = this.seatKind(e.playerId) === 'human'
+      this.set({ card: { deck: e.deck, cardId: e.cardId, playerId: e.playerId, waiting } })
+      if (waiting) await new Promise<void>((r) => (this.cardAck = r))
+      else await wait(TIMINGS.botCard / speed)
+      this.cardAck = null
       this.set({ card: null })
       return
     }
+    if (e.type === 'CASH_CHANGED') return this.playCash(e, speed)
+    this.callout(e)
     if (this.board) {
       this.board.setTuning({ speed })
       await this.board.play(e)
     }
-    if (e.type === 'CASH_CHANGED' && (e.reason === 'rent' || e.reason === 'tax')) await wait(260 / speed)
   }
 
-  private pushLog(entry: Omit<LogEntry, 'id'>): void {
-    const log = [{ ...entry, id: ++this.logId }, ...this.snap.log].slice(0, LOG_LIMIT)
+  /** The payer's cash drops as the coins leave; the payee's rises when they land. */
+  private async playCash(e: Extract<GameEvent, { type: 'CASH_CHANGED' }>, speed: number): Promise<void> {
+    const other = e.counterparty && e.counterparty !== 'bank' ? e.counterparty : null
+    if (other && e.delta < 0) {
+      this.emit({ kind: 'transfer', from: e.playerId, to: other, amount: -e.delta })
+      if (e.reason === 'rent') this.rentCallout(e.playerId, other, -e.delta)
+      return
+    }
+    if (other) await wait(TIMINGS.coinFlight / speed)
+    this.emit({ kind: 'pop', playerId: e.playerId, delta: e.delta })
+    if (!other && (e.reason === 'tax' || e.reason === 'rent')) await wait(TIMINGS.paymentBeat / speed)
+  }
+
+  private rentCallout(payer: string, payee: string, amount: number): void {
+    const human = [payer, payee].some((id) => this.seatKind(id) === 'human')
+    if (!human && amount < BIG_RENT) return
+    const space = this.snap.presented.players.find((p) => p.id === payer)?.position ?? 0
+    const level = this.snap.presented.houses[space] ?? 0
+    const built = level === 5 ? ' · hotel' : level > 0 ? ` · ${level} house${level > 1 ? 's' : ''}` : ''
+    this.emit({
+      kind: 'callout',
+      tone: this.seatKind(payer) === 'human' ? 'bad' : 'good',
+      title: `${this.nameOf(payer)} paid ₵${amount.toLocaleString()} rent to ${this.nameOf(payee)}`,
+      detail: `${SPACES[space]!.name}${built}`,
+      seat: this.seatIndex(payee),
+    })
+  }
+
+  private callout(e: GameEvent): void {
+    if (e.type === 'MONOPOLY_COMPLETED') {
+      this.emit({
+        kind: 'callout',
+        tone: 'good',
+        title: `${this.nameOf(e.playerId)} completed a set!`,
+        detail: 'Houses can be built there now.',
+        seat: this.seatIndex(e.playerId),
+      })
+    } else if (e.type === 'BANKRUPT') {
+      this.emit({ kind: 'callout', tone: 'bad', title: `${this.nameOf(e.playerId)} went bankrupt` })
+    } else if (e.type === 'FINAL_ROUND') {
+      this.emit({ kind: 'callout', tone: 'info', title: 'Final round', detail: 'Highest net worth wins.' })
+    }
+  }
+
+  private pushLog(entry: Omit<LogEntry, 'id' | 'at'>): void {
+    const log = [{ ...entry, id: ++this.logId, at: Date.now() }, ...this.snap.log].slice(0, LOG_LIMIT)
     this.set({ log })
   }
 
@@ -223,7 +330,9 @@ export class GameStore {
     const actor = s.players[expectedActor(s)]!
     if (this.seatKind(actor.id) !== 'bot') return
     this.set({ thinking: actor.id })
-    const delay = this.settings.fastBots ? 40 : 380 + this.rng() * 420
+    const delay = this.settings.fastBots
+      ? TIMINGS.botFast
+      : TIMINGS.botThink + this.rng() * TIMINGS.botThinkJitter
     this.botTimer = setTimeout(() => {
       this.botTimer = null
       this.set({ thinking: null })

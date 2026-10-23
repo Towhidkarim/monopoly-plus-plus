@@ -65,6 +65,23 @@ Status: setup screen, hotseat play with humans and bots, action bar from `legalA
 
 Acceptance: a full game (humans and bots) can be played start to finish; no desync between panels and board; skip-animations leaves the board correct; reload with the same seed and action log reproduces the game.
 
+## Milestone 4.5: UX pass (added 2026-10-23)
+
+Status 2026-10-23: built (DECISIONS.md D21), awaiting the developer's review in a real browser. Items 2 to 8 implemented; Trade stays disabled until Milestone 8; no auction countdown in local play. Screenshots: `docs/screenshots/m45-*.png`. Dev scenes: `?demo=play&scene=buy|auction|debt|build|card`.
+
+Pulls the most important UX from Milestones 5 and 8 forward, because it is what every game feels like.
+
+1. Design mockup first, approved by the developer (canvas: "Skyline game screen UX", https://claude.ai/artifact/S7MPiETs7dKw335qkyXb2x, private to the developer's account). Layout and flow are what it fixes; its board drawing and visual style are placeholders.
+2. Top HUD with player cards (cash, holdings, turn state) and a turn banner.
+3. Bottom action dock: one primary action with keyboard hint (Space), My city, Trade.
+4. Decision moments: buy (title deed + cash preview + set progress), live auction panel, raising-money panel.
+5. My city drawer: sets with progress, house pips, rent now/next, one-click "Build evenly", mortgage controls.
+6. Feedback: activity toasts, money flying between player cards, number pops, low-cash warnings, hints.
+7. Cards wait for a click (bots' cards auto-close); keyboard shortcuts; help/rules overlay.
+8. All timings in one config file for tuning.
+
+Acceptance: the developer approves the mockup and then the built screens; every decision has a clear moment; building a full set takes one click; the build matches the approved design.
+
 ## Milestone 5: Juice pass 1 (feel)
 
 - Juice toolkit: `Spring`, smoothing, shake, hit-stop, squash, number pop, idle bob.

@@ -5,7 +5,7 @@ import { project, unproject, type Pos } from './geometry/project.ts'
 import { BOARD, ringFootprint, tileAt, tileCenter, tokenAnchor } from './geometry/ring.ts'
 import { jump, travel, type MotionContext } from './pieces/motion.ts'
 import { SIDE_HEADING, type PieceKind } from './pieces/shapes.ts'
-import { Camera, type Bounds } from './view/camera.ts'
+import { Camera, type Bounds, type Insets } from './view/camera.ts'
 import { CityView, GroundView } from './view/city.ts'
 import { rect } from './view/draw.ts'
 import { TileView } from './view/tiles.ts'
@@ -280,6 +280,12 @@ export class Board {
 
   recenter(): void {
     this.camera.recenter()
+  }
+
+  /** Screen space covered by DOM UI (HUD, dock, side panels); the board frames itself around it. */
+  setInsets(insets: Insets): void {
+    this.camera.setInsets(insets)
+    this.camera.recenter(true)
   }
 
   /** Zoom the camera onto a space. */
