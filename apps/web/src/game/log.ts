@@ -49,7 +49,7 @@ export function describe(e: GameEvent, name: (id: string) => string): Omit<LogEn
         : { text: `Nobody bought ${sp(e.space)}`, tone: 'muted' }
     case 'BUILT':
       return {
-        text: `${name(e.playerId)} built on ${sp(e.space)} (${e.level === 5 ? 'hotel' : `${e.level} houses`})`,
+        text: `${name(e.playerId)} built on ${sp(e.space)} (${e.level === 5 ? 'hotel' : `${e.level} house${e.level === 1 ? '' : 's'}`})`,
         tone: 'good',
       }
     case 'SOLD_BUILDING':
@@ -58,6 +58,14 @@ export function describe(e: GameEvent, name: (id: string) => string): Omit<LogEn
       return { text: `${name(e.playerId)} mortgaged ${sp(e.space)}`, tone: 'normal' }
     case 'UNMORTGAGED':
       return { text: `${name(e.playerId)} lifted the mortgage on ${sp(e.space)}`, tone: 'normal' }
+    case 'TRADE_PROPOSED':
+      return { text: `${name(e.from)} offered ${name(e.to)} a deal`, tone: 'muted' }
+    case 'TRADE_REJECTED':
+      return { text: 'The offer was declined', tone: 'muted' }
+    case 'PROPERTY_TRANSFERRED':
+      return e.from !== 'bank' && e.to !== 'bank'
+        ? { text: `${name(e.to)} got ${sp(e.space)} from ${name(e.from)}`, tone: 'normal' }
+        : null
     case 'MONOPOLY_COMPLETED':
       return { text: `${name(e.playerId)} completed a color set!`, tone: 'good' }
     case 'JAILED':

@@ -10,7 +10,11 @@ const MODES: { preset: PresetName; label: string; blurb: string }[] = [
     label: 'Standard',
     blurb: '2 dealt properties, 30 rounds, richest wins. About an hour.',
   },
-  { preset: 'turbo', label: 'Turbo', blurb: '3 dealt properties, bigger salary, 16 rounds. Quick.' },
+  {
+    preset: 'turbo',
+    label: 'Turbo',
+    blurb: '4 dealt properties, bigger salary, 20 rounds. Quick and punchy.',
+  },
   { preset: 'classic', label: 'Classic', blurb: 'The full game. Last player standing wins.' },
 ]
 

@@ -27,7 +27,7 @@ export function Hud({
   const limit = snap.state.config.roundLimit
   const solo = store.setup.seats.filter((x) => x.kind === 'human').length === 1
   return (
-    <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start gap-4 bg-gradient-to-b from-table via-table/80 to-transparent px-5 pt-4 pb-8">
+    <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start gap-4 bg-linear-to-b from-table via-table/80 to-transparent px-5 pt-4 pb-8">
       <div className="pointer-events-auto flex w-44 shrink-0 flex-col gap-1">
         <div className="text-2xl font-bold tracking-tight text-accent">Skyline</div>
         <div className="flex gap-1.5 text-xs text-ink-muted">
@@ -80,11 +80,6 @@ export function Hud({
                   {pl.name.trim()[0]?.toUpperCase()}
                 </span>
                 <span className="truncate text-sm font-semibold">{pl.name}</span>
-                {info.kind === 'bot' && (
-                  <span className="rounded bg-white/5 px-1 text-[10px] font-semibold text-ink-muted">
-                    BOT
-                  </span>
-                )}
                 <TickingMoney
                   value={pl.cash}
                   className={`ml-auto text-[15px] font-bold ${pl.cash < 150 && !pl.bankrupt ? 'text-alert' : 'text-ink'}`}
@@ -93,15 +88,31 @@ export function Hud({
               <div className="flex h-3 items-center gap-1">
                 <Holdings seat={seat} owner={p.owner} mortgaged={p.mortgaged} />
                 {pl.jailCards > 0 && (
-                  <span className="text-[10px] font-bold text-gold" title="Get out of the Lockup free">
+                  <span
+                    className="shrink-0 text-[10px] font-bold whitespace-nowrap text-gold"
+                    title="Get out of the Lockup free"
+                  >
                     +{pl.jailCards} card
                   </span>
                 )}
+                {/* A status wins the slot; otherwise a bot shows its personality. */}
                 <span
-                  className={`ml-auto text-[10px] font-bold tracking-wider ${tag === 'THINKING' ? 'animate-pulse' : ''}`}
-                  style={{ color: pl.bankrupt || pl.inJail ? 'var(--color-alert)' : color }}
+                  className={`ml-auto shrink-0 text-[10px] font-bold tracking-wider ${tag === 'THINKING' ? 'animate-pulse' : ''}`}
+                  style={{
+                    color: tag
+                      ? pl.bankrupt || pl.inJail
+                        ? 'var(--color-alert)'
+                        : color
+                      : 'var(--color-ink-muted)',
+                  }}
+                  title={
+                    info.kind === 'bot'
+                      ? `Bot with the ${store.botName(seat) ?? 'Balanced'} personality`
+                      : undefined
+                  }
                 >
-                  {tag}
+                  {tag ||
+                    (info.kind === 'bot' ? `${store.botName(seat) ?? ''} BOT`.trim().toUpperCase() : '')}
                 </span>
               </div>
             </div>
@@ -165,7 +176,7 @@ function Holdings({ seat, owner, mortgaged }: { seat: number; owner: number[]; m
             {spaces.map((i) => (
               <span
                 key={i}
-                className={`h-3 w-2 rounded-[2px] ${mortgaged[i] ? 'opacity-30' : ''}`}
+                className={`h-3 w-2 rounded-xs ${mortgaged[i] ? 'opacity-30' : ''}`}
                 style={{ background: groupColor(g) }}
               />
             ))}
@@ -176,7 +187,7 @@ function Holdings({ seat, owner, mortgaged }: { seat: number; owner: number[]; m
         <span
           key={i}
           title={SPACES[i]!.name}
-          className={`h-3 w-2 shrink-0 rounded-[2px] bg-ink-muted ${mortgaged[i] ? 'opacity-30' : ''}`}
+          className={`h-3 w-2 shrink-0 rounded-xs bg-ink-muted ${mortgaged[i] ? 'opacity-30' : ''}`}
         />
       ))}
     </div>

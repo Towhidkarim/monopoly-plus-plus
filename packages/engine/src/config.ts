@@ -46,9 +46,12 @@ const CLASSIC: GameConfig = {
 
 export type PresetName = 'standard' | 'turbo' | 'classic'
 
-/** Round limits are first guesses; the simulation harness tunes them toward target durations. */
+/**
+ * Tuned with the heuristic bot (DECISIONS.md D22): Standard about 29 rounds (a fifth of games end
+ * with one player left); Turbo deals 4 properties so sets and bankruptcies happen within 20 rounds.
+ */
 export const PRESETS: Record<PresetName, GameConfig> = {
   classic: CLASSIC,
   standard: { ...CLASSIC, dealtProperties: 2, roundLimit: 30 },
-  turbo: { ...CLASSIC, dealtProperties: 3, goSalary: 300, roundLimit: 16 },
+  turbo: { ...CLASSIC, dealtProperties: 4, goSalary: 300, roundLimit: 20 },
 }

@@ -1,6 +1,6 @@
 import { expectedActor, legalActions, observe, reduce, type Action, type GameState } from '@skyline/engine'
 import { botRng, simpleBot } from '@skyline/bots'
-import { buildableGroups } from './plans.ts'
+import { buildableGroups } from '@skyline/bots'
 import type { GameStore } from './store.ts'
 
 /**

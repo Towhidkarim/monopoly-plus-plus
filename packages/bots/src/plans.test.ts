@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { GROUPS, PRESETS, SPACES, createGame, reduce, type Action, type GameState } from '@skyline/engine'
-import { hintFor } from './hints.ts'
+import { GROUPS, PRESETS, createGame, reduce, type Action, type GameState } from '@skyline/engine'
 import { buildEvenlyPlan, liquidationValue, raisePlan, sellEvenlyPlan } from './plans.ts'
 
 const players = [
@@ -96,29 +95,5 @@ describe('raisePlan', () => {
       expect(after.houses[i]).toBe(0)
       expect(after.mortgaged[i]).toBe(true)
     }
-  })
-})
-
-describe('hintFor', () => {
-  it('warns about a big rent within one roll when cash is short', () => {
-    const s = game((x) => {
-      give(x, 1, GROUPS[7]!)
-      x.houses[39] = 3
-      x.players[0]!.position = 33
-      x.players[0]!.cash = 300
-    })
-    const h = hintFor(s, 0)
-    expect(h?.tone).toBe('warn')
-    expect(h?.text).toContain(SPACES[39]!.name)
-  })
-
-  it('points at a buildable set, then at the last missing piece', () => {
-    const set = game((x) => give(x, 0, GROUPS[1]!))
-    expect(hintFor(set, 0)?.text).toMatch(/set is complete/)
-    const near = game((x) => {
-      give(x, 0, GROUPS[1]!.slice(1))
-      x.owner[GROUPS[1]![0]!] = 1
-    })
-    expect(hintFor(near, 0)?.text).toMatch(/^Bo holds/)
   })
 })

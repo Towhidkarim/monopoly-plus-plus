@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { HOTEL, SPACES, rentFor, type Action } from '@skyline/engine'
-import { liquidationValue, raisePlan, raiseValue } from '../../game/plans.ts'
+import { liquidationValue, raisePlan, raiseValue } from '@skyline/bots'
 import type { GameStore, Snapshot } from '../../game/store.ts'
 import { familyColor, familyName } from './deed.ts'
 import type { TurnView } from './turn.ts'

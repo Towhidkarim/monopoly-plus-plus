@@ -12,7 +12,7 @@ import {
   unmortgageCost,
   type Action,
 } from '@skyline/engine'
-import { buildEvenlyPlan, sellEvenlyPlan } from '../../game/plans.ts'
+import { buildEvenlyPlan, sellEvenlyPlan } from '@skyline/bots'
 import type { GameStore, Snapshot } from '../../game/store.ts'
 import { cssHex, groupColor, groupName } from '../../spaceInfo.ts'
 import { Icon } from './icons.tsx'

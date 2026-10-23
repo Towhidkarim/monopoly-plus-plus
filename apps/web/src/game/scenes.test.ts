@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { GROUPS, SPACES, legalActions } from '@skyline/engine'
-import { buildEvenlyPlan, liquidationValue, raisePlan } from './plans.ts'
+import { buildEvenlyPlan, liquidationValue, raisePlan } from '@skyline/bots'
 import { playToScene, type Scene } from './scenes.ts'
 import { GameStore } from './store.ts'
 

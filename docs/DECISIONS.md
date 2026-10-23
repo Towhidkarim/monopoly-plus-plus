@@ -135,6 +135,17 @@ Targets are verified by the bot simulation harness, not guessed. Rules are small
 - **Viewer seat:** My city and hints show the human the game is waiting on, else the last such human (hotseat friendly).
 - **Dev scenes:** `?demo=play` seats you against three bots; `&scene=buy|auction|debt|build|card` fast-forwards until you face that moment (seeds 7 and 17 reach all of them); `&open=city|help` opens a panel on load.
 
+## D22. Heuristic bot, simulation results, preset tuning (2026-10-23, Milestone 3)
+
+- **Model:** `seatValue` = net worth (what wins at the round limit) + expected rent per round × rounds left × `incomeWeight` + set upside (developing a set to 3 houses, partly counted for unblocked partial sets). Landing odds come from a Markov chain over the real dice and card decks (`heuristic/landing.ts`, short-jail policy, triple doubles ignored). Rounds left shrink toward the round limit, so bots protect net worth late.
+- **Decisions:** buy when the gain is positive and cash stays above `reserve × buyCaution` (or the space matters for a set); bid up to value plus 40% of the denial value; build the house with the best rent gain per ₵; mortgage lone properties to fund houses when the funded rent beats the lost rent (no unmortgaging while sets are below 3 houses, so no flip-flopping); leave jail early, stay late; raise money with the shared `raisePlan`; accept a deal when my gain minus `envy` × the partner's extra gain beats `tradeMargin`; propose one deal per turn for a set's single missing piece (cash, or a property the partner can use), choosing the best one the partner's model would accept.
+- **Trades in Milestone 3:** basic bot-initiated trades were pulled forward from Milestone 10, because without them sets rarely form and games drift. Bots only propose to bots until humans have a trade screen (Milestone 8).
+- **Personalities:** Balanced, Banker (cautious), Tycoon (aggressive), Shark (hard bargainer). Head to head over 2,000 games: 25 / 19 / 28 / 27%.
+- **Results (1,000 games each, seats rotated):** heuristic vs 3 random: 99.9% wins. Heuristic vs 3 simple (non-trading) bots: 28% (fair 25%; without trades, Standard is mostly dice). Four heuristics: 2.4 trades, 5.9 sets, 1.7 bankruptcies per game, 23% end with one player left. Single-parameter sweeps (400 games, ±2%) found no change better than the defaults; never proposing trades drops to 8.5%, a low `incomeWeight` (0.35) to 6.5%.
+- **Speed:** 7,700 to 11,800 games/min with heuristic bots via `pnpm sim` (Node, dev laptop); about 3,000/min inside Vitest.
+- **Presets:** Standard stays at 30 rounds (about 29 played): roughly 20 min solo vs 3 bots, 50 min for 4 humans. Turbo changed to 4 dealt properties and 20 rounds (was 3 and 16, which produced 0.3 bankruptcies per game; now 1.2): roughly 14 min solo, 35 min for 4 humans. Classic: every game ends with one player left, about 58 rounds. Durations assume 30 s per human turn and 6 s per bot turn at 1x; correct them after real playtests.
+- **Web:** bot seats get personalities in turn (Balanced, Tycoon, Shark, Banker; `SeatSetup.personality` can override), bots answer offers out of turn, deals get a callout and log lines.
+
 ## D14. Tailwind CSS v4 for all DOM UI (2026-10-23)
 
 **Decision:** The React shell is styled with Tailwind v4 utilities (`@tailwindcss/vite`), not hand-written CSS classes. Design tokens (palette) live in one `@theme` block in `apps/web/src/index.css` and are used as utilities (`bg-panel`, `text-accent`). Custom CSS only for things utilities cannot express.

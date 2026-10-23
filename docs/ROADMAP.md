@@ -44,7 +44,9 @@ Status: all rule areas implemented and tested (126 tests), fuzz and determinism 
 
 Acceptance: 10,000 random-playout games finish with zero invariant violations; replay from seed reproduces identical final state; every rule listed in `ARCHITECTURE.md` section 2 has a test.
 
-## Milestone 3: Heuristic bot and simulation harness
+## Milestone 3: Heuristic bot and simulation harness (done 2026-10-23)
+
+Status: heuristic bot with personalities, Markov landing odds, basic bot-to-bot trades (pulled forward from Milestone 10), `pnpm sim` matchups with seat rotation, stats, length estimates and CSV. Beats random 99.9% over 1,000 games; 7,700+ games/min. Turbo retuned. See DECISIONS.md D22.
 
 - `Bot` interface (`decide(view, playerId, rng) => Action | null`); random-legal bot (baseline); heuristic bot v1.
 - Simulation harness: seeded matchups, win rates, average game length (in turns and estimated minutes), per-bot stats, CSV output.
@@ -67,7 +69,7 @@ Acceptance: a full game (humans and bots) can be played start to finish; no desy
 
 ## Milestone 4.5: UX pass (added 2026-10-23)
 
-Status 2026-10-23: built (DECISIONS.md D21), awaiting the developer's review in a real browser. Items 2 to 8 implemented; Trade stays disabled until Milestone 8; no auction countdown in local play. Screenshots: `docs/screenshots/m45-*.png`. Dev scenes: `?demo=play&scene=buy|auction|debt|build|card`.
+Status 2026-10-23: done and approved by the developer (DECISIONS.md D21). Items 2 to 8 implemented; Trade stays disabled until Milestone 8; no auction countdown in local play. Screenshots: `docs/screenshots/m45-*.png`. Dev scenes: `?demo=play&scene=buy|auction|debt|build|card`.
 
 Pulls the most important UX from Milestones 5 and 8 forward, because it is what every game feels like.
 

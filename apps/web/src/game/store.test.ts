@@ -92,6 +92,20 @@ describe('GameStore playback', () => {
     store.dispose()
   })
 
+  it('bots answer offers out of turn, so bot-to-bot deals happen in the real store', async () => {
+    const store = new GameStore({ preset: 'standard', seed: 5, seats: seats(['bot', 'bot', 'bot', 'bot']) })
+    store.setSettings({ fastBots: true, speed: 50 })
+    const deals: string[] = []
+    store.onFx((fx) => fx.kind === 'callout' && fx.title.startsWith('Deal') && deals.push(fx.title))
+    store.attach(stubBoard())
+    for (let i = 0; i < 20_000 && deals.length === 0 && store.getSnapshot().state.phase !== 'gameOver'; i++) {
+      await vi.advanceTimersByTimeAsync(100)
+    }
+    expect(deals.length).toBeGreaterThan(0)
+    expect(store.getSnapshot().state.trades.length).toBeLessThanOrEqual(4)
+    store.dispose()
+  }, 120_000)
+
   it('emits money effects: a transfer when rent flows between players', async () => {
     const store = new GameStore({ preset: 'turbo', seed: 11, seats: seats(['bot', 'bot']) })
     store.setSettings({ fastBots: true, speed: 50 })

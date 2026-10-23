@@ -242,7 +242,7 @@ export interface Bot {
 
 Progression:
 
-1. **Heuristic bot v1:** buy if cash after purchase stays above a reserve; prefer completing color groups; build evenly on the best-ROI group; mortgage only when forced; simple auction valuation.
+1. **Heuristic bot v1 (built, DECISIONS.md D22):** `packages/bots/src/heuristic/`. A position-value model (net worth plus expected rent from Markov landing odds plus set upside) drives every decision under a danger-scaled cash reserve: buying, auction bids (with denial value), building by rent gain per ₵, mortgaging to fund houses, jail timing, raising money (shared `plans.ts`), and trades (answering any time; proposing for a set's missing piece). Behaviour is `BotParams` data; personalities are presets. `match.ts` runs headless games and lets bots answer offers out of turn.
 2. **Heuristic bot v2:** tuned parameters (reserve, aggression, trade willingness), structured trade evaluation (value-based).
 3. **Simulation harness (`pnpm sim`):** N headless games per matchup with seeded RNG, win-rate and game-length stats. Used to tune parameters automatically (grid search or evolutionary tuning).
 4. **Search bot:** determinized Monte Carlo (sample hidden deck order, rollout with heuristic policy), time-boxed per decision.

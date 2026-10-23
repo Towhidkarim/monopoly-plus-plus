@@ -8,6 +8,8 @@ export interface SeatSetup {
   kind: 'human' | 'bot'
   piece: PieceKind
   color: number
+  /** Bot personality (see PERSONALITIES in @skyline/bots); assigned in turn when absent. */
+  personality?: string
 }
 
 export interface GameSetup {
