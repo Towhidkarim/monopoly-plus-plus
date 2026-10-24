@@ -217,6 +217,12 @@ Targets are verified by the bot simulation harness, not guessed. Rules are small
 
 **Frame-time budget (Milestone 7):** ambient JS update (`Ambient.update`, includes sim, positioning, culling and corner redraws) averages **0.05 ms per frame** and **0.4 ms at p99, 1 ms worst** over 1200 frames (20 s of simulated play at 60 Hz, 16 graphics, whole city in view). The budget for all of Milestone 7's ambient work (traffic and trains now, plus lights and day/night later) is **1 ms per frame average and 3 ms worst on the JS side**, and the board must still hold 60 fps. Measure with `skylineBoard.ambientCost(true)` (reset) then `skylineBoard.ambientCost()`. Caveat: the Orca browser throttles the tab to about 1 fps, so GPU render cost could not be measured there; re-check fps on a real focused window.
 
+## D30. Pieces stand in front of buildings (2026-10-25, Milestone 7)
+
+**Context:** Pieces stood in the middle of a tile, exactly where the building lot is, so on developed properties they sank into the buildings.
+**Decision:** Each side tile is split into a building lot and a standing strip about 30% deep along the edge nearest the camera: the outer edge on the two front sides (GO to Jail, Go to Jail to GO), the inner edge on the two back sides (`stripV`, `lotRect`, `tokenAnchor` in geometry/ring.ts, tested). Up to six pieces line up along the strip. Tile buildings live in the actor layer keyed by their lot's depth, so they sort correctly with the city and the pieces (before, city items behind a tall tile building were drawn over it). Safety net: a tall building (2+ houses) on the neighboring tile toward the camera fades to about 45% while pieces rest next to it (`nearerNeighbor`).
+**Why:** Fading buildings all the time would hide the thing a player paid for, and shrinking them would undo the growing skyline; a dedicated strip keeps both readable, as physical boards do.
+
 ## D14. Tailwind CSS v4 for all DOM UI (2026-10-23)
 
 **Decision:** The React shell is styled with Tailwind v4 utilities (`@tailwindcss/vite`), not hand-written CSS classes. Design tokens (palette) live in one `@theme` block in `apps/web/src/index.css` and are used as utilities (`bg-panel`, `text-accent`). Custom CSS only for things utilities cannot express.

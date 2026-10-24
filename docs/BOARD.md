@@ -32,7 +32,7 @@ Back to front, all code-drawn from the footprint:
 1. Slab walls (only visible on outer-edge tiles; the ring is one slab).
 2. Top surface (light concrete), subtle per-group pattern for color-blind support.
 3. **Group band** on the inner edge (the strip facing the city), group color plus pattern.
-4. Lot: the outer ~60% of the tile is the building plot.
+4. Lot and standing strip (DECISIONS.md D30): a strip about 30% deep along the edge nearest the camera (outer edge on the two front sides, inner edge on the two back sides) is where pieces stand; the building lot fills the rest, so pieces always stand in front of buildings.
 5. Building: grows with development (see 4).
 6. Decor: owner marker (small colored flag or roof tint chip), mortgage overlay (desaturate plus hatch).
 7. Interaction overlays: hover rim, selection glow, target pulse, path preview.

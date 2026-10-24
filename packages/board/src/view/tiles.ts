@@ -6,7 +6,7 @@ import { drawLot, type Family } from '../art/lots.ts'
 import { NIGHT, lightsAt, nightTint } from '../art/paint.ts'
 import { BOARD_STYLE } from '../art/style.ts'
 import { projectPoly, zScale } from '../geometry/project.ts'
-import { ringFootprint, tilePoint, type Footprint } from '../geometry/ring.ts'
+import { lotRect, ringFootprint, tilePoint, type Footprint } from '../geometry/ring.ts'
 import { groupColors, palette, shade } from '../palette.ts'
 import { disc, isoBox, rect } from './draw.ts'
 
@@ -30,18 +30,11 @@ const GROUP_FAMILY: readonly Family[] = [
   'glass',
 ]
 
-/** The building plot: the outer part of a property tile, between the owner plate and the band. */
-function lotOf(fp: Footprint): Lot {
-  const a = tilePoint(fp, 0.06, 0.15)
-  const b = tilePoint(fp, 0.94, 0.72)
-  return {
-    col0: Math.min(a.col, b.col),
-    row0: Math.min(a.row, b.row),
-    col1: Math.max(a.col, b.col),
-    row1: Math.max(a.row, b.row),
-    z: 0,
-  }
-}
+/** The building plot: the part of a property tile behind the pieces' standing strip (ring.ts). */
+const lotOf = (fp: Footprint): Lot => ({ ...lotRect(fp), z: 0 })
+
+/** How far a building fades while it would cover pieces on the neighboring tile. */
+const VEIL = 0.55
 
 /** Game-state decoration on a tile: owner color, buildings, mortgage. */
 export interface TileDeco {
@@ -74,11 +67,22 @@ export class TileView {
   readonly container = new Container()
   private readonly base = new Graphics()
   private readonly decoG = new Graphics()
+  /**
+   * The lot's building with its lights and beacons. It lives in the board's actor layer (not this
+   * tile's container) so it depth-sorts with the city and the pieces; it follows the tile's lift.
+   */
+  readonly tower = new Container()
   /** The building on a property lot; moved as a whole while it drops in. */
   private readonly building = new Graphics()
   /** Its lit windows at night (never tinted). */
   private readonly buildingLights = new Graphics()
   private night = 0
+  /** Mortgage dimming of the building (1 = none). */
+  private baseAlpha = 1
+  /** Eased 0..1 fade while the building would cover pieces on the tile behind it. */
+  private veil = 0
+  /** Set by the board when pieces rest on the tile this building could cover. */
+  veiled = false
   /** A hotel's blinking roof beacon (the board blinks it). */
   private readonly buildingBeacons = new Graphics()
   private readonly rim = new Graphics()
@@ -105,14 +109,12 @@ export class TileView {
     const space = SPACES[index]!
     this.family = space.kind === 'property' ? GROUP_FAMILY[space.group]! : null
     this.rim.alpha = 0
-    this.container.addChild(
-      this.base,
-      this.decoG,
-      this.building,
-      this.buildingLights,
-      this.buildingBeacons,
-      this.rim,
-    )
+    this.container.addChild(this.base, this.decoG, this.rim)
+    this.tower.addChild(this.building, this.buildingLights, this.buildingBeacons)
+    if (this.family) {
+      const lot = lotRect(this.fp)
+      this.tower.zIndex = (lot.col0 + lot.col1 + lot.row0 + lot.row1) / 2
+    }
     this.buildingLights.visible = false
   }
 
@@ -130,8 +132,8 @@ export class TileView {
     this.base.tint = nightTint(NIGHT.tiles, n, 0.5)
     this.building.tint = nightTint(NIGHT.city, n)
     const glow = lightsAt(n)
-    this.buildingLights.alpha = glow * this.building.alpha
     this.buildingLights.visible = glow > 0.01
+    this.applyAlpha()
     this.buildingBeacons.visible = glow > 0.01
   }
 
@@ -207,9 +209,15 @@ export class TileView {
         this.index * 131 + 17,
       )
     }
-    b.alpha = mortgaged ? 0.55 : 1
+    this.baseAlpha = mortgaged ? 0.55 : 1
     this.setNight(this.night)
     this.placeBuilding(t)
+  }
+
+  /** Building opacity: mortgage dimming times the veil; its lights follow. */
+  private applyAlpha(): void {
+    this.building.alpha = this.baseAlpha * (1 - VEIL * this.veil)
+    this.buildingLights.alpha = lightsAt(this.night) * this.building.alpha
   }
 
   /** Lifts the building by the height it still has to fall. */
@@ -253,12 +261,22 @@ export class TileView {
     this.lift.target = this.selected ? LIFT_SELECT : this.hovered ? LIFT_HOVER : 0
     this.lift.step(dtMs)
     this.container.y = -this.lift.value * zScale(t)
+    this.tower.y = this.container.y
 
     this.pulseClock += dtMs
     if (this.flash > 0) this.flash = Math.max(0, this.flash - dtMs / 450)
     const pulse = this.selected ? 0.75 + 0.25 * Math.sin(this.pulseClock / 160) : 0
     this.rim.alpha = Math.max(this.hovered ? 1 : 0, pulse, this.flash)
     this.rim.tint = this.selected ? palette.select : palette.hover
+
+    // Fade a tall building while pieces stand just behind it (eased, so it never pops).
+    const { owner, level } = this.deco
+    const want = this.veiled && owner !== null && level >= 2 ? 1 : 0
+    if (this.veil !== want) {
+      const step = dtMs / 220
+      this.veil = Math.abs(want - this.veil) <= step ? want : this.veil + Math.sign(want - this.veil) * step
+      this.applyAlpha()
+    }
   }
 }
 

@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import { project, unproject } from './project.ts'
-import { BOARD, DEPTH, ringFootprint, tileAt, tileCenter, tokenAnchor, type Footprint } from './ring.ts'
+import {
+  BOARD,
+  DEPTH,
+  lotRect,
+  nearerNeighbor,
+  ringFootprint,
+  tileAt,
+  tileCenter,
+  tokenAnchor,
+  type Footprint,
+} from './ring.ts'
 
 const inside = (fp: Footprint, col: number, row: number) =>
   col >= fp.col0 && col < fp.col1 && row >= fp.row0 && row < fp.row1
@@ -65,6 +75,38 @@ describe('tokenAnchor', () => {
         const keys = new Set(pts.map((p) => `${p.col.toFixed(3)},${p.row.toFixed(3)}`))
         expect(keys.size).toBe(count)
       }
+    }
+  })
+
+  it('stands pieces outside the building lot, on the side nearer the camera', () => {
+    const bad: string[] = []
+    for (let i = 0; i < 40; i++) {
+      const fp = ringFootprint(i)
+      if (fp.corner) continue
+      const lot = lotRect(fp)
+      const lotDepth = (lot.col0 + lot.col1 + lot.row0 + lot.row1) / 2
+      for (let count = 1; count <= 6; count++)
+        for (let s = 0; s < count; s++) {
+          const p = tokenAnchor(i, s, count)
+          const inLot = p.col > lot.col0 && p.col < lot.col1 && p.row > lot.row0 && p.row < lot.row1
+          // Larger col + row is nearer the camera, so the piece must be in front of the lot.
+          if (inLot || p.col + p.row < lotDepth) bad.push(`${i}: ${count}/${s}`)
+        }
+    }
+    expect(bad).toEqual([])
+  })
+})
+
+describe('nearerNeighbor', () => {
+  it('picks the neighbor along the edge that is nearer the camera, never a corner', () => {
+    for (let i = 0; i < 40; i++) {
+      const n = nearerNeighbor(i)
+      if (n === null) continue
+      const a = tileCenter(i)
+      const b = tileCenter(n)
+      expect(Math.abs(n - i), `tile ${i}`).toBe(1)
+      expect(b.col + b.row, `tile ${i}`).toBeGreaterThan(a.col + a.row)
+      expect(ringFootprint(n).corner).toBe(false)
     }
   })
 })

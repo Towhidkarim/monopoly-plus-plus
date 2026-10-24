@@ -131,22 +131,61 @@ export function tileCenter(index: number): { col: number; row: number } {
  */
 export function tokenAnchor(index: number, slot: number, count: number): { col: number; row: number } {
   const fp = ringFootprint(index)
-  if (count <= 1) {
-    if (fp.corner) return tileCenter(index)
-    return tilePoint(fp, 0.5, 0.42)
-  }
-  const cols = Math.min(count, 2)
-  const rows = Math.ceil(count / cols)
-  const c = slot % cols
-  const r = Math.floor(slot / cols)
-  const u = (c + 0.5) / cols
-  const v = 0.2 + ((r + 0.5) / rows) * 0.5
   if (fp.corner) {
+    if (count <= 1) return tileCenter(index)
+    const cols = Math.min(count, 2)
+    const rows = Math.ceil(count / cols)
     const span = fp.col1 - fp.col0
     return {
-      col: fp.col0 + span * (0.12 + 0.76 * u),
-      row: fp.row0 + span * (0.12 + 0.76 * ((r + 0.5) / rows)),
+      col: fp.col0 + span * (0.12 + (0.76 * ((slot % cols) + 0.5)) / cols),
+      row: fp.row0 + span * (0.12 + 0.76 * ((Math.floor(slot / cols) + 0.5) / rows)),
     }
   }
+  // Side tiles: pieces line up on the standing strip, in front of the building lot.
+  const [v0, v1] = stripV(fp)
+  const cols = Math.min(count, 3)
+  const rows = Math.ceil(count / cols)
+  const u = 0.1 + (0.8 * ((slot % cols) + 0.5)) / cols
+  const v = v0 + ((v1 - v0) * (Math.floor(slot / cols) + 0.5)) / rows
   return tilePoint(fp, u, v)
+}
+
+/**
+ * Side tiles are split into a building lot and a standing strip for the pieces. The strip runs
+ * along the edge nearest the camera (the outer edge on the two front sides, the inner edge on the
+ * two back sides), so a piece always stands in front of its tile's building, never inside it.
+ */
+const STRIP = 0.3
+
+/** True when a side tile's outer edge faces the camera (the front sides: GO-Jail and Go to Jail-GO). */
+const outerFaces = (fp: Footprint) => fp.side === 0 || fp.side === 3
+
+/** Range of `v` (0 outer edge, 1 inner edge) where pieces stand. */
+export function stripV(fp: Footprint): readonly [number, number] {
+  return outerFaces(fp) ? [0.02, STRIP] : [1 - STRIP, 0.98]
+}
+
+/** The building lot of a side tile, as a board rectangle (between the strip and the far edge). */
+export function lotRect(fp: Footprint): { col0: number; row0: number; col1: number; row1: number } {
+  const [v0, v1] = outerFaces(fp) ? [STRIP + 0.05, 0.74] : [0.15, 1 - STRIP - 0.05]
+  const a = tilePoint(fp, 0.06, v0)
+  const b = tilePoint(fp, 0.94, v1)
+  return {
+    col0: Math.min(a.col, b.col),
+    row0: Math.min(a.row, b.row),
+    col1: Math.max(a.col, b.col),
+    row1: Math.max(a.row, b.row),
+  }
+}
+
+/**
+ * The side tile next to `index` along the same edge that is nearer the camera, or null. Its
+ * building can partly cover pieces standing on `index` (the board fades it when that happens).
+ */
+export function nearerNeighbor(index: number): number | null {
+  const fp = ringFootprint(index)
+  if (fp.corner) return null
+  // Walking direction runs away from the camera on sides 0 and 1, toward it on sides 2 and 3.
+  const next = fp.side <= 1 ? index - 1 : index + 1
+  return ringFootprint(next % 40).corner ? null : next % 40
 }

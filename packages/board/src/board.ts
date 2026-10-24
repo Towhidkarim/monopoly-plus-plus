@@ -5,7 +5,7 @@ import { project, unproject, type Pos } from './geometry/project.ts'
 import { cloneJuice, type JuiceConfig } from './juice/config.ts'
 import { Particles } from './juice/particles.ts'
 import { NIGHT, blinkAt, lightsAt, nightTint } from './art/paint.ts'
-import { BOARD, ringFootprint, tileAt, tileCenter, tokenAnchor } from './geometry/ring.ts'
+import { BOARD, nearerNeighbor, ringFootprint, tileAt, tileCenter, tokenAnchor } from './geometry/ring.ts'
 import { jump, travel, type MotionContext } from './pieces/motion.ts'
 import { SIDE_HEADING, type PieceKind } from './pieces/shapes.ts'
 import { Camera, type Bounds, type Insets } from './view/camera.ts'
@@ -134,6 +134,7 @@ export class Board {
       tile.onImpact = this.onBuildImpact
       this.tiles.push(tile)
       this.tileLayer.addChild(tile.container)
+      this.actorLayer.addChild(tile.tower)
     }
     this.debugLayer.addChild(this.debugLines)
     this.debugLayer.visible = false
@@ -619,6 +620,7 @@ export class Board {
     this.freezeMs = Math.max(0, this.freezeMs - real)
     this.animator.step(dt)
     const t = this.viewT
+    this.veilBuildings()
     for (const tile of this.tiles) tile.update(dt, t, this.animator.speed)
     this.blinkBeacons(real)
     for (const token of this.tokens.values()) {
@@ -638,6 +640,16 @@ export class Board {
       const c = tileCenter(this.hovered)
       const p = this.world.toGlobal(project({ ...c, z: this.tiles[this.hovered]!.lift.value }, t))
       this.listeners.hoverPosition(p.x, p.y)
+    }
+  }
+
+  /** Pieces stand in front of their own tile's building; a tall one next to them toward the camera fades. */
+  private veilBuildings(): void {
+    for (const tile of this.tiles) tile.veiled = false
+    for (const token of this.tokens.values()) {
+      if (token.traveling) continue
+      const n = nearerNeighbor(token.space)
+      if (n !== null) this.tiles[n]!.veiled = true
     }
   }
 
