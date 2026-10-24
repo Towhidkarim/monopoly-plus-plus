@@ -62,7 +62,8 @@ The plaza city is built once from a seeded layout and baked with `cacheAsTexture
 
 **Dynamic city (a new one every game, DECISIONS.md D25).** A city seed picks the layout from hand-designed templates plus seeded variation, never free-form random placement. Rules that keep every city neat:
 
-- **Grid first:** blocks snap to a fixed street grid inside the rail loop; the two cross roads and the loop never move. Buildings sit on lots inside blocks with a constant sidewalk margin, so nothing overlaps a street or another building.
+- **Grid first:** blocks snap to a fixed street grid inside the rail loop, with streets on every side of every block, crosswalks and parked cars; the two cross roads and the loop never move.
+- **Real blocks:** buildings front the street (small margin to the sidewalk, deeper toward the block interior); open space lives inside the block as courtyards (midtown, reached by a passage) or shared gardens (residential, houses with front yards, front paths and hedges). Narrow paved alleys separate neighbors. Block types: downtown (towers on podiums, landmark or plaza), midtown, residential, park.
 - **Zoning by distance from the center:** towers and the landmark in the middle, mid-rise offices and walk-ups around them, low houses, parks and trees toward the edges. This gives the clean "tall in the middle" silhouette of the reference image.
 - **Few parts per city:** each city uses a limited set of building types and a limited color set from the style palette (one accent family per district), so it reads as designed, not noisy.
 - **Rhythm:** similar heights along a street, setbacks aligned, rooftops kept simple; detail (water towers, antennas, trees) is sprinkled with a density cap.

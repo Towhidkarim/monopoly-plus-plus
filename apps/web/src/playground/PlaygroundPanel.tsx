@@ -75,6 +75,9 @@ export function PlaygroundPanel({ handle }: { handle: BoardHandle | null }) {
               {t}
             </button>
           ))}
+          <a href="#art" className="flex-1 rounded-md py-1 text-center text-ink hover:bg-white/10">
+            Art
+          </a>
           <a href="#sounds" className="flex-1 rounded-md py-1 text-center text-ink hover:bg-white/10">
             Sounds
           </a>

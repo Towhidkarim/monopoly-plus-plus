@@ -14,7 +14,9 @@
     "fmt:check": "oxfmt --check",
     "check": "pnpm fmt:check && pnpm lint && pnpm typecheck && pnpm test",
     "sim": "pnpm --filter @skyline/bots sim",
-    "assets:audio": "node tools/assets/pack-audio.ts"
+    "assets:audio": "node tools/assets/pack-audio.ts",
+    "shot": "node tools/dev/shot.ts",
+    "shot:headless": "node tools/dev/headless.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",

@@ -1,6 +1,9 @@
 import { Container, Graphics } from 'pixi.js'
 import { SPACES } from '@skyline/engine'
 import { Spring } from '../anim/spring.ts'
+import type { Lot } from '../art/buildings.ts'
+import { drawLot, type Family } from '../art/lots.ts'
+import { BOARD_STYLE } from '../art/style.ts'
 import { projectPoly, zScale } from '../geometry/project.ts'
 import { ringFootprint, tilePoint, type Footprint } from '../geometry/ring.ts'
 import { groupColors, palette, shade } from '../palette.ts'
@@ -10,6 +13,34 @@ const GAP = 0.035
 const THICK = 0.1
 const LIFT_HOVER = 0.14
 const LIFT_SELECT = 0.2
+
+/**
+ * Architecture family per color group, cheap to expensive: houses on the first streets, glass on
+ * the last. Fixed for now; the seeded city (DECISIONS.md D25) will vary it per game.
+ */
+const GROUP_FAMILY: readonly Family[] = [
+  'cottage',
+  'cottage',
+  'brick',
+  'brick',
+  'modern',
+  'modern',
+  'glass',
+  'glass',
+]
+
+/** The building plot: the outer part of a property tile, between the owner plate and the band. */
+function lotOf(fp: Footprint): Lot {
+  const a = tilePoint(fp, 0.06, 0.15)
+  const b = tilePoint(fp, 0.94, 0.72)
+  return {
+    col0: Math.min(a.col, b.col),
+    row0: Math.min(a.row, b.row),
+    col1: Math.max(a.col, b.col),
+    row1: Math.max(a.row, b.row),
+    z: 0,
+  }
+}
 
 /** Game-state decoration on a tile: owner color, buildings, mortgage. */
 export interface TileDeco {
@@ -42,8 +73,11 @@ export class TileView {
   readonly container = new Container()
   private readonly base = new Graphics()
   private readonly decoG = new Graphics()
+  /** The building on a property lot; moved as a whole while it drops in. */
+  private readonly building = new Graphics()
   private readonly rim = new Graphics()
   private readonly fp: Footprint
+  private readonly family: Family | null
   readonly lift = new Spring(0, 260, 18)
   hovered = false
   selected = false
@@ -62,8 +96,10 @@ export class TileView {
     this.index = index
     this.fp = ringFootprint(index)
     this.container.zIndex = this.fp.col0 + this.fp.row0
+    const space = SPACES[index]!
+    this.family = space.kind === 'property' ? GROUP_FAMILY[space.group]! : null
     this.rim.alpha = 0
-    this.container.addChild(this.base, this.decoG, this.rim)
+    this.container.addChild(this.base, this.decoG, this.building, this.rim)
   }
 
   /**
@@ -106,7 +142,7 @@ export class TileView {
         d.v = -d.v * d.tune.bounce
       }
     }
-    this.drawDeco(this.lastT)
+    this.placeBuilding(this.lastT)
   }
 
   private drawDeco(t: number): void {
@@ -124,36 +160,25 @@ export class TileView {
       g.poly(quad(fp, 0.06, 0.03, 0.94, 0.13, t)).fill(owner)
       g.poly(quad(fp, 0.06, 0.03, 0.94, 0.05, t)).fill(shade(owner, 0.7))
     }
-    // The newest building may be mid-fall.
-    const dz = this.drop?.z ?? 0
-    if (level === 5) {
-      const c = tilePoint(fp, 0.5, 0.6)
-      isoBox(
-        g,
-        {
-          col0: c.col - 0.17,
-          col1: c.col + 0.17,
-          row0: c.row - 0.17,
-          row1: c.row + 0.17,
-          z0: dz,
-          z1: dz + 0.32,
-        },
-        { top: 0xfda4af, left: 0xe11d48, right: 0x9f1239 },
-        t,
+    const b = this.building.clear()
+    if (this.family) {
+      // Unowned is the for-sale lot (-1); then owned (0), 1 to 4 houses, hotel (5).
+      drawLot(
+        { g: b, t, style: BOARD_STYLE },
+        lotOf(fp),
+        owner === null ? -1 : level,
+        this.family,
+        owner,
+        this.index * 131 + 17,
       )
-    } else {
-      for (let i = 0; i < level; i++) {
-        const c = tilePoint(fp, (i + 0.5) / 4, 0.62)
-        const r = 0.085
-        const z = i === level - 1 ? dz : 0
-        isoBox(
-          g,
-          { col0: c.col - r, col1: c.col + r, row0: c.row - r, row1: c.row + r, z0: z, z1: z + 0.14 },
-          { top: 0x6ee7b7, left: 0x10b981, right: 0x047857 },
-          t,
-        )
-      }
     }
+    b.alpha = mortgaged ? 0.55 : 1
+    this.placeBuilding(t)
+  }
+
+  /** Lifts the building by the height it still has to fall. */
+  private placeBuilding(t: number): void {
+    this.building.y = -(this.drop?.z ?? 0) * zScale(t)
   }
 
   draw(t: number): void {

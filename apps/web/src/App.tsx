@@ -5,6 +5,7 @@ import { SCENES, playToScene } from './game/scenes.ts'
 import { clearSavedGame, type GameSetup, type SavedGame } from './game/setup.ts'
 import { PlaygroundScreen } from './playground/PlaygroundScreen.tsx'
 import { SoundBoard } from './playground/SoundBoard.tsx'
+import { ArtScreen } from './playground/ArtScreen.tsx'
 import { GameScreen } from './screens/GameScreen.tsx'
 import { SetupScreen } from './screens/SetupScreen.tsx'
 
@@ -58,6 +59,7 @@ export function App() {
 
   if (hash === '#playground') return <PlaygroundScreen />
   if (hash === '#sounds') return <SoundBoard />
+  if (hash === '#art') return <ArtScreen />
 
   // Disposed only when the game is replaced, never in an effect cleanup (StrictMode re-runs those).
   const start = (setup: GameSetup, saved?: SavedGame) => {

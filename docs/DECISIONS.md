@@ -179,6 +179,13 @@ Targets are verified by the bot simulation harness, not guessed. Rules are small
 - Setup screen shows a city preview with "New city"; the art style page has Reroll to judge the style across many cities.
 **Why:** variety makes each game feel new at almost no runtime cost (generation takes milliseconds, then the city is baked to a texture); templates and rules are what keep procedural cities from looking messy.
 
+## D26. City art style: D · Calm modern (2026-10-24, Milestone 6)
+
+**Context:** The art page (`#art`) compared three directions (A clean, B dusk, C toy). The developer found A's all-over blue tint odd and pointed to the reference image (`docs/reference/board-layout-ref.png`) as the feel they want.
+**Decision:** The city uses style `calm` ("D · Calm modern", `packages/board/src/art/style.ts`), tuned against the reference: a near-white ground, dark slate roads, mostly dark desaturated slate buildings with a few light ones, teal glass as the one strong accent, muted brown-red brick, coral and orange roofs, soft sage parks and light slate shadows. A, B and C stay on the art page for comparison and may be removed later.
+**Why:** The reference feels calm because of restraint, not because it avoids blue: a pale ground with dark buildings gives clear contrast, with one accent color and a few warm touches. A mixed many mid-tone blue-greys, so nothing separated. This keeps the "bluish palette" of CLAUDE.md.
+**Also:** the landmark uses punched windows instead of glass ribbons in every style, because ribbons on its wide walls read as flat glass.
+
 ## D14. Tailwind CSS v4 for all DOM UI (2026-10-23)
 
 **Decision:** The React shell is styled with Tailwind v4 utilities (`@tailwindcss/vite`), not hand-written CSS classes. Design tokens (palette) live in one `@theme` block in `apps/web/src/index.css` and are used as utilities (`bg-panel`, `text-accent`). Custom CSS only for things utilities cannot express.

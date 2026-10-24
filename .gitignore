@@ -12,6 +12,7 @@ dist
 dist-ssr
 *.local
 coverage
+.shots
 .claude/settings.local.json
 
 # Editor directories and files

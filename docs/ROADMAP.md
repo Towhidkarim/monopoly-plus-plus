@@ -98,6 +98,8 @@ Acceptance: each effect has tuned parameters stored in one config file; a 4-bot 
 
 ## Milestone 6: City and art pass 1
 
+Status 2026-10-24: step 1 done, the art style page is at `#art` (`packages/board/src/art/`: style presets, modelling kit, building generators, lot growth in four families, a 3x3-block district with real block layouts, train). Style chosen: **D · Calm modern** (DECISIONS.md D26). Steps 2 to 4 done: the art kit draws the property lots on the real board (for sale, owned, 1 to 4 houses, hotel; one family per group: cottage, brick, modern, glass from cheap to expensive), and new buildings drop in with the existing juice. Next: step 5, the seeded city replaces the placeholder centre. Screenshots: `docs/screenshots/m6-art-*.png`.
+
 1. **Art style page** (`#art`): the real renderer draws one lot growing through every level, a corner tile, a city block and a train on a short track, in 2 or 3 style directions side by side, with a Reroll button. The developer picks or mixes the direction before anything is scaled up.
 2. **Modelling kit** (`docs/BOARD.md` section 5): shaded boxes with contact shadows, pitched roofs, cylinders, low-poly trees, window grids as data, roads/sidewalks/crosswalks/rails/park pieces, all driven by a style object.
 3. **Building generators** (seeded): gable house, townhouse row, brick walk-up with water tower, office block, glass tower, landmark.
@@ -111,7 +113,9 @@ Acceptance: the board looks coherent in the chosen style and at least as neat as
 ## Milestone 7: Living board
 
 - `clock.night` driven day/night cycle: multiply tint plus additive window-light layer (from the known window geometry).
+- Night lights (faked 2D lighting, no real-time shadows): street-lamp glow pools on the ground, car headlights and tail lights that move with traffic, lit train windows, landmark floodlights, windows switching on and off over time. Lights fade in at dusk.
 - Trains on the rail loop; cars on the cross roads; blinking beacons; rooftop steam with caps.
+- Street traffic (prototyped on #art, `art/traffic.ts`): cars, taxis, vans and buses loop around blocks in their lanes, brake for the vehicle ahead, and are depth-sorted between blocks. Moves onto the board with the seeded city.
 - Ambient toggle and reduced-motion behavior; offscreen culling.
 - Event-driven flourishes: hotel built lights up windows, monopoly completion sends a light pulse around the ring.
 
