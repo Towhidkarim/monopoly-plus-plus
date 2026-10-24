@@ -15,8 +15,13 @@ export interface SeatSetup {
 export interface GameSetup {
   preset: PresetName
   seed: number
+  /** Seed of the generated city on the board (cosmetic only; absent in old saves). */
+  citySeed?: number
   seats: SeatSetup[]
 }
+
+/** The city a setup shows: its own seed, or one derived from the game seed for old saves. */
+export const cityOf = (setup: GameSetup): number => setup.citySeed ?? (setup.seed * 2654435761) % 1_000_003
 
 export interface SavedGame {
   version: 1

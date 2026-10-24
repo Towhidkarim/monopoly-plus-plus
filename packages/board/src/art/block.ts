@@ -15,6 +15,12 @@ export interface BlockOptions {
   downtown: { col: number; row: number }
   /** Put the city landmark here. */
   landmark?: boolean
+  /** Lots per side (2 by default; 3 gives downtown and midtown the calmer `composeBig` layout). */
+  lots?: 2 | 3
+  /** Towers in a big downtown block (the landmark counts as one). */
+  towers?: number
+  /** Floor cap for the buildings of a big block (keeps a quadrant in front of the far tiles low). */
+  maxFloors?: number
 }
 
 /** Sidewalk ring between curb and lots. */
@@ -45,9 +51,15 @@ export function drawBlock(p: Paint, area: Lot, seed: number, o: BlockOptions): v
 
   // Four lots with wide walkways between them. At least one lot stays open (plaza, garden), so
   // the city breathes: open ground is part of every block, not leftover space.
-  const cells = grid(inner, 2, o.kind === 'downtown' ? 0.08 : 0.16)
+  const big = o.lots === 3 && (o.kind === 'downtown' || o.kind === 'midtown')
+  const cells = grid(inner, o.lots ?? 2, o.kind === 'downtown' ? 0.08 : 0.16)
   const nearest = cells.reduce((a, b) => (dist(b.lot, o.downtown) < dist(a.lot, o.downtown) ? b : a))
   const farthest = cells.reduce((a, b) => (dist(b.lot, o.downtown) > dist(a.lot, o.downtown) ? b : a))
+  if (big) {
+    composeBig(p, cells, rng, seed, o)
+    curbProps(p, area, rng, 'front')
+    return
+  }
   const open = new Set<Cell>()
   if (o.kind === 'downtown')
     open.add(
@@ -89,6 +101,38 @@ export function drawBlock(p: Paint, area: Lot, seed: number, o: BlockOptions): v
     }
   }
   curbProps(p, area, rng, 'front')
+}
+
+/**
+ * A big block (3 x 3 lots): the nearest lot to downtown takes the landmark, a few chunky towers
+ * stand next to it, and offices and walk-ups fill most of the rest. Two lots stay open (plaza or
+ * park) so the block breathes. Midtown has no towers and respects `maxFloors`.
+ */
+function composeBig(p: Paint, cells: Cell[], rng: () => number, seed: number, o: BlockOptions) {
+  const cap = o.maxFloors ?? Infinity
+  const ranked = cells.toSorted((a, b) => dist(a.lot, o.downtown) - dist(b.lot, o.downtown))
+  const roles = new Map<Cell, 'landmark' | 'tower' | 'open' | 'built'>()
+  const rest = ranked.filter((c) => !(o.landmark && c === ranked[0]))
+  if (o.landmark) roles.set(ranked[0]!, 'landmark')
+  const towers = o.kind === 'downtown' ? Math.max(0, (o.towers ?? 2) - (o.landmark ? 1 : 0)) : 0
+  for (const c of rest.slice(0, towers)) roles.set(c, 'tower')
+  // Open lots come from the farther half, shuffled.
+  const far = rest.slice(Math.ceil(rest.length / 2)).toSorted(() => rng() - 0.5)
+  for (const c of far.slice(0, 2)) roles.set(c, 'open')
+
+  for (const cell of cells.toSorted((a, b) => a.i + a.j - (b.i + b.j))) {
+    const sub = cosmeticRng(seed * 31 + cell.i * 7 + cell.j * 13)
+    const role = roles.get(cell) ?? 'built'
+    const lot = fronted(cell, 0.08, 0.14)
+    if (role === 'landmark') landmark(p, fronted(cell, 0.06, 0.1), sub)
+    else if (role === 'tower') glassTower(p, lot, sub, { floors: Math.min(cap, 7 + Math.floor(sub() * 3)) })
+    else if (role === 'open') {
+      if (sub() < 0.5) plaza(p, cell.lot, sub)
+      else park(p, cell.lot, sub)
+    } else if (sub() < (o.kind === 'midtown' ? 0.25 : 0.1)) {
+      walkup(p, lot, sub, { floors: Math.min(cap, 2 + Math.floor(sub() * 2)) })
+    } else office(p, lot, sub, { floors: Math.min(cap, 3 + Math.floor(sub() * 4)) })
+  }
 }
 
 // ---- layout helpers ----------------------------------------------------------------

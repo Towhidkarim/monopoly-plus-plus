@@ -38,6 +38,7 @@ export function SetupScreen({ onStart }: { onStart: (setup: GameSetup, saved?: S
   const [preset, setPreset] = useState<PresetName>('standard')
   const [seats, setSeats] = useState<SeatSetup[]>(() => defaultSeats(4))
   const [seed, setSeed] = useState(randomSeed)
+  const [citySeed, setCitySeed] = useState(randomSeed)
 
   const resize = (n: number) =>
     setSeats((prev) => {
@@ -148,7 +149,12 @@ export function SetupScreen({ onStart }: { onStart: (setup: GameSetup, saved?: S
           <button
             type="button"
             onClick={() =>
-              onStart({ preset, seed, seats: seats.map((s) => ({ ...s, name: s.name.trim() || s.id })) })
+              onStart({
+                preset,
+                seed,
+                citySeed,
+                seats: seats.map((s) => ({ ...s, name: s.name.trim() || s.id })),
+              })
             }
             className="flex-1 rounded-xl bg-accent py-3.5 text-lg font-semibold text-table shadow-lg shadow-accent/25 transition-transform hover:brightness-110 active:scale-[0.98]"
           >
@@ -163,6 +169,17 @@ export function SetupScreen({ onStart }: { onStart: (setup: GameSetup, saved?: S
               className="w-24 rounded-md bg-white/5 px-2 py-1.5 font-mono text-ink outline-none"
             />
           </label>
+        </div>
+        <div className="mt-3 flex items-center justify-end gap-3 text-xs text-ink-muted">
+          City
+          <span className="font-mono text-ink">{citySeed}</span>
+          <button
+            type="button"
+            onClick={() => setCitySeed(randomSeed())}
+            className="rounded-md bg-white/5 px-2.5 py-1.5 text-ink hover:bg-white/10 active:scale-[0.97]"
+          >
+            New city
+          </button>
         </div>
         <p className="mt-6 text-center text-xs text-ink-muted">
           Hotseat: humans take turns on this screen. Board playground at{' '}

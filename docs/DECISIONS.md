@@ -186,6 +186,16 @@ Targets are verified by the bot simulation harness, not guessed. Rules are small
 **Why:** The reference feels calm because of restraint, not because it avoids blue: a pale ground with dark buildings gives clear contrast, with one accent color and a few warm touches. A mixed many mid-tone blue-greys, so nothing separated. This keeps the "bluish palette" of CLAUDE.md.
 **Also:** the landmark uses punched windows instead of glass ribbons in every style, because ribbons on its wide walls read as flat glass.
 
+## D27. The board city: layout and plumbing (2026-10-24, Milestone 6 step 5)
+
+**Decision:**
+- `view/cityPlan.ts` plans the city as plain data from the city seed (rail loop, plinth, zoning, landmark, outer belt, four stations, the parked train); `view/city.ts` draws it with the art kit in `BOARD_STYLE`. Tests cover the plan, not the pixels.
+- The plinth is a square inside a rounded loop, so its gap to the loop is 0.4 and the loop radius 0.85 (a gap of 0.22 let the plinth corners cut into the track).
+- **The plinth is 2 x 2 big blocks** (revised after review against the reference; a first 4 x 4 grid of small blocks was too noisy). The two cross roads (0.42 wide) are the only streets; the outer streets have width 0. Each block has 3 x 3 lots (`composeBig` in `art/block.ts`) with two open lots (plaza or park). Front quadrant (1,1): downtown with the landmark and 3 towers in all. Side quadrants (1,0), (0,1): 1 to 2 towers plus offices and walk-ups. Back quadrant (0,0): midtown, at most 3 floors, so the far tiles stay clear.
+- Towers are 7 to 9 floors with footprints of about 0.65; the landmark is 5+5+3 floors with a short spire, about 2.65 high, clearly the tallest. Walk-ups are about 10% of lots in downtown quadrants and 25% in midtown, so offices dominate.
+- Flat ground goes into `CityView.base`; everything with height goes into per-depth `Graphics` inside the actor layer, created on demand (about 40). `Board.setCitySeed()` rebuilds it. `GameSetup.citySeed` is optional; old saves derive it from `seed` (`cityOf`).
+- Redraw cost is about 7 to 14 ms of JS per `draw(t)`, paid only on view morph and seed change. Idle frames cost nothing extra: a four-bot game holds 60 fps.
+
 ## D14. Tailwind CSS v4 for all DOM UI (2026-10-23)
 
 **Decision:** The React shell is styled with Tailwind v4 utilities (`@tailwindcss/vite`), not hand-written CSS classes. Design tokens (palette) live in one `@theme` block in `apps/web/src/index.css` and are used as utilities (`bg-panel`, `text-accent`). Custom CSS only for things utilities cannot express.

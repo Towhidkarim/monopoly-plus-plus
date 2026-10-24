@@ -82,7 +82,7 @@ export class Board {
   private readonly debugLabels: Text[] = []
 
   private readonly tiles: TileView[] = []
-  private readonly city = new CityView()
+  private readonly city: CityView
   private readonly tokens = new Map<string, TokenView>()
   private readonly colors = new Map<string, number>()
   private readonly owners: (string | null)[] = Array.from({ length: 40 }, () => null)
@@ -104,12 +104,14 @@ export class Board {
 
   private readonly app: Application
 
-  constructor(app: Application) {
+  constructor(app: Application, citySeed = 1) {
     this.app = app
+    this.city = new CityView(citySeed, this.actorLayer)
     this.camera = new Camera(this.world)
     this.camera.shakeTuning = this.juice.shake
     this.world.addChild(
       this.ground.graphics,
+      this.city.base,
       this.tileLayer,
       this.shadowLayer,
       this.actorLayer,
@@ -122,7 +124,6 @@ export class Board {
       this.tiles.push(tile)
       this.tileLayer.addChild(tile.container)
     }
-    for (const item of this.city.items) this.actorLayer.addChild(item.g)
     this.debugLayer.addChild(this.debugLines)
     this.debugLayer.visible = false
     this.debugLayer.eventMode = 'none'
@@ -166,6 +167,12 @@ export class Board {
   addTrauma(amount: number): void {
     if (this.tuning.reducedMotion) return
     this.camera.shake.add(amount)
+  }
+
+  /** Rebuilds the city from a new (cosmetic) city seed. */
+  setCitySeed(seed: number): void {
+    this.city.setSeed(seed)
+    this.city.draw(this.viewT)
   }
 
   setListeners(listeners: BoardListeners): void {
@@ -577,7 +584,7 @@ export class Board {
     const t = this.viewT
     this.ground.draw(t)
     for (const tile of this.tiles) tile.draw(t)
-    for (const item of this.city.items) item.draw(t)
+    this.city.draw(t)
     if (this.debug) this.drawDebug()
     this.camera.setBounds(this.worldBounds())
   }

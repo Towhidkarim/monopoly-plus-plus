@@ -6,6 +6,7 @@ import { connectSound } from '../audio/connect.ts'
 import { sound } from '../audio/engine.ts'
 import { savePrefs } from '../game/prefs.ts'
 import { buildableGroups } from '@skyline/bots'
+import { cityOf } from '../game/setup.ts'
 import type { GameStore, Snapshot } from '../game/store.ts'
 import { spaceInfo } from '../spaceInfo.ts'
 import { ActionDock } from './game/ActionDock.tsx'
@@ -146,7 +147,11 @@ export function GameScreen({ store, onQuit }: { store: GameStore; onQuit: () => 
 
   return (
     <div className="flex h-full">
-      <BoardCanvas onReady={setHandle} renderTooltip={(i) => <GameTooltip index={i} snap={snap} />}>
+      <BoardCanvas
+        onReady={setHandle}
+        citySeed={cityOf(store.setup)}
+        renderTooltip={(i) => <GameTooltip index={i} snap={snap} />}
+      >
         <div className="pointer-events-none absolute inset-0">
           <Hud
             snap={snap}

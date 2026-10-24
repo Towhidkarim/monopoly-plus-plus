@@ -4,13 +4,15 @@ import { TileTooltip } from './TileTooltip.tsx'
 
 interface Props {
   onReady: (handle: BoardHandle | null) => void
+  /** Seed of the city in the middle of the board. */
+  citySeed?: number
   /** Custom tooltip content for a hovered tile. */
   renderTooltip?: (index: number) => ReactNode
   children?: ReactNode
 }
 
 /** Hosts the Pixi board. React owns only the container; Pixi owns everything inside it. */
-export function BoardCanvas({ onReady, renderTooltip, children }: Props) {
+export function BoardCanvas({ onReady, citySeed, renderTooltip, children }: Props) {
   const hostRef = useRef<HTMLDivElement>(null)
   const tooltipRef = useRef<HTMLDivElement>(null)
   const [hovered, setHovered] = useState<number | null>(null)
@@ -20,7 +22,7 @@ export function BoardCanvas({ onReady, renderTooltip, children }: Props) {
     let handle: BoardHandle | undefined
     let cancelled = false
     // init is async; if we unmount first (StrictMode does this in dev), destroy once it resolves.
-    void mountBoard(host).then((h) => {
+    void mountBoard(host, { citySeed }).then((h) => {
       if (cancelled) {
         h.destroy()
         return
@@ -41,7 +43,7 @@ export function BoardCanvas({ onReady, renderTooltip, children }: Props) {
       onReady(null)
       handle?.destroy()
     }
-  }, [onReady])
+  }, [onReady, citySeed])
 
   // Canvas is absolutely positioned so it never feeds back into the host's size (resizeTo loop).
   return (

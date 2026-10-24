@@ -291,12 +291,12 @@ export function landmark(p: Paint, lot: Lot, rng: () => number): number {
   const s = p.style
   const wall = pick(rng, s.glass)
   const accent = pick(rng, s.accents)
-  shadow(p, lot.col0, lot.row0, lot.col1, lot.row1, lot.z, 2.6)
+  shadow(p, lot.col0, lot.row0, lot.col1, lot.row1, lot.z, 2.2)
   let l = inset(lot, 0.02)
   let z = lot.z
   box(p, { ...lot, z0: z, z1: z + 0.1 }, pick(rng, s.plaster))
   z += 0.1
-  const tiers = [8, 6, 4]
+  const tiers = [5, 5, 3]
   for (const [i, floors] of tiers.entries()) {
     const b = { ...l, z0: z, z1: z + floors * FLOOR }
     box(p, b, i === 1 ? light(wall, 0.08) : wall)
@@ -308,14 +308,14 @@ export function landmark(p: Paint, lot: Lot, rng: () => number): number {
   }
   const cc = (l.col0 + l.col1) / 2
   const cr = (l.row0 + l.row1) / 2
-  cone(p, cc, cr, (l.col1 - l.col0) * 0.55, z, z + 0.55, light(wall, 0.15))
-  cylinder(p, cc, cr, 0.018, z + 0.5, z + 0.62, 0xe2e8f0)
+  cone(p, cc, cr, (l.col1 - l.col0) * 0.55, z, z + 0.4, light(wall, 0.15))
+  cylinder(p, cc, cr, 0.018, z + 0.35, z + 0.47, 0xe2e8f0)
   box(
     p,
-    { col0: cc - 0.02, row0: cr - 0.02, col1: cc + 0.02, row1: cr + 0.02, z0: z + 0.62, z1: z + 0.66 },
+    { col0: cc - 0.02, row0: cr - 0.02, col1: cc + 0.02, row1: cr + 0.02, z0: z + 0.47, z1: z + 0.51 },
     0xfb7185,
   )
-  return z + 0.66 - lot.z
+  return z + 0.51 - lot.z
 }
 
 // ---- open ground ----------------------------------------------------------------

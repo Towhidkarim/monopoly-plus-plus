@@ -5,6 +5,8 @@ import { palette } from './palette.ts'
 export interface BoardOptions {
   /** Canvas clear color. */
   background?: number
+  /** Seed of the generated city in the middle (cosmetic; the game's dice seed is separate). */
+  citySeed?: number | undefined
 }
 
 export interface BoardHandle {
@@ -30,7 +32,7 @@ export async function mountBoard(host: HTMLElement, options: BoardOptions = {}):
     autoDensity: true,
   })
   host.appendChild(app.canvas)
-  const board = new Board(app)
+  const board = new Board(app, options.citySeed)
 
   return {
     app,
