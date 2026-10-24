@@ -19,6 +19,8 @@ export interface Paint {
    * as night falls. Optional: the art page and day-only callers leave it out.
    */
   lights?: Graphics
+  /** Optional second lights layer for windows that switch on and off over the night. */
+  lightsAlt?: Graphics
   /** Blinking night beacons (tower tips, hotel roofs), right above `lights`; the board blinks it. */
   beacons?: Graphics
   /**
@@ -527,11 +529,14 @@ export function windows(
     const at = pts[0]!
     const floorLit = hash3(col0 + row0, z0, Math.round(at.z * 50)) < 0.75
     const k = hash3(at.col, at.row, at.z)
-    if (!floorLit || k > LIT_AT_NIGHT) return
+    // Windows near the lit/unlit threshold go into `lightsAlt`: they switch on and off at night.
+    const flicker = p.lightsAlt && Math.abs(k - LIT_AT_NIGHT) < 0.09
+    if (!flicker && (!floorLit || k > LIT_AT_NIGHT)) return
+    const target = flicker ? p.lightsAlt! : lights
     const color = cool ? NIGHT.cool : k < LIT_AT_NIGHT * 0.25 ? NIGHT.soft : NIGHT.warm
     // A soft halo first (the pane grown around its center), then the pane: cheap static "bloom".
-    lights.poly(grow(poly, 2.1)).fill({ color, alpha: 0.13 })
-    lights.poly(poly).fill(color)
+    target.poly(grow(poly, 2.1)).fill({ color, alpha: 0.13 })
+    target.poly(poly).fill(color)
   }
   for (let f = 0; f < floors; f++) {
     const za = z0 + base + f * fh + fh * (opts.ribbon ? 0.22 : 0.3)

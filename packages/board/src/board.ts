@@ -16,6 +16,9 @@ import { TokenView } from './view/token.ts'
 
 /** Real-time milliseconds for a full day-to-night (or back) fade. */
 const NIGHT_FADE_MS = 4000
+/** Ring light pulse: delay per tile away from the set, and how long it lights each tile. */
+const WAVE_STEP_MS = 45
+const WAVE_LEN_MS = 420
 
 /** Runtime switches. Feel numbers live in `JuiceConfig` (juice/config.ts). */
 export interface BoardTuning {
@@ -101,6 +104,8 @@ export class Board {
   /** Day/night level shown, and the level it eases toward. */
   private night = 0
   private nightTarget = 0
+  /** The set-completion light pulse running around the ring, if any. */
+  private ringWave: { origin: number; ms: number; color: number } | null = null
   /** Real-time clock for the beacon blink. */
   private beaconClock = 0
   /** Remaining hit-stop: the world crawls while the camera (and its shake) keeps running. */
@@ -396,6 +401,8 @@ export class Board {
       grow: 1.6,
     })
     this.addTrauma(level === 5 ? b.hotelTrauma : b.trauma)
+    // The new building lights up: a hotel fully, houses a little.
+    tile.flareLights(level === 5 ? 1 : 0.5)
     this.emit({ kind: 'build', space: tile.index, level })
   }
 
@@ -407,7 +414,11 @@ export class Board {
     this.hitStop(c.hitStopMs)
     this.addTrauma(c.trauma)
     await this.animator.wait(c.hitStopMs * 0.5)
+    // A pulse of light in the owner's color runs from the set around the whole ring.
+    if (!this.tuning.reducedMotion && spaces.length > 0)
+      this.ringWave = { origin: spaces[Math.floor(spaces.length / 2)]!, ms: 0, color }
     for (const [step, space] of spaces.entries()) {
+      this.tiles[space]!.flareLights(0.9)
       const tile = this.tiles[space]!
       tile.lift.kick(c.lift)
       tile.flash = 1
@@ -621,6 +632,8 @@ export class Board {
     this.animator.step(dt)
     const t = this.viewT
     this.veilBuildings()
+    this.stepRingWave(real)
+    this.city.tickLights(real)
     for (const tile of this.tiles) tile.update(dt, t, this.animator.speed)
     this.blinkBeacons(real)
     for (const token of this.tokens.values()) {
@@ -641,6 +654,21 @@ export class Board {
       const p = this.world.toGlobal(project({ ...c, z: this.tiles[this.hovered]!.lift.value }, t))
       this.listeners.hoverPosition(p.x, p.y)
     }
+  }
+
+  /** Moves the set-completion light pulse around the ring (real time). */
+  private stepRingWave(realMs: number): void {
+    const w = this.ringWave
+    if (!w) return
+    w.ms += realMs
+    const done = w.ms > 20 * WAVE_STEP_MS + WAVE_LEN_MS
+    for (const tile of this.tiles) {
+      const gap = Math.abs(tile.index - w.origin)
+      const local = w.ms - Math.min(gap, 40 - gap) * WAVE_STEP_MS
+      tile.wave = !done && local > 0 && local < WAVE_LEN_MS ? Math.sin((Math.PI * local) / WAVE_LEN_MS) : 0
+      tile.waveColor = w.color
+    }
+    if (done) this.ringWave = null
   }
 
   /** Pieces stand in front of their own tile's building; a tall one next to them toward the camera fades. */

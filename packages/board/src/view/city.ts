@@ -11,6 +11,8 @@ import { Ambient } from './ambient.ts'
 import { GROUND_Z, PLINTH_Z, planCity, type BeltItem, type CityPlan, type Station } from './cityPlan.ts'
 
 const SLAB_Z = -0.1
+/** Real ms between window switches at night. */
+const FLIP_MS = 450
 
 /** Table shadow and the board slab. The city sits on top of it (CityView). */
 export class GroundView {
@@ -33,6 +35,9 @@ export class GroundView {
 interface Part {
   body: Graphics
   lights: Graphics
+  /** Windows that switch on and off over the night, and whether they are on now. */
+  alt: Graphics
+  altOn: boolean
   beacons: Graphics
 }
 
@@ -49,8 +54,14 @@ interface Layer {
 }
 
 function addPart(l: Layer): Part {
-  const part = { body: new Graphics(), lights: new Graphics(), beacons: new Graphics() }
-  l.c.addChild(part.body, part.lights, part.beacons)
+  const part = {
+    body: new Graphics(),
+    lights: new Graphics(),
+    alt: new Graphics(),
+    altOn: l.parts.length % 3 !== 0,
+    beacons: new Graphics(),
+  }
+  l.c.addChild(part.body, part.lights, part.alt, part.beacons)
   l.parts.push(part)
   return part
 }
@@ -69,6 +80,10 @@ export class CityView {
   private readonly layers = new Map<number, Layer>()
   private readonly actors: Container
   private night = 0
+  private flipClock = 0
+  /** Parts that have switchable windows (collected after each redraw). */
+  private switchers: Part[] = []
+  private readonly flipRng = cosmeticRng(4242)
   /** Cars and trains driving the streets and the rail loop. */
   readonly life: Ambient
 
@@ -82,7 +97,7 @@ export class CityView {
   /** Number of Graphics objects the city uses (for profiling). */
   get graphicsCount(): number {
     let n = 0
-    for (const l of this.layers.values()) n += l.parts.length * 3
+    for (const l of this.layers.values()) n += l.parts.length * 4
     return n + 1 + this.life.graphicsCount
   }
 
@@ -105,9 +120,28 @@ export class CityView {
         part.body.tint = tint
         part.lights.alpha = glow
         part.lights.visible = glow > 0.01
+        part.alt.alpha = part.altOn ? glow : 0
+        part.alt.visible = glow > 0.01 && part.altOn
         part.beacons.visible = glow > 0.01
       }
     this.life.setNight(n)
+  }
+
+  /**
+   * At night, now and then a building switches some of its windows on or off (real time, cosmetic
+   * RNG). Costs one flag flip every half second or so.
+   */
+  tickLights(realMs: number): void {
+    const glow = lightsAt(this.night)
+    if (glow <= 0.01) return
+    this.flipClock += realMs
+    if (this.flipClock < FLIP_MS) return
+    this.flipClock = 0
+    const part = this.switchers[Math.floor(this.flipRng() * this.switchers.length)]
+    if (!part) return
+    part.altOn = !part.altOn
+    part.alt.alpha = part.altOn ? glow : 0
+    part.alt.visible = part.altOn
   }
 
   /** Beacon brightness (night level times the blink), set each frame by the board. */
@@ -123,6 +157,7 @@ export class CityView {
       for (const part of l.parts) {
         part.body.clear()
         part.lights.clear()
+        part.alt.clear()
         part.beacons.clear()
       }
       l.used = 1
@@ -139,15 +174,23 @@ export class CityView {
       }
       const slice = l
       const top = slice.parts[slice.used - 1]!
-      const paint: Paint = { g: top.body, lights: top.lights, beacons: top.beacons, t, style }
+      const paint: Paint = {
+        g: top.body,
+        lights: top.lights,
+        lightsAlt: top.alt,
+        beacons: top.beacons,
+        t,
+        style,
+      }
       paint.mark = () => {
         // Only split once the current part has lights; unlit things share a part.
         const cur = slice.parts[slice.used - 1]!
-        if (cur.lights.context.instructions.length === 0) return
+        if (cur.lights.context.instructions.length === 0 && cur.alt.context.instructions.length === 0) return
         const next = slice.parts[slice.used] ?? addPart(slice)
         slice.used++
         paint.g = next.body
         paint.lights = next.lights
+        paint.lightsAlt = next.alt
         paint.beacons = next.beacons
       }
       return paint
@@ -171,6 +214,9 @@ export class CityView {
     for (const item of plan.belt) drawBelt(layer(depth(item.lot)), item)
     for (const s of plan.stations) drawStation(layer(depth(s.hall)), s)
     this.life.setView(t)
+    this.switchers = [...this.layers.values()]
+      .flatMap((l) => l.parts.slice(0, l.used))
+      .filter((part) => part.alt.context.instructions.length > 0)
     this.setNight(this.night)
   }
 }

@@ -83,6 +83,11 @@ export class TileView {
   private veil = 0
   /** Set by the board when pieces rest on the tile this building could cover. */
   veiled = false
+  /** 0..1 window flare after a build (see flareLights). */
+  private flare = 0
+  /** Ring light wave passing over this tile (set by the board each frame) and its color. */
+  wave = 0
+  waveColor = 0xffffff
   /** A hotel's blinking roof beacon (the board blinks it). */
   private readonly buildingBeacons = new Graphics()
   private readonly rim = new Graphics()
@@ -132,7 +137,6 @@ export class TileView {
     this.base.tint = nightTint(NIGHT.tiles, n, 0.5)
     this.building.tint = nightTint(NIGHT.city, n)
     const glow = lightsAt(n)
-    this.buildingLights.visible = glow > 0.01
     this.applyAlpha()
     this.buildingBeacons.visible = glow > 0.01
   }
@@ -217,7 +221,16 @@ export class TileView {
   /** Building opacity: mortgage dimming times the veil; its lights follow. */
   private applyAlpha(): void {
     this.building.alpha = this.baseAlpha * (1 - VEIL * this.veil)
-    this.buildingLights.alpha = lightsAt(this.night) * this.building.alpha
+    // A fresh building flares its windows on (day or night), then settles to the night level.
+    const lit = Math.max(lightsAt(this.night), this.flare)
+    this.buildingLights.alpha = lit * this.building.alpha
+    this.buildingLights.visible = lit > 0.01
+  }
+
+  /** Lights the building's windows up for a moment (new building, hotel), fading over ~1.6 s. */
+  flareLights(strength: number): void {
+    this.flare = Math.max(this.flare, strength)
+    this.applyAlpha()
   }
 
   /** Lifts the building by the height it still has to fall. */
@@ -266,8 +279,17 @@ export class TileView {
     this.pulseClock += dtMs
     if (this.flash > 0) this.flash = Math.max(0, this.flash - dtMs / 450)
     const pulse = this.selected ? 0.75 + 0.25 * Math.sin(this.pulseClock / 160) : 0
-    this.rim.alpha = Math.max(this.hovered ? 1 : 0, pulse, this.flash)
-    this.rim.tint = this.selected ? palette.select : palette.hover
+    this.rim.alpha = Math.max(this.hovered ? 1 : 0, pulse, this.flash, this.wave * 0.9)
+    this.rim.tint =
+      this.wave > Math.max(pulse, this.flash) && !this.hovered
+        ? this.waveColor
+        : this.selected
+          ? palette.select
+          : palette.hover
+    if (this.flare > 0) {
+      this.flare = Math.max(0, this.flare - dtMs / 1600)
+      this.applyAlpha()
+    }
 
     // Fade a tall building while pieces stand just behind it (eased, so it never pops).
     const { owner, level } = this.deco
