@@ -29,6 +29,10 @@ const BLOCKS = 2
 /** Floor cap of the back quadrant. */
 export const BACK_FLOORS = 3
 const CROSS_W = 0.42
+/** Ring road along the plinth's outer edge: about the width of a normal street. */
+export const RING_W = 0.26
+/** Half the train's length (three cars): a stopped train's head sits this far past the station spot. */
+const HALF_TRAIN = 0.71
 /** Radial range of the outer belt, measured from the ring's inner edge toward the loop. */
 const BELT = { lo: 0.1, hi: 0.58 }
 
@@ -59,11 +63,17 @@ export interface CityPlan {
   district: { area: Lot; seed: number; options: DistrictOptions; layout: DistrictLayout }
   belt: BeltItem[]
   stations: Station[]
-  /** The parked train: its station and head position along the loop. */
-  train: { station: number; head: number; livery: number }
+  /** Street center lines for traffic, and the height vehicles drive at. */
+  roads: { cols: number[]; rows: number[]; z: number }
+  /** Train head positions along the loop (distance from `loop[0]`) that stop at a station, ascending. */
+  stops: number[]
+  /** Train livery picks (index into the style accents), one per train. */
+  liveries: number[]
 }
 
 const zone = (i: number, j: number): BlockKind => (i === 0 && j === 0 ? 'midtown' : 'downtown')
+
+const mid = (st: { lo: number; hi: number }) => (st.lo + st.hi) / 2
 
 export function planCity(seed: number): CityPlan {
   const rng = cosmeticRng(seed * 7919 + 17)
@@ -88,7 +98,7 @@ export function planCity(seed: number): CityPlan {
     landmark: true,
     landmarkAt: { i: 1, j: 1 },
     street: CROSS_W,
-    edge: 0,
+    edge: RING_W,
     cross: CROSS_W,
     zone,
     blockExtra: (i, j) => ({
@@ -101,21 +111,8 @@ export function planCity(seed: number): CityPlan {
   const layout = districtLayout(plinth, districtSeed, options)
 
   const stations = planStations()
-  const live = Math.floor(rng() * 4)
   const path = measure(loop)
-  const spot = stationSpot(stations[live]!)
-  let head = 0
-  let best = Infinity
-  for (let d = 0; d < path.total; d += 0.02) {
-    const p = at(path, d).pos
-    const dist = Math.hypot(p.col - spot.col, p.row - spot.row)
-    if (dist < best) {
-      best = dist
-      head = d
-    }
-  }
-  // `head` is the lead car; shift so the train's middle sits at the station.
-  head += 0.7
+  const stops = stations.map((st) => stopHead(path, stationSpot(st))).toSorted((a, b) => a - b)
 
   return {
     seed,
@@ -125,7 +122,9 @@ export function planCity(seed: number): CityPlan {
     district: { area: plinth, seed: districtSeed, options, layout },
     belt: planBelt(rng),
     stations,
-    train: { station: live, head, livery: Math.floor(rng() * 4) },
+    roads: { cols: layout.colStreets.map(mid), rows: layout.rowStreets.map(mid), z: PLINTH_Z },
+    stops,
+    liveries: [Math.floor(rng() * 4), Math.floor(rng() * 4)],
   }
 }
 
@@ -154,6 +153,21 @@ function planStations(): Station[] {
     const hall = onSide(side, CENTER - 0.3, CENTER + 0.3, BELT.lo + 0.02, platformU[0] - 0.02, GROUND_Z)
     return { side, platform, hall, axis: side % 2 === 0 ? 'col' : 'row', tile: 5 + side * 10 } as const
   })
+}
+
+/** Head position at which a train's middle sits at `spot` (the nearest point on the loop). */
+function stopHead(path: ReturnType<typeof measure>, spot: { col: number; row: number }): number {
+  let head = 0
+  let best = Infinity
+  for (let d = 0; d < path.total; d += 0.02) {
+    const p = at(path, d).pos
+    const dist = Math.hypot(p.col - spot.col, p.row - spot.row)
+    if (dist < best) {
+      best = dist
+      head = d
+    }
+  }
+  return (head + HALF_TRAIN) % path.total
 }
 
 /** Where the train stops: in front of the platform, on the loop's center line. */

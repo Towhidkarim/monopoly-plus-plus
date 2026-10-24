@@ -189,10 +189,21 @@ export function heading(path: Path, d: number, reach = 0.09): { col: number; row
   return { col: (b.col - a.col) / len, row: (b.row - a.row) / len }
 }
 
+export const CAR_LEN = 0.44
+export const CAR_GAP = 0.05
+
+/** One train car around the origin of its own graphics, facing `dir` (redrawn only when it turns). */
+export function drawTrainCar(p: Paint, dir: { col: number; row: number }, livery: number) {
+  const c = { col: 0, row: 0 }
+  p.g.clear()
+  orientedBox(p, c, dir, CAR_LEN, 0.17, 0.02, 0.17, livery, p.style.window)
+  orientedBox(p, c, dir, CAR_LEN * 0.82, 0.1, 0.17, 0.2, light(livery, 0.25))
+}
+
 /** A train of `cars` cars whose head is at distance `head` along the track. */
 export function drawTrain(p: Paint, path: Path, head: number, cars: number, livery: number) {
-  const carLen = 0.44
-  const gap = 0.05
+  const carLen = CAR_LEN
+  const gap = CAR_GAP
   const parts: { c: Pos; dir: { col: number; row: number } }[] = []
   for (let i = 0; i < cars; i++) {
     const d = head - i * (carLen + gap) - carLen / 2

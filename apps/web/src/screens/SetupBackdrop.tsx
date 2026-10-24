@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { loadPrefs } from '../game/prefs.ts'
 import { mountBoard, type BoardHandle } from '@skyline/board'
 
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -40,7 +41,7 @@ export function SetupBackdrop({ citySeed, panelWidth }: { citySeed: number; pane
       }
       mounted = h
       h.app.ticker.maxFPS = 30 // static scene: half the frames are plenty
-      h.board.setTuning({ reducedMotion: reducedMotion() })
+      h.board.setTuning({ reducedMotion: reducedMotion(), ambient: loadPrefs().cityLife ?? true })
       setHandle(h)
     })
     return () => {

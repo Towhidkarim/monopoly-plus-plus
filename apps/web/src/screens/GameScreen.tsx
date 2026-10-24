@@ -47,6 +47,7 @@ export function GameScreen({ store, onQuit }: { store: GameStore; onQuit: () => 
   const [fastBots, setFastBots] = useState(store.settings.fastBots)
   const [reducedMotion, setReducedMotion] = useState(store.settings.reducedMotion)
   const [botOffers, setBotOffers] = useState(store.settings.botOffers)
+  const [cityLife, setCityLife] = useState(store.settings.cityLife)
   const [trade, setTrade] = useState<(TradeDraft & { me: number }) | null>(null)
   const [cityOpen, setCityOpen] = useState(() => initialPanel() === 'city')
   const [help, setHelp] = useState(() => initialPanel() === 'help')
@@ -90,6 +91,7 @@ export function GameScreen({ store, onQuit }: { store: GameStore; onQuit: () => 
       instant: s.instant,
       reducedMotion: s.reducedMotion,
       botOffers: s.botOffers,
+      cityLife: s.cityLife,
     })
   }
   const changeSpeed = (v: SpeedChoice) => {
@@ -208,8 +210,16 @@ export function GameScreen({ store, onQuit }: { store: GameStore; onQuit: () => 
               }}
               reducedMotion={reducedMotion}
               onReducedMotion={() => {
-                store.setSettings({ reducedMotion: !reducedMotion })
+                // City life follows reduced motion until the player flips it themselves.
+                store.setSettings({ reducedMotion: !reducedMotion, cityLife: reducedMotion })
                 setReducedMotion(!reducedMotion)
+                setCityLife(reducedMotion)
+                persist()
+              }}
+              cityLife={cityLife}
+              onCityLife={() => {
+                store.setSettings({ cityLife: !cityLife })
+                setCityLife(!cityLife)
                 persist()
               }}
               botOffers={botOffers}

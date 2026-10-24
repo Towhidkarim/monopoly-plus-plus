@@ -10,7 +10,7 @@ import {
   type Bundle,
   type GameState,
 } from '@skyline/engine'
-import type { Board, BoardSnapshot } from '@skyline/board'
+import type { Board, BoardSnapshot, BoardTuning } from '@skyline/board'
 
 /** What the store needs from a board view (the Pixi Board satisfies it; tests use a stub). */
 export type BoardPort = Pick<Board, 'setPlayers' | 'sync' | 'play' | 'setTuning' | 'skipAnimations' | 'punch'>
@@ -79,6 +79,8 @@ export interface StoreSettings {
   reducedMotion: boolean
   /** Bots may propose deals to human players. */
   botOffers: boolean
+  /** Cars and trains moving on the board city (cosmetic). */
+  cityLife: boolean
 }
 
 /** What a trade partner thinks of a deal before it is sent (bots only; humans decide live). */
@@ -120,6 +122,7 @@ export class GameStore {
     instant: false,
     reducedMotion: false,
     botOffers: true,
+    cityLife: true,
   }
   private snap: Snapshot
   private readonly listeners = new Set<() => void>()
@@ -221,7 +224,7 @@ export class GameStore {
   attach(board: BoardPort | null): void {
     this.board = board
     if (!board) return
-    board.setTuning({ speed: this.settings.speed, reducedMotion: this.settings.reducedMotion })
+    board.setTuning(this.tuning(this.settings.speed))
     board.setPlayers(this.setup.seats.map((s) => ({ id: s.id, color: s.color, piece: s.piece })))
     board.sync(boardSnapshot(this.snap.state))
     this.scheduleBot()
@@ -275,9 +278,13 @@ export class GameStore {
     this.cardAck?.()
   }
 
+  private tuning(speed: number): Pick<BoardTuning, 'speed' | 'reducedMotion' | 'ambient'> {
+    return { speed, reducedMotion: this.settings.reducedMotion, ambient: this.settings.cityLife }
+  }
+
   setSettings(patch: Partial<StoreSettings>): void {
     Object.assign(this.settings, patch)
-    this.board?.setTuning({ speed: this.settings.speed, reducedMotion: this.settings.reducedMotion })
+    this.board?.setTuning(this.tuning(this.settings.speed))
   }
 
   /**
@@ -399,7 +406,7 @@ export class GameStore {
     if (e.type === 'CASH_CHANGED') return this.playCash(e, speed)
     this.callout(e)
     if (this.board) {
-      this.board.setTuning({ speed, reducedMotion: this.settings.reducedMotion })
+      this.board.setTuning(this.tuning(speed))
       await this.board.play(e)
     }
   }

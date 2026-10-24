@@ -4,9 +4,10 @@ import { house, inset, park, pick, type Lot } from '../art/buildings.ts'
 import { drawDistrict } from '../art/district.ts'
 import { box, faces, flat, light, tree, type Paint } from '../art/paint.ts'
 import { BOARD_STYLE } from '../art/style.ts'
-import { at, drawTrack, drawTrain, measure } from '../art/train.ts'
+import { drawTrack } from '../art/train.ts'
 import { palette } from '../palette.ts'
 import { cosmeticRng, isoBox, rect } from './draw.ts'
+import { Ambient } from './ambient.ts'
 import { GROUND_Z, PLINTH_Z, planCity, type BeltItem, type CityPlan, type Station } from './cityPlan.ts'
 
 const SLAB_Z = -0.1
@@ -32,7 +33,8 @@ export class GroundView {
  * The board's city, generated from a cosmetic city seed (DECISIONS.md D25) in the board style.
  * Flat ground (streets, rails, plinth) goes into `base`; everything with height is drawn into
  * layers keyed by depth (col + row) inside `actors`, so it sorts with tokens. The city is static:
- * redraw it only when the view morphs or the seed changes.
+ * redraw it only when the view morphs or the seed changes. Traffic and trains (`life`) move on top
+ * of it without ever redrawing it.
  */
 export class CityView {
   /** Ground level: lawn, rails, plinth and the district's streets. */
@@ -40,21 +42,26 @@ export class CityView {
   private plan: CityPlan
   private readonly layers = new Map<number, Graphics>()
   private readonly actors: Container
+  /** Cars and trains driving the streets and the rail loop. */
+  readonly life: Ambient
 
   constructor(seed: number, actors: Container) {
     this.actors = actors
     this.plan = planCity(seed)
+    this.life = new Ambient(actors)
+    this.life.build(this.plan)
   }
 
   /** Number of Graphics objects the city uses (for profiling). */
   get graphicsCount(): number {
-    return this.layers.size + 1
+    return this.layers.size + 1 + this.life.graphicsCount
   }
 
   setSeed(seed: number): void {
     this.plan = planCity(seed)
     for (const g of this.layers.values()) g.destroy()
     this.layers.clear()
+    this.life.build(this.plan)
   }
 
   draw(t: number): void {
@@ -91,11 +98,7 @@ export class CityView {
 
     for (const item of plan.belt) drawBelt(layer(depth(item.lot)), item)
     for (const s of plan.stations) drawStation(layer(depth(s.hall)), s)
-
-    const path = measure(plan.loop)
-    const { head, livery } = plan.train
-    const mid = at(path, head - 0.71).pos
-    drawTrain(layer(mid.col + mid.row), path, head, 3, style.accents[livery % style.accents.length]!)
+    this.life.setView(t)
   }
 }
 

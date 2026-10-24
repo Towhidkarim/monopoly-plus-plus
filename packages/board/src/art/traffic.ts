@@ -1,5 +1,5 @@
 import type { Graphics } from 'pixi.js'
-import type { Pos } from '../geometry/project.ts'
+import { project, type Pos } from '../geometry/project.ts'
 import { pick, type Lot } from './buildings.ts'
 import type { Paint } from './paint.ts'
 import { at, heading, measure, orientedBox, type Path } from './train.ts'
@@ -23,6 +23,20 @@ export interface Vehicle {
   /** Current and cruising speed, board units per second. */
   v: number
   cruise: number
+  /** Where it was last posed: position, heading, and the heading its graphics were drawn for. */
+  pose?: { pos: Pos; dir: { col: number; row: number } }
+  drawnDir?: { col: number; row: number }
+}
+
+/** Redraw a vehicle once its heading turned this much (cosine of about 2 degrees). */
+const REDRAW_COS = 0.9994
+
+/** Front of a vehicle's body at its last pose (where headlights attach). */
+export function vehicleFront(car: Vehicle): Pos | null {
+  if (!car.pose) return null
+  const h = SIZE[car.kind].len / 2
+  const { pos, dir } = car.pose
+  return { col: pos.col + dir.col * h, row: pos.row + dir.row * h, z: pos.z }
 }
 
 const LANE = 0.065
@@ -152,13 +166,35 @@ export function stepTraffic(cars: readonly Vehicle[], dt: number) {
   }
 }
 
-/** Draws one vehicle into its own graphics and returns its depth key (col + row). */
-export function drawVehicle(car: Vehicle): number {
+/**
+ * Moves one vehicle's graphics to its route position and returns the depth key (col + row). The
+ * body is drawn around the graphics' own origin, so moving costs no redraw.
+ */
+export function moveVehicle(car: Vehicle): number {
+  const pos = at(car.path, car.d).pos
+  car.pose = { pos, dir: heading(car.path, car.d, SIZE[car.kind].len * 0.4) }
+  const s = project(pos, car.paint.t)
+  car.g.position.set(s.x, s.y)
+  return pos.col + pos.row
+}
+
+/**
+ * Redraws the body once its heading has turned noticeably (corners) or when `force` is set (view
+ * morph); on straights it does nothing.
+ */
+export function paintVehicle(car: Vehicle, force = false): void {
+  const dir = car.pose!.dir
+  const last = car.drawnDir
+  if (!force && last && last.col * dir.col + last.row * dir.row >= REDRAW_COS) return
+  drawVehicleBody(car, dir)
+  car.drawnDir = dir
+}
+
+function drawVehicleBody(car: Vehicle, dir: { col: number; row: number }) {
   const p = car.paint
   const { len, wid, h } = SIZE[car.kind]
-  const pos = at(car.path, car.d).pos
-  const dir = heading(car.path, car.d, len * 0.4)
-  const z = pos.z
+  const pos = { col: 0, row: 0, z: 0 }
+  const z = 0
   p.g.clear()
   const glass = 0xcfe3f5
   if (car.kind === 'bus') {
@@ -166,13 +202,12 @@ export function drawVehicle(car: Vehicle): number {
     orientedBox(p, pos, dir, len * 0.9, wid * 0.8, z + h, z + h + 0.008, 0xcbd5e1)
   } else if (car.kind === 'van') {
     orientedBox(p, pos, dir, len, wid, z, z + h, car.color)
-    const front = { col: pos.col + dir.col * len * 0.36, row: pos.row + dir.row * len * 0.36 }
+    const front = { col: dir.col * len * 0.36, row: dir.row * len * 0.36 }
     orientedBox(p, front, dir, len * 0.26, wid * 1.02, z + h * 0.45, z + h * 0.9, glass)
   } else {
     orientedBox(p, pos, dir, len, wid, z, z + h, car.color)
-    const cab = { col: pos.col - dir.col * len * 0.05, row: pos.row - dir.row * len * 0.05 }
+    const cab = { col: -dir.col * len * 0.05, row: -dir.row * len * 0.05 }
     orientedBox(p, cab, dir, len * 0.5, wid * 0.9, z + h, z + h + 0.03, glass)
     if (car.kind === 'taxi') orientedBox(p, cab, dir, 0.03, 0.03, z + h + 0.03, z + h + 0.045, 0x1e293b)
   }
-  return pos.col + pos.row
 }

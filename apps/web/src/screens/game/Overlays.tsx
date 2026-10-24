@@ -188,6 +188,8 @@ export function GameMenu({
   onFastBots,
   reducedMotion,
   onReducedMotion,
+  cityLife,
+  onCityLife,
   botOffers,
   onBotOffers,
   onLog,
@@ -200,6 +202,8 @@ export function GameMenu({
   onFastBots: () => void
   reducedMotion: boolean
   onReducedMotion: () => void
+  cityLife: boolean
+  onCityLife: () => void
   botOffers: boolean
   onBotOffers: () => void
   onLog: () => void
@@ -248,6 +252,13 @@ export function GameMenu({
             onChange={onReducedMotion}
             className="size-4 accent-accent"
           />
+        </label>
+        <label
+          className="flex items-center justify-between text-sm"
+          title="Cars drive the streets and trains run the rail loop"
+        >
+          City life
+          <input type="checkbox" checked={cityLife} onChange={onCityLife} className="size-4 accent-accent" />
         </label>
         <label className="flex items-center justify-between text-sm" title="Bots may propose deals to you">
           Offers from bots

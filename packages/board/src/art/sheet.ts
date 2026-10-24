@@ -14,7 +14,7 @@ import { STREET, drawDistrict } from './district.ts'
 import { FAMILIES, LEVEL_LABELS, drawLot, type Family } from './lots.ts'
 import { flat, type Paint } from './paint.ts'
 import { STYLES, type ArtStyle } from './style.ts'
-import { drawVehicle, planTraffic, stepTraffic, streetLines, type Vehicle } from './traffic.ts'
+import { moveVehicle, paintVehicle, planTraffic, stepTraffic, streetLines, type Vehicle } from './traffic.ts'
 import { drawTrack, drawTrain, measure, trackLoop, type Path } from './train.ts'
 
 /**
@@ -98,7 +98,10 @@ export async function mountArtSheet(
       drawTrain(tr.paint, tr.path, tr.head, 3, tr.livery)
     }
     stepTraffic(traffic, Math.min(0.05, t.deltaMS / 1000))
-    for (const car of traffic) car.g.zIndex = drawVehicle(car)
+    for (const car of traffic) {
+      car.g.zIndex = moveVehicle(car)
+      paintVehicle(car)
+    }
   }
   app.ticker.add(tick)
 
@@ -277,7 +280,8 @@ function cityBlock(style: ArtStyle, seed: number, traffic: Vehicle[]): Container
     const vg = new Graphics()
     c.addChild(vg)
     const car: Vehicle = { ...plan, g: vg, paint: { g: vg, t: 1, style } }
-    vg.zIndex = drawVehicle(car)
+    vg.zIndex = moveVehicle(car)
+    paintVehicle(car)
     traffic.push(car)
   }
   return c

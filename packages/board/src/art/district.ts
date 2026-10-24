@@ -144,7 +144,15 @@ export function drawDistrict(p: Paint, area: Lot, seed: number, o: DistrictOptio
   // Back to front: each block first draws the cars parked on the street just behind it.
   const layer = o.layer ?? (() => p)
   for (const b of blocks.toSorted((x, y) => x.i + x.j - (y.i + y.j))) {
-    parkedCars(layer, s, b.area, rng, 'back', wide(layout.rowStreets[b.j]!), wide(layout.colStreets[b.i]!))
+    parkedCars(
+      layer,
+      s,
+      b.area,
+      rng,
+      'back',
+      parkable(layout.rowStreets[b.j]!),
+      parkable(layout.colStreets[b.i]!),
+    )
     const a = b.area
     drawBlock(layer((a.col0 + a.col1 + a.row0 + a.row1) / 2), a, seed * 97 + b.i * 17 + b.j * 29, {
       kind: b.kind,
@@ -162,8 +170,8 @@ export function drawDistrict(p: Paint, area: Lot, seed: number, o: DistrictOptio
         b.area,
         rng,
         'front',
-        b.j === rows - 1 && wide(layout.rowStreets[rows]!),
-        b.i === cols - 1 && wide(layout.colStreets[cols]!),
+        b.j === rows - 1 && parkable(layout.rowStreets[rows]!),
+        b.i === cols - 1 && parkable(layout.colStreets[cols]!),
       )
   }
 }
@@ -171,8 +179,10 @@ export function drawDistrict(p: Paint, area: Lot, seed: number, o: DistrictOptio
 const d = (l: Lot, q: { col: number; row: number }) =>
   Math.hypot((l.col0 + l.col1) / 2 - q.col, (l.row0 + l.row1) / 2 - q.row)
 
-/** Streets worth marking and parking on (an outer street of width 0 is just the district edge). */
+/** Streets worth marking (an outer street of width 0 is just the district edge). */
 const wide = (s: Street) => s.hi - s.lo >= 0.2
+/** Streets wide enough to park beside the two traffic lanes (a 0.25 ring road is not). */
+const parkable = (s: Street) => s.hi - s.lo >= 0.29
 
 /** Dashed center lines along every street. */
 function laneMarks(p: Paint, area: Lot, layout: DistrictLayout) {

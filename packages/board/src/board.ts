@@ -21,9 +21,11 @@ export interface BoardTuning {
   speed: number
   /** No shake, hit-stop, confetti, or falling buildings; smaller arcs. */
   reducedMotion: boolean
+  /** City life: cars drive the streets and trains run the rail loop (hidden when off). */
+  ambient: boolean
 }
 
-export const DEFAULT_TUNING: BoardTuning = { follow: true, speed: 1, reducedMotion: false }
+export const DEFAULT_TUNING: BoardTuning = { follow: true, speed: 1, reducedMotion: false, ambient: true }
 
 /**
  * Moments the board reaches while animating, for sound and other listeners. They fire in step
@@ -141,6 +143,14 @@ export class Board {
 
   setTuning(tuning: Partial<BoardTuning>): void {
     Object.assign(this.tuning, tuning)
+    this.city.life.setOn(this.tuning.ambient)
+  }
+
+  /** Update cost of the city's cars and trains (ms per frame), for profiling; `reset` starts over. */
+  ambientCost(reset = false): { frames: number; avg: number; worst: number } {
+    const { frames, total, worst } = this.city.life.cost
+    if (reset) this.city.life.resetCost()
+    return { frames, avg: frames ? total / frames : 0, worst }
   }
 
   /** Replaces feel values in place (the playground's live sliders). */
@@ -573,11 +583,20 @@ export class Board {
     }
     this.particles.update(dt)
     this.camera.update(real)
+    this.city.life.update(dt, this.viewRect())
     if (this.hovered !== null && this.listeners.hoverPosition) {
       const c = tileCenter(this.hovered)
       const p = this.world.toGlobal(project({ ...c, z: this.tiles[this.hovered]!.lift.value }, t))
       this.listeners.hoverPosition(p.x, p.y)
     }
+  }
+
+  /** The camera's view in world pixels (for culling). */
+  private viewRect(): { x0: number; y0: number; x1: number; y1: number } {
+    const k = this.world.scale.x || 1
+    const x0 = -this.world.x / k
+    const y0 = -this.world.y / k
+    return { x0, y0, x1: x0 + this.app.screen.width / k, y1: y0 + this.app.screen.height / k }
   }
 
   private redraw(): void {

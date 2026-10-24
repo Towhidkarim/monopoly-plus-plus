@@ -196,6 +196,27 @@ Targets are verified by the bot simulation harness, not guessed. Rules are small
 - Flat ground goes into `CityView.base`; everything with height goes into per-depth `Graphics` inside the actor layer, created on demand (about 40). `Board.setCitySeed()` rebuilds it. `GameSetup.citySeed` is optional; old saves derive it from `seed` (`cityOf`).
 - Redraw cost is about 7 to 14 ms of JS per `draw(t)`, paid only on view morph and seed change. Idle frames cost nothing extra: a four-bot game holds 60 fps.
 
+## D28. Day and night: by rounds, with a preference, never too dark (2026-10-24, Milestone 7)
+
+**Context:** The developer wants a day/night cycle that makes the city feel alive at night, like a lit modern city at night (open-world city games were the casual reference), without making the board hard to read.
+**Decision:**
+- **Driven by game rounds** (cosmetic only, never affects rules): day for most rounds, a dusk transition, night, dawn. Exact rounds per cycle and transition length are tuned by eye in Milestone 7. A preference **Sky: Auto / Always day / Always night** in the settings menu, remembered between games like the other display prefs.
+- **Night must not be dark.** Night is a blue-violet grade of the city, not a blackout: the city keeps clear value contrast, and light sources (lit windows, street lamps, headlights, landmark floodlights, beacons) carry the mood. The ring tiles darken much less than the city, and **tokens, dice, owner markers and UI-relevant highlights are never darkened** (they may get a subtle rim light so pieces pop at night).
+- Everything is cheap: tints and additive glow sprites, no real-time shadows or per-pixel lighting; switchable with the ambient toggle and reduced motion.
+**Why:** The cycle gives long games a rhythm and atmosphere; tying it to rounds keeps it in step with play. Readability always beats mood on a game board.
+
+## D29. City life: traffic, trains and the Milestone 7 frame budget (2026-10-24, Milestone 7 steps 1-2)
+
+**Decision:**
+- The plinth has a **ring road** (0.26 wide, `RING_W`) along its outer edge, so the ring road and the two cross roads form four drivable loops around the quadrant blocks. Blocks shrink by 0.26 in each direction; zoning, heights and the landmark rule (D27) are unchanged. Parking is only on streets 0.29 or wider, so the ring road stays free for the two lanes.
+- `view/ambient.ts` (`Ambient`, owned by `CityView.life`): 10 to 14 vehicles (cars, taxis, vans, buses from `art/traffic.ts`) on seeded loops around one or more quadrants, and 2 trains on the rail loop at different speeds (1.05 and 1.3 u/s). Trains stop at the four stations for 1.5 to 2.5 s with eased braking and acceleration, and the follower brakes behind the leader. Everything is seeded from the city seed, cosmetic, and never touches game state or the event queue.
+- **Time:** it runs on the board's world delta (so it slows with hit-stop), not the game speed setting.
+- **Toggle:** display pref "City life" (`cityLife`, `BoardTuning.ambient`), on by default; reduced motion defaults it off (flipping reduced motion in the menu flips it too, and the player can override). **Off means hidden** (`visible = false`) and not updated at all, resuming where it was when turned back on: simpler and cheaper than freezing in view.
+- **Redraw strategy:** each body is drawn around its own Graphics origin and moved by `position`; it is redrawn only when its heading turns more than about 2 degrees (corners) or the view morphs. The 8-directional prebuilt variants were not needed (straights cost zero redraws, corners a handful). Pieces outside the camera view (plus 120 px) are hidden and not redrawn. Vehicles and train cars live in the actor layer with `zIndex = col + row`, like tokens and city layers. Vehicles keep `pose` (position and heading) and `vehicleFront()` gives the front point where headlights attach.
+- Static city stays static: no city redraw per frame.
+
+**Frame-time budget (Milestone 7):** ambient JS update (`Ambient.update`, includes sim, positioning, culling and corner redraws) averages **0.05 ms per frame** and **0.4 ms at p99, 1 ms worst** over 1200 frames (20 s of simulated play at 60 Hz, 16 graphics, whole city in view). The budget for all of Milestone 7's ambient work (traffic and trains now, plus lights and day/night later) is **1 ms per frame average and 3 ms worst on the JS side**, and the board must still hold 60 fps. Measure with `skylineBoard.ambientCost(true)` (reset) then `skylineBoard.ambientCost()`. Caveat: the Orca browser throttles the tab to about 1 fps, so GPU render cost could not be measured there; re-check fps on a real focused window.
+
 ## D14. Tailwind CSS v4 for all DOM UI (2026-10-23)
 
 **Decision:** The React shell is styled with Tailwind v4 utilities (`@tailwindcss/vite`), not hand-written CSS classes. Design tokens (palette) live in one `@theme` block in `apps/web/src/index.css` and are used as utilities (`bg-panel`, `text-accent`). Custom CSS only for things utilities cannot express.

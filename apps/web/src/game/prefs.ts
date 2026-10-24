@@ -3,7 +3,10 @@ import type { StoreSettings } from './store.ts'
 const KEY = 'skyline.prefs'
 
 /** Player preferences that outlive a game: speed, fast bots, reduced motion, bot offers. */
-export type Prefs = Pick<StoreSettings, 'speed' | 'fastBots' | 'instant' | 'reducedMotion' | 'botOffers'>
+export type Prefs = Pick<
+  StoreSettings,
+  'speed' | 'fastBots' | 'instant' | 'reducedMotion' | 'botOffers' | 'cityLife'
+>
 
 export function loadPrefs(): Partial<Prefs> {
   const saved: Partial<Prefs> = {}
@@ -16,13 +19,16 @@ export function loadPrefs(): Partial<Prefs> {
       if (typeof r.instant === 'boolean') saved.instant = r.instant
       if (typeof r.reducedMotion === 'boolean') saved.reducedMotion = r.reducedMotion
       if (typeof r.botOffers === 'boolean') saved.botOffers = r.botOffers
+      if (typeof r.cityLife === 'boolean') saved.cityLife = r.cityLife
     }
   } catch {
     // Storage blocked or corrupt: defaults.
   }
   // Follow the system setting until the player chooses.
   const system = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
-  return { reducedMotion: system, ...saved }
+  // City life (cars and trains) is on unless reduced motion is, until the player chooses.
+  const reducedMotion = saved.reducedMotion ?? system
+  return { reducedMotion, cityLife: !reducedMotion, ...saved }
 }
 
 export function savePrefs(p: Prefs): void {

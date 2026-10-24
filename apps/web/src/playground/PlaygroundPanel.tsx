@@ -177,6 +177,11 @@ export function PlaygroundPanel({ handle }: { handle: BoardHandle | null }) {
               checked={tuning.follow}
               onChange={(v) => tune('follow', v)}
             />
+            <Toggle
+              label="City life (cars, trains)"
+              checked={tuning.ambient}
+              onChange={(v) => tune('ambient', v)}
+            />
             <Button onClick={() => board?.recenter()}>Recenter camera</Button>
           </Section>
 
