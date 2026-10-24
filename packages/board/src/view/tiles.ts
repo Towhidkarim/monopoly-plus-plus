@@ -257,8 +257,9 @@ function drawIcon(g: Graphics, index: number, fp: Footprint, t: number): void {
       const marks = (space.group % 4) + 1
       for (let i = 0; i < marks; i++) {
         const u = (i + 1) / (marks + 1)
-        if (space.group < 4) g.poly(discUV(fp, u, 0.86, 0.045, t)).fill(shade(color, 0.6))
-        else g.poly(quad(fp, u - 0.04, 0.82, u + 0.04, 0.9, t)).fill(shade(color, 0.6))
+        // Dark and large enough to tell groups apart in grayscale (Milestone 6 acceptance).
+        if (space.group < 4) g.poly(discUV(fp, u, 0.86, 0.06, t)).fill(shade(color, 0.38))
+        else g.poly(quad(fp, u - 0.055, 0.8, u + 0.055, 0.92, t)).fill(shade(color, 0.38))
       }
       break
     }
