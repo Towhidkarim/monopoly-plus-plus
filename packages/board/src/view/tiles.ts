@@ -3,6 +3,7 @@ import { SPACES } from '@skyline/engine'
 import { Spring } from '../anim/spring.ts'
 import type { Lot } from '../art/buildings.ts'
 import { drawLot, type Family } from '../art/lots.ts'
+import { NIGHT, lightsAt, nightTint, type Beacon } from '../art/paint.ts'
 import { BOARD_STYLE } from '../art/style.ts'
 import { projectPoly, zScale } from '../geometry/project.ts'
 import { ringFootprint, tilePoint, type Footprint } from '../geometry/ring.ts'
@@ -75,6 +76,11 @@ export class TileView {
   private readonly decoG = new Graphics()
   /** The building on a property lot; moved as a whole while it drops in. */
   private readonly building = new Graphics()
+  /** Its lit windows at night (never tinted). */
+  private readonly buildingLights = new Graphics()
+  private night = 0
+  /** Night beacons of the lot's building (a hotel's roof light), for the board to draw. */
+  readonly beacons: Beacon[] = []
   private readonly rim = new Graphics()
   private readonly fp: Footprint
   private readonly family: Family | null
@@ -99,7 +105,21 @@ export class TileView {
     const space = SPACES[index]!
     this.family = space.kind === 'property' ? GROUP_FAMILY[space.group]! : null
     this.rim.alpha = 0
-    this.container.addChild(this.base, this.decoG, this.building, this.rim)
+    this.container.addChild(this.base, this.decoG, this.building, this.buildingLights, this.rim)
+    this.buildingLights.visible = false
+  }
+
+  /**
+   * 0 = day, 1 = night. The tile darkens much less than the city and owner plates not at all, so
+   * the board stays readable (DECISIONS.md D28); the lot's building gets the city grade and lights.
+   */
+  setNight(n: number): void {
+    this.night = n
+    this.base.tint = nightTint(NIGHT.tiles, n, 0.5)
+    this.building.tint = nightTint(NIGHT.city, n)
+    const glow = lightsAt(n)
+    this.buildingLights.alpha = glow * this.building.alpha
+    this.buildingLights.visible = glow > 0.01
   }
 
   /**
@@ -161,10 +181,12 @@ export class TileView {
       g.poly(quad(fp, 0.06, 0.03, 0.94, 0.05, t)).fill(shade(owner, 0.7))
     }
     const b = this.building.clear()
+    const lights = this.buildingLights.clear()
+    this.beacons.length = 0
     if (this.family) {
       // Unowned is the for-sale lot (-1); then owned (0), 1 to 4 houses, hotel (5).
       drawLot(
-        { g: b, t, style: BOARD_STYLE },
+        { g: b, lights, t, style: BOARD_STYLE, beacons: this.beacons },
         lotOf(fp),
         owner === null ? -1 : level,
         this.family,
@@ -173,12 +195,14 @@ export class TileView {
       )
     }
     b.alpha = mortgaged ? 0.55 : 1
+    this.setNight(this.night)
     this.placeBuilding(t)
   }
 
   /** Lifts the building by the height it still has to fall. */
   private placeBuilding(t: number): void {
     this.building.y = -(this.drop?.z ?? 0) * zScale(t)
+    this.buildingLights.y = this.building.y
   }
 
   draw(t: number): void {

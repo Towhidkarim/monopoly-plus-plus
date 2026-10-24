@@ -41,7 +41,7 @@ export function vehicleFront(car: Vehicle): Pos | null {
 
 const LANE = 0.065
 const CORNER = 0.1
-const SIZE: Record<VehicleKind, { len: number; wid: number; h: number }> = {
+export const SIZE: Record<VehicleKind, { len: number; wid: number; h: number }> = {
   car: { len: 0.15, wid: 0.075, h: 0.04 },
   taxi: { len: 0.15, wid: 0.075, h: 0.04 },
   van: { len: 0.19, wid: 0.08, h: 0.07 },

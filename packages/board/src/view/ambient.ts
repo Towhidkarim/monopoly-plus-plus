@@ -1,9 +1,10 @@
 import { Graphics, type Container } from 'pixi.js'
-import { project } from '../geometry/project.ts'
-import { moveVehicle, paintVehicle, planTraffic, stepTraffic, type Vehicle } from '../art/traffic.ts'
+import { project, projectPoly, type Pos } from '../geometry/project.ts'
+import { NIGHT, lightsAt, nightTint } from '../art/paint.ts'
+import { SIZE, moveVehicle, paintVehicle, planTraffic, stepTraffic, type Vehicle } from '../art/traffic.ts'
 import { CAR_GAP, CAR_LEN, at, drawTrainCar, heading, measure, type Path } from '../art/train.ts'
 import { BOARD_STYLE } from '../art/style.ts'
-import { cosmeticRng } from './draw.ts'
+import { cosmeticRng, disc } from './draw.ts'
 import type { CityPlan } from './cityPlan.ts'
 
 /**
@@ -43,6 +44,8 @@ export interface ViewRect {
 
 interface TrainCar {
   g: Graphics
+  /** Night lights (window band, head and tail lights), never tinted; redrawn with the body. */
+  glow: Graphics
   drawnDir?: { col: number; row: number }
 }
 
@@ -62,9 +65,12 @@ export interface Train {
 
 export class Ambient {
   private cars: Vehicle[] = []
+  /** Headlights and tail lights per vehicle, in the same order as `cars`. */
+  private glows: Graphics[] = []
   private trains: Train[] = []
   private stops: number[] = []
   private on = true
+  private night = 0
   private t = 1
   private rng = cosmeticRng(1)
   /** Update cost in ms: frames counted, total and worst (dev measurement, see `resetCost`). */
@@ -87,7 +93,15 @@ export class Ambient {
 
   /** Graphics objects in use. */
   get graphicsCount(): number {
-    return this.cars.length + this.trains.length * TRAIN_CARS
+    return (this.cars.length + this.trains.length * TRAIN_CARS) * 2
+  }
+
+  /** 0 = day, 1 = night: bodies take the city's night grade, lights fade in. No redraw. */
+  setNight(n: number): void {
+    this.night = n
+    const tint = nightTint(NIGHT.city, n)
+    for (const g of this.bodies()) g.tint = tint
+    if (this.on) this.apply(null, false)
   }
 
   /** Replaces the vehicles and trains for a new city plan. */
@@ -104,8 +118,10 @@ export class Ambient {
     ])
     for (const v of plans) {
       const g = new Graphics()
-      this.actors.addChild(g)
+      const glow = new Graphics()
+      this.actors.addChild(g, glow)
       this.cars.push({ ...v, g, paint: { g, t: this.t, style } })
+      this.glows.push(glow)
     }
 
     const path = measure(plan.loop)
@@ -115,8 +131,9 @@ export class Ambient {
       const head = ((k + 0.25 + rng() * 0.25) / TRAIN_SPEEDS.length) * path.total
       const cars = Array.from({ length: TRAIN_CARS }, () => {
         const g = new Graphics()
-        this.actors.addChild(g)
-        return { g }
+        const glow = new Graphics()
+        this.actors.addChild(g, glow)
+        return { g, glow }
       })
       this.trains.push({
         path,
@@ -129,6 +146,7 @@ export class Ambient {
         cars,
       })
     }
+    this.setNight(this.night)
     this.apply(null, true)
   }
 
@@ -174,14 +192,21 @@ export class Ambient {
 
   // ---- internals ---------------------------------------------------------
 
-  private *graphics(): Generator<Graphics> {
+  private *bodies(): Generator<Graphics> {
     for (const c of this.cars) yield c.g
     for (const tr of this.trains) for (const car of tr.cars) yield car.g
+  }
+
+  private *graphics(): Generator<Graphics> {
+    yield* this.bodies()
+    yield* this.glows
+    for (const tr of this.trains) for (const car of tr.cars) yield car.glow
   }
 
   private clear(): void {
     for (const g of this.graphics()) g.destroy()
     this.cars = []
+    this.glows = []
     this.trains = []
   }
 
@@ -238,11 +263,21 @@ export class Ambient {
         x < view.x1 + CULL_MARGIN &&
         y > view.y0 - CULL_MARGIN &&
         y < view.y1 + CULL_MARGIN)
-    for (const car of this.cars) {
+    const glowLevel = lightsAt(this.night)
+    const lit = glowLevel > 0.01
+    for (const [i, car] of this.cars.entries()) {
+      const glow = this.glows[i]!
       car.g.zIndex = moveVehicle(car)
       const seen = inView(car.g.x, car.g.y)
       car.g.visible = seen
-      if (seen) paintVehicle(car, force)
+      glow.visible = seen && lit
+      if (!seen) continue
+      const before = car.drawnDir
+      paintVehicle(car, force)
+      glow.position.copyFrom(car.g.position)
+      glow.zIndex = car.g.zIndex + 0.001
+      glow.alpha = glowLevel
+      if (force || car.drawnDir !== before) vehicleLights(glow, SIZE[car.kind], car.drawnDir!, this.t)
     }
     for (const tr of this.trains) {
       for (const [i, car] of tr.cars.entries()) {
@@ -251,16 +286,106 @@ export class Ambient {
         const s = project(pos, this.t)
         car.g.position.set(s.x, s.y)
         car.g.zIndex = pos.col + pos.row
+        car.glow.position.set(s.x, s.y)
+        car.glow.zIndex = car.g.zIndex + 0.001
+        car.glow.alpha = glowLevel
         const seen = inView(s.x, s.y)
         car.g.visible = seen
+        car.glow.visible = seen && lit
         if (!seen) continue
         const dir = heading(tr.path, d, CAR_LEN * 0.4)
         const last = car.drawnDir
         if (force || !last || last.col * dir.col + last.row * dir.row < REDRAW_COS) {
           drawTrainCar({ g: car.g, t: this.t, style: BOARD_STYLE }, dir, tr.livery)
+          trainLights(car.glow, dir, i === 0, i === tr.cars.length - 1, this.t)
           car.drawnDir = dir
         }
       }
     }
+  }
+}
+
+type Dir = { col: number; row: number }
+
+/** Point at `along` (forward) and `side` (to the left) of the origin, at height `z`. */
+const local = (dir: Dir, along: number, side: number, z: number): Pos => ({
+  col: dir.col * along - dir.row * side,
+  row: dir.row * along + dir.col * side,
+  z,
+})
+
+/** Headlight beam on the road ahead, two head lamps and two tail lights, around the origin. */
+function vehicleLights(g: Graphics, size: { len: number; wid: number; h: number }, dir: Dir, t: number) {
+  const { len, wid, h } = size
+  const f = len / 2
+  g.clear()
+  const beam = (reach: number, spread: number, alpha: number) =>
+    g
+      .poly(
+        projectPoly(
+          [
+            local(dir, f, wid * 0.4, 0.002),
+            local(dir, f + reach, wid * spread, 0.002),
+            local(dir, f + reach, -wid * spread, 0.002),
+            local(dir, f, -wid * 0.4, 0.002),
+          ],
+          t,
+        ),
+      )
+      .fill({ color: NIGHT.lamp, alpha })
+  beam(0.34, 1.5, 0.16)
+  beam(0.2, 1.0, 0.2)
+  for (const s of [-1, 1]) {
+    const head = local(dir, f, s * wid * 0.3, h * 0.5)
+    g.poly(disc(head.col, head.row, 0.014, head.z, t, 8)).fill(0xfffbe8)
+    const tail = local(dir, -f, s * wid * 0.32, h * 0.55)
+    g.poly(disc(tail.col, tail.row, 0.011, tail.z, t, 8)).fill(0xff4d5e)
+  }
+}
+
+/** A lit window band along the visible sides of a train car, plus head/tail lights at the ends. */
+function trainLights(g: Graphics, dir: Dir, front: boolean, back: boolean, t: number) {
+  g.clear()
+  const L = CAR_LEN * 0.43
+  const W = 0.087
+  const [z0, z1] = [0.085, 0.135]
+  // Corners of the car's outline; a side is visible when its outward normal faces the viewer (+col/+row).
+  const c = [local(dir, L, W, 0), local(dir, L, -W, 0), local(dir, -L, -W, 0), local(dir, -L, W, 0)]
+  for (let k = 0; k < 4; k++) {
+    const a = c[k]!
+    const b = c[(k + 1) % 4]!
+    const nCol = b.row - a.row
+    const nRow = -(b.col - a.col)
+    if (nCol + nRow <= 0) continue
+    g.poly(
+      projectPoly(
+        [
+          { col: a.col, row: a.row, z: z1 },
+          { col: b.col, row: b.row, z: z1 },
+          { col: b.col, row: b.row, z: z0 },
+          { col: a.col, row: a.row, z: z0 },
+        ],
+        t,
+      ),
+    ).fill(NIGHT.soft)
+  }
+  if (front) {
+    g.poly(
+      projectPoly(
+        [
+          local(dir, CAR_LEN / 2, 0.06, 0.002),
+          local(dir, CAR_LEN / 2 + 0.5, 0.16, 0.002),
+          local(dir, CAR_LEN / 2 + 0.5, -0.16, 0.002),
+          local(dir, CAR_LEN / 2, -0.06, 0.002),
+        ],
+        t,
+      ),
+    ).fill({ color: NIGHT.lamp, alpha: 0.16 })
+    const hp = local(dir, CAR_LEN / 2, 0, 0.1)
+    g.poly(disc(hp.col, hp.row, 0.02, hp.z, t, 10)).fill(0xfffbe8)
+  }
+  if (back) {
+    const tp = local(dir, -CAR_LEN / 2, 0, 0.1)
+    g.poly(disc(tp.col, tp.row, 0.016, tp.z, t, 8)).fill(0xff4d5e)
   }
 }

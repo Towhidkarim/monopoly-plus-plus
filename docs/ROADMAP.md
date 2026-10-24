@@ -112,6 +112,8 @@ Acceptance: the board looks coherent in the chosen style and at least as neat as
 
 ## Milestone 7: Living board
 
+Status 2026-10-25: traffic and trains on the board with a "City life" toggle (D29); day/night (D28): an 8-round auto cycle with a Sky preference (Auto / Day / Night), a golden-hour dusk into a blue night, lit windows with soft halos, street-lamp pools, headlights and tail lights, lit train cars, floodlit landmark base, blinking beacons on tower tips and hotels (owner color), light pools under tokens; tiles and pieces stay readable. Screenshots: `docs/screenshots/m7-*.png`. Still to do: windows switching on and off over time, event flourishes (hotel lights up, set-completion light pulse), and the developer's real-GPU frame-time check.
+
 - `clock.night` driven day/night cycle: multiply tint plus additive window-light layer (from the known window geometry).
 - Night lights (faked 2D lighting, no real-time shadows): street-lamp glow pools on the ground, car headlights and tail lights that move with traffic, lit train windows, landmark floodlights, windows switching on and off over time. Lights fade in at dusk.
 - Trains on the rail loop; cars on the cross roads; blinking beacons; rooftop steam with caps.

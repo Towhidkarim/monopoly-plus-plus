@@ -1,6 +1,6 @@
 import type { Graphics } from 'pixi.js'
 import { TILE, project, projectPoly, zScale, type Pos } from '../geometry/project.ts'
-import { rect, type Box } from '../view/draw.ts'
+import { disc, rect, type Box } from '../view/draw.ts'
 import type { ArtStyle } from './style.ts'
 
 /**
@@ -14,6 +14,121 @@ export interface Paint {
   /** View morph (1 = isometric). */
   t: number
   style: ArtStyle
+  /**
+   * Night lights (lit windows, lamp glow), drawn into their own Graphics right above `g` and shown
+   * as night falls. Optional: the art page and day-only callers leave it out.
+   */
+  lights?: Graphics
+  /** Collects blinking night beacons (tower tips, hotels); the board draws and blinks them. */
+  beacons?: Beacon[]
+}
+
+/** A small blinking light at a point in board units. */
+export interface Beacon {
+  col: number
+  row: number
+  z: number
+  color: number
+}
+
+/** Registers a night beacon (only when the caller collects them). */
+export function beacon(p: Paint, col: number, row: number, z: number, color: number): void {
+  p.beacons?.push({ col, row, z, color })
+}
+
+/**
+ * Floodlight wash at night: light fading upward over a box's two visible faces, from its base to
+ * `height` above it. Goes into the lights layer, so it only shows at night.
+ */
+export function wash(p: Paint, b: Box, height: number, color: number): void {
+  const lights = p.lights
+  if (!lights) return
+  const e = 0.004
+  const bands = [0.22, 0.14, 0.08, 0.04]
+  for (const [i, alpha] of bands.entries()) {
+    const z0 = b.z0 + (height * i) / bands.length
+    const z1 = b.z0 + (height * (i + 1)) / bands.length
+    const sides: Pos[][] = [
+      [
+        { col: b.col0, row: b.row1 + e, z: z1 },
+        { col: b.col1, row: b.row1 + e, z: z1 },
+        { col: b.col1, row: b.row1 + e, z: z0 },
+        { col: b.col0, row: b.row1 + e, z: z0 },
+      ],
+      [
+        { col: b.col1 + e, row: b.row0, z: z1 },
+        { col: b.col1 + e, row: b.row1, z: z1 },
+        { col: b.col1 + e, row: b.row1, z: z0 },
+        { col: b.col1 + e, row: b.row0, z: z0 },
+      ],
+    ]
+    for (const f of sides) lights.poly(projectPoly(f, p.t)).fill({ color, alpha })
+  }
+}
+
+/**
+ * Night palette (DECISIONS.md D28). Lights: mostly warm homes and offices, some cool white office
+ * floors. Grades are multiplied over day colors at full night: a blue-violet dusk, not a blackout,
+ * so the city keeps its value contrast and the lights carry the mood. Ring tiles darken least.
+ */
+export const NIGHT = {
+  warm: 0xffcf7a,
+  soft: 0xffe6b0,
+  cool: 0xd2e8ff,
+  lamp: 0xffd98c,
+  city: 0x6470b4,
+  ground: 0x56629e,
+  tiles: 0xaab3dc,
+} as const
+
+/** The golden-hour color passed through on the way to night (and back at dawn). */
+const DUSK = 0xf8cdb0
+/** Night level where the golden hour peaks. */
+const DUSK_AT = 0.4
+
+/**
+ * Tint for night level `n` (0 = day, untinted; 1 = the full `grade`): day, then a warm golden hour
+ * (`warmth` scales it; the ring tiles take less), then the blue night grade.
+ */
+export function nightTint(grade: number, n: number, warmth = 1): number {
+  const dusk = mix(0xffffff, DUSK, warmth)
+  return n <= DUSK_AT ? mix(0xffffff, dusk, n / DUSK_AT) : mix(dusk, grade, (n - DUSK_AT) / (1 - DUSK_AT))
+}
+
+/** Brightness of night lights at level `n`: they switch on through the dusk (smoothstep). */
+export function lightsAt(n: number): number {
+  const x = Math.min(1, Math.max(0, (n - 0.25) / 0.55))
+  return x * x * (3 - 2 * x)
+}
+
+/** Share of windows lit at night. */
+const LIT_AT_NIGHT = 0.58
+
+/**
+ * Stable 0..1 value for a point, so night lights never consume the seeded RNG (which would change
+ * the city's layout) and a window stays lit or dark every time the city is redrawn.
+ */
+export function hash3(a: number, b: number, c: number): number {
+  let h = Math.imul(Math.round(a * 997), 0x27d4eb2d) ^ Math.imul(Math.round(b * 991), 0x165667b1)
+  h = Math.imul(h ^ Math.round(c * 983), 0x9e3779b1)
+  h ^= h >>> 15
+  h = Math.imul(h, 0x85ebca6b)
+  h ^= h >>> 13
+  return (h >>> 0) / 4294967296
+}
+
+/** A flat screen polygon (x, y pairs) scaled by `k` around its center. */
+function grow(poly: number[], k: number): number[] {
+  let cx = 0
+  let cy = 0
+  for (let i = 0; i < poly.length; i += 2) {
+    cx += poly[i]!
+    cy += poly[i + 1]!
+  }
+  const n = poly.length / 2
+  cx /= n
+  cy /= n
+  return poly.map((v, i) => (i % 2 === 0 ? cx + (v - cx) * k : cy + (v - cy) * k))
 }
 
 const ch = (c: number, s: number) => (c >> s) & 0xff
@@ -142,6 +257,16 @@ export function lamp(p: Paint, col: number, row: number, z: number): void {
     { col0: col - 0.02, row0: row - 0.02, col1: col + 0.02, row1: row + 0.02, z0: z + 0.2, z1: z + 0.225 },
     0xfde68a,
   )
+  const lights = p.lights
+  if (!lights) return
+  // A soft pool of light on the ground and a bright head.
+  for (const [r, a] of [
+    [0.26, 0.1],
+    [0.17, 0.14],
+    [0.09, 0.22],
+  ] as const)
+    lights.poly(disc(col, row, r, z + 0.002, p.t, 18)).fill({ color: NIGHT.lamp, alpha: a })
+  lights.poly(disc(col, row, 0.028, z + 0.215, p.t, 10)).fill(0xfff4d6)
 }
 
 /** Park bench facing +row. */
@@ -386,7 +511,22 @@ export function windows(
   const w = opts.ribbon ? spacing * 0.9 : (opts.width ?? spacing * (0.5 + p.style.chunk * 0.12))
   const day = faces(p.style.window, p.style)
   const pick = (c: number) => (rng() < p.style.litShare ? p.style.windowLit : c)
-  const quad = (pts: Pos[], c: number) => p.g.poly(projectPoly(pts, p.t)).fill(c)
+  // Whole floors of an office tend to be lit together; a building is warm or cool.
+  const cool = !opts.ribbon ? false : hash3(col0, row0, z0) < 0.5
+  const quad = (pts: Pos[], c: number) => {
+    const poly = projectPoly(pts, p.t)
+    p.g.poly(poly).fill(c)
+    const lights = p.lights
+    if (!lights) return
+    const at = pts[0]!
+    const floorLit = hash3(col0 + row0, z0, Math.round(at.z * 50)) < 0.75
+    const k = hash3(at.col, at.row, at.z)
+    if (!floorLit || k > LIT_AT_NIGHT) return
+    const color = cool ? NIGHT.cool : k < LIT_AT_NIGHT * 0.25 ? NIGHT.soft : NIGHT.warm
+    // A soft halo first (the pane grown around its center), then the pane: cheap static "bloom".
+    lights.poly(grow(poly, 2.1)).fill({ color, alpha: 0.13 })
+    lights.poly(poly).fill(color)
+  }
   for (let f = 0; f < floors; f++) {
     const za = z0 + base + f * fh + fh * (opts.ribbon ? 0.22 : 0.3)
     const zb = z0 + base + f * fh + fh * (opts.ribbon ? 0.84 : 0.78)

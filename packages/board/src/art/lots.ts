@@ -1,6 +1,20 @@
 import { cosmeticRng } from '../view/draw.ts'
 import { FLOOR, glassTower, house, inset, office, pick, townhouses, walkup, type Lot } from './buildings.ts'
-import { blob, box, cylinder, flat, gable, light, mix, shadow, stripe, windows, type Paint } from './paint.ts'
+import {
+  beacon,
+  blob,
+  box,
+  cylinder,
+  flat,
+  gable,
+  light,
+  mix,
+  shadow,
+  stripe,
+  wash,
+  windows,
+  type Paint,
+} from './paint.ts'
 
 /**
  * What stands on a property lot at each development level. Each color group gets one
@@ -147,4 +161,7 @@ function hotel(p: Paint, fp: Lot, rng: () => number, family: Family, accent: num
   const cc = (fp.col0 + fp.col1) / 2
   const cr = (fp.row0 + fp.row1) / 2
   cylinder(p, cc, cr, 0.03, b.z1 + 0.05, b.z1 + 0.12, light(accent, 0.3))
+  // The owner's beacon blinks on the roof at night; the sign band glows.
+  beacon(p, cc, cr, b.z1 + 0.12, light(accent, 0.2))
+  wash(p, { ...fp, z0: b.z1 - 0.07, z1: b.z1 }, 0.07, light(accent, 0.35))
 }

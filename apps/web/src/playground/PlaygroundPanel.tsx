@@ -23,6 +23,7 @@ export function PlaygroundPanel({ handle }: { handle: BoardHandle | null }) {
   const { setAuto } = pg
   const [tuning, setTuning] = useState<BoardTuning>(DEFAULT_TUNING)
   const [iso, setIso] = useState(params.get('view') !== 'top')
+  const [sky, setSky] = useState(0)
   const [debug, setDebug] = useState(params.get('debug') === '1')
   const [selected, setSelected] = useState<number | null>(null)
 
@@ -181,6 +182,18 @@ export function PlaygroundPanel({ handle }: { handle: BoardHandle | null }) {
               label="City life (cars, trains)"
               checked={tuning.ambient}
               onChange={(v) => tune('ambient', v)}
+            />
+            <Slider
+              label="Sky"
+              value={sky}
+              min={0}
+              max={1}
+              step={0.05}
+              onChange={(v) => {
+                setSky(v)
+                board?.setNight(v, true)
+              }}
+              format={(v) => v.toFixed(2)}
             />
             <Button onClick={() => board?.recenter()}>Recenter camera</Button>
           </Section>

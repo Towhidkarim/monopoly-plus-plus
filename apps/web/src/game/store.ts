@@ -27,6 +27,7 @@ import { describeBundle } from './trade.ts'
 import { describe, type LogEntry } from './log.ts'
 import { applyEvent, desyncs, presentFrom, type Presented } from './presented.ts'
 import { loadPrefs } from './prefs.ts'
+import type { SkyPref } from './sky.ts'
 import { saveGame, type GameSetup, type SavedGame } from './setup.ts'
 import { BIG_RENT, TIMINGS, coinsLandMs } from './timings.ts'
 
@@ -81,6 +82,8 @@ export interface StoreSettings {
   botOffers: boolean
   /** Cars and trains moving on the board city (cosmetic). */
   cityLife: boolean
+  /** Day/night: follow the round count, or hold day or night. */
+  sky: SkyPref
 }
 
 /** What a trade partner thinks of a deal before it is sent (bots only; humans decide live). */
@@ -123,6 +126,7 @@ export class GameStore {
     reducedMotion: false,
     botOffers: true,
     cityLife: true,
+    sky: 'auto',
   }
   private snap: Snapshot
   private readonly listeners = new Set<() => void>()

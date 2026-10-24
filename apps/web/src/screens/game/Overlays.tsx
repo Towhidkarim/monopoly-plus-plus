@@ -1,5 +1,6 @@
 import { useState, useSyncExternalStore, type ReactNode } from 'react'
 import { CHANCE_CARDS, CHEST_CARDS, netWorth } from '@skyline/engine'
+import type { SkyPref } from '../../game/sky.ts'
 import type { GameStore, Snapshot } from '../../game/store.ts'
 import { sound } from '../../audio/engine.ts'
 import { usePanelSound } from '../../audio/usePanelSound.ts'
@@ -180,6 +181,12 @@ function Rule({ title, children }: { title: string; children: ReactNode }) {
 const seg = (on: boolean) =>
   `flex-1 rounded-lg px-2 py-1.5 text-xs font-semibold ${on ? 'bg-accent text-table' : 'text-ink-muted hover:text-ink'}`
 
+const SKY_CHOICES: readonly (readonly [SkyPref, string])[] = [
+  ['auto', 'Auto'],
+  ['day', 'Day'],
+  ['night', 'Night'],
+]
+
 /** Settings dropdown under the menu button. */
 export function GameMenu({
   speed,
@@ -190,6 +197,8 @@ export function GameMenu({
   onReducedMotion,
   cityLife,
   onCityLife,
+  sky,
+  onSky,
   botOffers,
   onBotOffers,
   onLog,
@@ -204,6 +213,8 @@ export function GameMenu({
   onReducedMotion: () => void
   cityLife: boolean
   onCityLife: () => void
+  sky: SkyPref
+  onSky: (v: SkyPref) => void
   botOffers: boolean
   onBotOffers: () => void
   onLog: () => void
@@ -260,6 +271,24 @@ export function GameMenu({
           City life
           <input type="checkbox" checked={cityLife} onChange={onCityLife} className="size-4 accent-accent" />
         </label>
+        <fieldset>
+          <legend className="mb-1.5">
+            <Eyebrow className="text-ink-muted">Sky</Eyebrow>
+          </legend>
+          <div className="flex gap-1 rounded-xl bg-table p-1">
+            {SKY_CHOICES.map(([v, label]) => (
+              <button
+                key={v}
+                type="button"
+                aria-pressed={sky === v}
+                onClick={() => onSky(v)}
+                className={seg(sky === v)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </fieldset>
         <label className="flex items-center justify-between text-sm" title="Bots may propose deals to you">
           Offers from bots
           <input

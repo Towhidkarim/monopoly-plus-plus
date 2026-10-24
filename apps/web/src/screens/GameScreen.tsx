@@ -7,6 +7,7 @@ import { sound } from '../audio/engine.ts'
 import { savePrefs } from '../game/prefs.ts'
 import { buildableGroups } from '@skyline/bots'
 import { cityOf } from '../game/setup.ts'
+import { skyLevel, type SkyPref } from '../game/sky.ts'
 import type { GameStore, Snapshot } from '../game/store.ts'
 import { spaceInfo } from '../spaceInfo.ts'
 import { ActionDock } from './game/ActionDock.tsx'
@@ -48,6 +49,7 @@ export function GameScreen({ store, onQuit }: { store: GameStore; onQuit: () => 
   const [reducedMotion, setReducedMotion] = useState(store.settings.reducedMotion)
   const [botOffers, setBotOffers] = useState(store.settings.botOffers)
   const [cityLife, setCityLife] = useState(store.settings.cityLife)
+  const [sky, setSky] = useState<SkyPref>(store.settings.sky)
   const [trade, setTrade] = useState<(TradeDraft & { me: number }) | null>(null)
   const [cityOpen, setCityOpen] = useState(() => initialPanel() === 'city')
   const [help, setHelp] = useState(() => initialPanel() === 'help')
@@ -67,6 +69,15 @@ export function GameScreen({ store, onQuit }: { store: GameStore; onQuit: () => 
       store.attach(null)
     }
   }, [handle, store])
+
+  // The board eases the fade itself; resume and reload snap straight to the right sky.
+  const round = snap.presented.round
+  const skyDone = useRef(false)
+  useEffect(() => {
+    if (!handle) return
+    handle.board.setNight(skyLevel(round, sky), !skyDone.current)
+    skyDone.current = true
+  }, [handle, round, sky])
 
   const turn = turnView(snap, store)
   const viewer = snap.viewer
@@ -92,6 +103,7 @@ export function GameScreen({ store, onQuit }: { store: GameStore; onQuit: () => 
       reducedMotion: s.reducedMotion,
       botOffers: s.botOffers,
       cityLife: s.cityLife,
+      sky: s.sky,
     })
   }
   const changeSpeed = (v: SpeedChoice) => {
@@ -220,6 +232,12 @@ export function GameScreen({ store, onQuit }: { store: GameStore; onQuit: () => 
               onCityLife={() => {
                 store.setSettings({ cityLife: !cityLife })
                 setCityLife(!cityLife)
+                persist()
+              }}
+              sky={sky}
+              onSky={(v) => {
+                store.setSettings({ sky: v })
+                setSky(v)
                 persist()
               }}
               botOffers={botOffers}

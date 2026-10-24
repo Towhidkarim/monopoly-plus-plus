@@ -1,6 +1,8 @@
 import { projectPoly } from '../geometry/project.ts'
 import { rect, type Box } from '../view/draw.ts'
 import {
+  NIGHT,
+  beacon,
   bench,
   box,
   cone,
@@ -13,6 +15,7 @@ import {
   shadow,
   stripe,
   tree,
+  wash,
   windows,
   type Paint,
 } from './paint.ts'
@@ -282,6 +285,7 @@ export function glassTower(p: Paint, lot: Lot, rng: () => number, o: { floors?: 
       },
       0xfb7185,
     )
+    beacon(p, cc, cr, b.z1 + 0.33, 0xff4d5e)
   }
   return h + 0.35
 }
@@ -302,6 +306,8 @@ export function landmark(p: Paint, lot: Lot, rng: () => number): number {
     box(p, b, i === 1 ? light(wall, 0.08) : wall)
     // Punched windows, not ribbons: on the widest, tallest walls a ribbon reads as flat glass.
     windows(p, b, floors, rng)
+    // Floodlit base at night.
+    if (i === 0) wash(p, b, (b.z1 - b.z0) * 0.8, NIGHT.soft)
     box(p, { ...inset(l, -0.01), z0: b.z1, z1: b.z1 + 0.03 }, accent)
     z = b.z1 + 0.03
     l = inset(l, Math.min(l.col1 - l.col0, l.row1 - l.row0) * 0.16)
@@ -315,6 +321,7 @@ export function landmark(p: Paint, lot: Lot, rng: () => number): number {
     { col0: cc - 0.02, row0: cr - 0.02, col1: cc + 0.02, row1: cr + 0.02, z0: z + 0.47, z1: z + 0.51 },
     0xfb7185,
   )
+  beacon(p, cc, cr, z + 0.51, 0xff4d5e)
   return z + 0.51 - lot.z
 }
 

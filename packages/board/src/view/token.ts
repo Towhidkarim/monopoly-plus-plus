@@ -26,6 +26,8 @@ const REST: Record<PieceKind, { hoverZ: number; bob: number; bobHz: number }> = 
 export class TokenView {
   readonly pawn = new Container()
   readonly shadow = new Graphics()
+  /** A soft pool of light under the piece at night, so pieces stay easy to spot. */
+  readonly halo = new Graphics()
   private readonly body = new Graphics()
   readonly id: string
   readonly color: number
@@ -58,6 +60,13 @@ export class TokenView {
     this.pos = { col: start.col, row: start.row, z: 0 }
     this.pawn.addChild(this.body)
     this.shadow.ellipse(0, 0, 17, 8).fill({ color: 0x0b1426, alpha: 0.35 })
+    for (const [rx, a] of [
+      [40, 0.12],
+      [29, 0.16],
+      [18, 0.24],
+    ] as const)
+      this.halo.ellipse(0, 0, rx, rx * 0.47).fill({ color: 0xfff1d6, alpha: a })
+    this.halo.visible = false
     this.setKind(kind)
   }
 
@@ -96,6 +105,7 @@ export class TokenView {
     const ground = project({ col: this.pos.col, row: this.pos.row, z: groundZ }, t)
     const top = project({ col: this.pos.col, row: this.pos.row, z: groundZ + z }, t)
     this.shadow.position.set(ground.x, ground.y)
+    this.halo.position.set(ground.x, ground.y)
     const shrink = 1 / (1 + z * 1.5)
     const wide = this.kind === 'taxi' || this.kind === 'bus'
     this.shadow.scale.set(shrink * (wide ? 1.35 : 1), shrink)
@@ -120,5 +130,6 @@ export class TokenView {
   destroy(): void {
     this.pawn.destroy({ children: true })
     this.shadow.destroy()
+    this.halo.destroy()
   }
 }

@@ -1,8 +1,19 @@
-import { Graphics, type Container } from 'pixi.js'
+import { Container, Graphics } from 'pixi.js'
 import { DEPTH, BOARD } from '../geometry/ring.ts'
 import { house, inset, park, pick, type Lot } from '../art/buildings.ts'
 import { drawDistrict } from '../art/district.ts'
-import { box, faces, flat, light, tree, type Paint } from '../art/paint.ts'
+import {
+  NIGHT,
+  box,
+  faces,
+  flat,
+  light,
+  lightsAt,
+  nightTint,
+  tree,
+  type Beacon,
+  type Paint,
+} from '../art/paint.ts'
 import { BOARD_STYLE } from '../art/style.ts'
 import { drawTrack } from '../art/train.ts'
 import { palette } from '../palette.ts'
@@ -36,12 +47,22 @@ export class GroundView {
  * redraw it only when the view morphs or the seed changes. Traffic and trains (`life`) move on top
  * of it without ever redrawing it.
  */
+/** One depth slice of the city: buildings, and their night lights drawn right above them. */
+interface Layer {
+  c: Container
+  body: Graphics
+  lights: Graphics
+}
+
 export class CityView {
   /** Ground level: lawn, rails, plinth and the district's streets. */
   readonly base = new Graphics()
   private plan: CityPlan
-  private readonly layers = new Map<number, Graphics>()
+  private readonly layers = new Map<number, Layer>()
   private readonly actors: Container
+  private night = 0
+  /** Blinking night beacons on tower tips, collected while drawing (the board draws them). */
+  readonly beacons: Beacon[] = []
   /** Cars and trains driving the streets and the rail loop. */
   readonly life: Ambient
 
@@ -54,31 +75,53 @@ export class CityView {
 
   /** Number of Graphics objects the city uses (for profiling). */
   get graphicsCount(): number {
-    return this.layers.size + 1 + this.life.graphicsCount
+    return this.layers.size * 2 + 1 + this.life.graphicsCount
   }
 
   setSeed(seed: number): void {
     this.plan = planCity(seed)
-    for (const g of this.layers.values()) g.destroy()
+    for (const l of this.layers.values()) l.c.destroy({ children: true })
     this.layers.clear()
     this.life.build(this.plan)
+    this.life.setNight(this.night)
+  }
+
+  /** 0 = day, 1 = night: tints the city and fades its lights in. Cheap (no redraw). */
+  setNight(n: number): void {
+    this.night = n
+    const tint = nightTint(NIGHT.city, n)
+    this.base.tint = nightTint(NIGHT.ground, n, 0.6)
+    const glow = lightsAt(n)
+    for (const l of this.layers.values()) {
+      l.body.tint = tint
+      l.lights.alpha = glow
+      l.lights.visible = glow > 0.01
+    }
+    this.life.setNight(n)
   }
 
   draw(t: number): void {
     const style = BOARD_STYLE
     const plan = this.plan
     this.base.clear()
-    for (const g of this.layers.values()) g.clear()
-    const base: Paint = { g: this.base, t, style }
+    for (const l of this.layers.values()) {
+      l.body.clear()
+      l.lights.clear()
+    }
+    this.beacons.length = 0
+    const beacons = this.beacons
+    const base: Paint = { g: this.base, t, style, beacons }
     const layer = (key: number): Paint => {
       const k = Math.round(key * 1e4) / 1e4
-      let g = this.layers.get(k)
-      if (!g) {
-        g = new Graphics({ zIndex: k })
-        this.actors.addChild(g)
-        this.layers.set(k, g)
+      let l = this.layers.get(k)
+      if (!l) {
+        const c = new Container({ zIndex: k })
+        l = { c, body: new Graphics(), lights: new Graphics() }
+        c.addChild(l.body, l.lights)
+        this.actors.addChild(c)
+        this.layers.set(k, l)
       }
-      return { g, t, style }
+      return { g: l.body, lights: l.lights, t, style, beacons }
     }
     flat(base, DEPTH, DEPTH, BOARD - DEPTH, BOARD - DEPTH, GROUND_Z, style.ground)
     drawTrack(base, plan.loop)
@@ -99,6 +142,7 @@ export class CityView {
     for (const item of plan.belt) drawBelt(layer(depth(item.lot)), item)
     for (const s of plan.stations) drawStation(layer(depth(s.hall)), s)
     this.life.setView(t)
+    this.setNight(this.night)
   }
 }
 
