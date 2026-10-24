@@ -19,22 +19,27 @@ export interface Paint {
    * as night falls. Optional: the art page and day-only callers leave it out.
    */
   lights?: Graphics
-  /** Collects blinking night beacons (tower tips, hotels); the board draws and blinks them. */
-  beacons?: Beacon[]
+  /** Blinking night beacons (tower tips, hotel roofs), right above `lights`; the board blinks it. */
+  beacons?: Graphics
+  /**
+   * Called as each building or lamp starts. With `lights`, it may swap `g`, `lights` and `beacons`
+   * for a fresh set above everything drawn so far, so one building's night lights never paint over
+   * the buildings drawn after it (in front of it) in the same layer.
+   */
+  mark?: () => void
 }
 
-/** A small blinking light at a point in board units. */
-export interface Beacon {
-  col: number
-  row: number
-  z: number
-  color: number
-}
-
-/** Registers a night beacon (only when the caller collects them). */
+/** A small blinking beacon at a point (only drawn when the caller has a beacons layer). */
 export function beacon(p: Paint, col: number, row: number, z: number, color: number): void {
-  p.beacons?.push({ col, row, z, color })
+  const g = p.beacons
+  if (!g) return
+  g.poly(disc(col, row, 0.12, z, p.t, 16)).fill({ color, alpha: 0.2 })
+  g.poly(disc(col, row, 0.04, z, p.t, 12)).fill(0xfff4f4)
+  g.poly(disc(col, row, 0.026, z, p.t, 10)).fill(color)
 }
+
+/** Beacon blink (aviation style, real time): brightness 0..1 at `ms`. */
+export const blinkAt = (ms: number) => (ms % 1600 < 720 ? 1 : 0.25)
 
 /**
  * Floodlight wash at night: light fading upward over a box's two visible faces, from its base to
@@ -247,6 +252,7 @@ export function mullions(p: Paint, b: Box, spacing: number, color: number): void
 
 /** Street lamp: thin pole with a warm lamp head. */
 export function lamp(p: Paint, col: number, row: number, z: number): void {
+  p.mark?.()
   box(
     p,
     { col0: col - 0.008, row0: row - 0.008, col1: col + 0.008, row1: row + 0.008, z0: z, z1: z + 0.2 },

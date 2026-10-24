@@ -3,7 +3,7 @@ import { SPACES } from '@skyline/engine'
 import { Spring } from '../anim/spring.ts'
 import type { Lot } from '../art/buildings.ts'
 import { drawLot, type Family } from '../art/lots.ts'
-import { NIGHT, lightsAt, nightTint, type Beacon } from '../art/paint.ts'
+import { NIGHT, lightsAt, nightTint } from '../art/paint.ts'
 import { BOARD_STYLE } from '../art/style.ts'
 import { projectPoly, zScale } from '../geometry/project.ts'
 import { ringFootprint, tilePoint, type Footprint } from '../geometry/ring.ts'
@@ -79,8 +79,8 @@ export class TileView {
   /** Its lit windows at night (never tinted). */
   private readonly buildingLights = new Graphics()
   private night = 0
-  /** Night beacons of the lot's building (a hotel's roof light), for the board to draw. */
-  readonly beacons: Beacon[] = []
+  /** A hotel's blinking roof beacon (the board blinks it). */
+  private readonly buildingBeacons = new Graphics()
   private readonly rim = new Graphics()
   private readonly fp: Footprint
   private readonly family: Family | null
@@ -105,8 +105,20 @@ export class TileView {
     const space = SPACES[index]!
     this.family = space.kind === 'property' ? GROUP_FAMILY[space.group]! : null
     this.rim.alpha = 0
-    this.container.addChild(this.base, this.decoG, this.building, this.buildingLights, this.rim)
+    this.container.addChild(
+      this.base,
+      this.decoG,
+      this.building,
+      this.buildingLights,
+      this.buildingBeacons,
+      this.rim,
+    )
     this.buildingLights.visible = false
+  }
+
+  /** Beacon brightness (night level times the blink), set each frame by the board. */
+  setBlink(alpha: number): void {
+    this.buildingBeacons.alpha = alpha * this.building.alpha
   }
 
   /**
@@ -120,6 +132,7 @@ export class TileView {
     const glow = lightsAt(n)
     this.buildingLights.alpha = glow * this.building.alpha
     this.buildingLights.visible = glow > 0.01
+    this.buildingBeacons.visible = glow > 0.01
   }
 
   /**
@@ -182,11 +195,11 @@ export class TileView {
     }
     const b = this.building.clear()
     const lights = this.buildingLights.clear()
-    this.beacons.length = 0
+    const beacons = this.buildingBeacons.clear()
     if (this.family) {
       // Unowned is the for-sale lot (-1); then owned (0), 1 to 4 houses, hotel (5).
       drawLot(
-        { g: b, lights, t, style: BOARD_STYLE, beacons: this.beacons },
+        { g: b, lights, t, style: BOARD_STYLE, beacons },
         lotOf(fp),
         owner === null ? -1 : level,
         this.family,
@@ -203,6 +216,7 @@ export class TileView {
   private placeBuilding(t: number): void {
     this.building.y = -(this.drop?.z ?? 0) * zScale(t)
     this.buildingLights.y = this.building.y
+    this.buildingBeacons.y = this.building.y
   }
 
   draw(t: number): void {

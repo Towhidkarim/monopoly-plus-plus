@@ -117,6 +117,7 @@ function awning(p: Paint, fp: Lot, color: number) {
 
 /** Small glass pavilion (glass family at low levels). */
 function pavilion(p: Paint, fp: Lot, rng: () => number, floors: number, accent: number) {
+  p.mark?.()
   const h = floors * FLOOR + 0.02
   shadow(p, fp.col0, fp.row0, fp.col1, fp.row1, fp.z, h)
   const b = { ...fp, z0: fp.z, z1: fp.z + h }
@@ -127,6 +128,7 @@ function pavilion(p: Paint, fp: Lot, rng: () => number, floors: number, accent: 
 
 /** Apartment block with a pitched roof (cottage family at 4 houses). */
 function pitchedBlock(p: Paint, fp: Lot, rng: () => number, floors: number, accent: number) {
+  p.mark?.()
   const wall = pick(rng, p.style.house)
   const h = floors * FLOOR + 0.04
   const b = { ...fp, z0: fp.z, z1: fp.z + h }
@@ -146,6 +148,7 @@ function pitchedBlock(p: Paint, fp: Lot, rng: () => number, floors: number, acce
 
 /** The hotel: a slim tower with a sign band and a rooftop beacon in the owner's color. */
 function hotel(p: Paint, fp: Lot, rng: () => number, family: Family, accent: number) {
+  p.mark?.()
   const s = p.style
   const floors = 8
   const h = floors * FLOOR

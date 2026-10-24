@@ -2,18 +2,7 @@ import { Container, Graphics } from 'pixi.js'
 import { DEPTH, BOARD } from '../geometry/ring.ts'
 import { house, inset, park, pick, type Lot } from '../art/buildings.ts'
 import { drawDistrict } from '../art/district.ts'
-import {
-  NIGHT,
-  box,
-  faces,
-  flat,
-  light,
-  lightsAt,
-  nightTint,
-  tree,
-  type Beacon,
-  type Paint,
-} from '../art/paint.ts'
+import { NIGHT, box, faces, flat, light, lightsAt, nightTint, tree, type Paint } from '../art/paint.ts'
 import { BOARD_STYLE } from '../art/style.ts'
 import { drawTrack } from '../art/train.ts'
 import { palette } from '../palette.ts'
@@ -40,6 +29,32 @@ export class GroundView {
   }
 }
 
+/** A building's body, its night lights right above it, and its blinking beacons above those. */
+interface Part {
+  body: Graphics
+  lights: Graphics
+  beacons: Graphics
+}
+
+/**
+ * One depth slice of the city, in painter's order. A slice holds a whole block, so each building
+ * (or lamp) that lights up starts a new part: its lights sit right above it and below whatever is
+ * drawn after it (Paint.mark), so lights never show through the buildings in front.
+ */
+interface Layer {
+  c: Container
+  parts: Part[]
+  /** Parts in use since the last redraw; spare ones stay empty. */
+  used: number
+}
+
+function addPart(l: Layer): Part {
+  const part = { body: new Graphics(), lights: new Graphics(), beacons: new Graphics() }
+  l.c.addChild(part.body, part.lights, part.beacons)
+  l.parts.push(part)
+  return part
+}
+
 /**
  * The board's city, generated from a cosmetic city seed (DECISIONS.md D25) in the board style.
  * Flat ground (streets, rails, plinth) goes into `base`; everything with height is drawn into
@@ -47,13 +62,6 @@ export class GroundView {
  * redraw it only when the view morphs or the seed changes. Traffic and trains (`life`) move on top
  * of it without ever redrawing it.
  */
-/** One depth slice of the city: buildings, and their night lights drawn right above them. */
-interface Layer {
-  c: Container
-  body: Graphics
-  lights: Graphics
-}
-
 export class CityView {
   /** Ground level: lawn, rails, plinth and the district's streets. */
   readonly base = new Graphics()
@@ -61,8 +69,6 @@ export class CityView {
   private readonly layers = new Map<number, Layer>()
   private readonly actors: Container
   private night = 0
-  /** Blinking night beacons on tower tips, collected while drawing (the board draws them). */
-  readonly beacons: Beacon[] = []
   /** Cars and trains driving the streets and the rail loop. */
   readonly life: Ambient
 
@@ -75,7 +81,9 @@ export class CityView {
 
   /** Number of Graphics objects the city uses (for profiling). */
   get graphicsCount(): number {
-    return this.layers.size * 2 + 1 + this.life.graphicsCount
+    let n = 0
+    for (const l of this.layers.values()) n += l.parts.length * 3
+    return n + 1 + this.life.graphicsCount
   }
 
   setSeed(seed: number): void {
@@ -92,12 +100,19 @@ export class CityView {
     const tint = nightTint(NIGHT.city, n)
     this.base.tint = nightTint(NIGHT.ground, n, 0.6)
     const glow = lightsAt(n)
-    for (const l of this.layers.values()) {
-      l.body.tint = tint
-      l.lights.alpha = glow
-      l.lights.visible = glow > 0.01
-    }
+    for (const l of this.layers.values())
+      for (const part of l.parts) {
+        part.body.tint = tint
+        part.lights.alpha = glow
+        part.lights.visible = glow > 0.01
+        part.beacons.visible = glow > 0.01
+      }
     this.life.setNight(n)
+  }
+
+  /** Beacon brightness (night level times the blink), set each frame by the board. */
+  setBlink(alpha: number): void {
+    for (const l of this.layers.values()) for (const part of l.parts) part.beacons.alpha = alpha
   }
 
   draw(t: number): void {
@@ -105,23 +120,37 @@ export class CityView {
     const plan = this.plan
     this.base.clear()
     for (const l of this.layers.values()) {
-      l.body.clear()
-      l.lights.clear()
+      for (const part of l.parts) {
+        part.body.clear()
+        part.lights.clear()
+        part.beacons.clear()
+      }
+      l.used = 1
     }
-    this.beacons.length = 0
-    const beacons = this.beacons
-    const base: Paint = { g: this.base, t, style, beacons }
+    const base: Paint = { g: this.base, t, style }
     const layer = (key: number): Paint => {
       const k = Math.round(key * 1e4) / 1e4
       let l = this.layers.get(k)
       if (!l) {
-        const c = new Container({ zIndex: k })
-        l = { c, body: new Graphics(), lights: new Graphics() }
-        c.addChild(l.body, l.lights)
-        this.actors.addChild(c)
+        l = { c: new Container({ zIndex: k }), parts: [], used: 1 }
+        addPart(l)
+        this.actors.addChild(l.c)
         this.layers.set(k, l)
       }
-      return { g: l.body, lights: l.lights, t, style, beacons }
+      const slice = l
+      const top = slice.parts[slice.used - 1]!
+      const paint: Paint = { g: top.body, lights: top.lights, beacons: top.beacons, t, style }
+      paint.mark = () => {
+        // Only split once the current part has lights; unlit things share a part.
+        const cur = slice.parts[slice.used - 1]!
+        if (cur.lights.context.instructions.length === 0) return
+        const next = slice.parts[slice.used] ?? addPart(slice)
+        slice.used++
+        paint.g = next.body
+        paint.lights = next.lights
+        paint.beacons = next.beacons
+      }
+      return paint
     }
     flat(base, DEPTH, DEPTH, BOARD - DEPTH, BOARD - DEPTH, GROUND_Z, style.ground)
     drawTrack(base, plan.loop)

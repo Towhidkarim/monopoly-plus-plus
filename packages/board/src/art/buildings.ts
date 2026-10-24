@@ -102,6 +102,7 @@ export function house(
   rng: () => number,
   o: { wall?: number; roof?: number; floors?: number; axis?: 'col' | 'row'; accent?: number } = {},
 ): number {
+  p.mark?.()
   const s = p.style
   const wall = o.wall ?? pick(rng, s.house)
   const roof = o.roof ?? pick(rng, s.roofs)
@@ -151,6 +152,7 @@ export function townhouses(
   n: number,
   o: { floors?: number } = {},
 ): number {
+  p.mark?.()
   const s = p.style
   const alongCol = lot.col1 - lot.col0 >= lot.row1 - lot.row0
   const len = alongCol ? lot.col1 - lot.col0 : lot.row1 - lot.row0
@@ -172,6 +174,7 @@ export function townhouses(
 
 /** Brick walk-up: 3 to 5 floors, cornice, window grid, often a water tower. */
 export function walkup(p: Paint, lot: Lot, rng: () => number, o: { floors?: number } = {}): number {
+  p.mark?.()
   const s = p.style
   const floors = o.floors ?? 3 + Math.floor(rng() * 3)
   const wall = pick(rng, s.brick)
@@ -203,6 +206,7 @@ export function walkup(p: Paint, lot: Lot, rng: () => number, o: { floors?: numb
 
 /** Office block: plaster or glass, ribbon or grid windows, optional setback crown. */
 export function office(p: Paint, lot: Lot, rng: () => number, o: { floors?: number } = {}): number {
+  p.mark?.()
   const s = p.style
   const floors = o.floors ?? 4 + Math.floor(rng() * 5)
   const glassy = rng() < 0.4
@@ -244,6 +248,7 @@ export function office(p: Paint, lot: Lot, rng: () => number, o: { floors?: numb
 
 /** Glass tower: tall, ribbon windows, a crown in an accent color and sometimes an antenna. */
 export function glassTower(p: Paint, lot: Lot, rng: () => number, o: { floors?: number } = {}): number {
+  p.mark?.()
   const s = p.style
   const floors = o.floors ?? 10 + Math.floor(rng() * 8)
   const wall = pick(rng, s.glass)
@@ -292,6 +297,7 @@ export function glassTower(p: Paint, lot: Lot, rng: () => number, o: { floors?: 
 
 /** The landmark: a stepped spire tower with a beacon (one per city). */
 export function landmark(p: Paint, lot: Lot, rng: () => number): number {
+  p.mark?.()
   const s = p.style
   const wall = pick(rng, s.glass)
   const accent = pick(rng, s.accents)

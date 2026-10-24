@@ -4,20 +4,18 @@ import { Animator, ease } from './anim/animator.ts'
 import { project, unproject, type Pos } from './geometry/project.ts'
 import { cloneJuice, type JuiceConfig } from './juice/config.ts'
 import { Particles } from './juice/particles.ts'
-import { NIGHT, lightsAt, nightTint } from './art/paint.ts'
+import { NIGHT, blinkAt, lightsAt, nightTint } from './art/paint.ts'
 import { BOARD, ringFootprint, tileAt, tileCenter, tokenAnchor } from './geometry/ring.ts'
 import { jump, travel, type MotionContext } from './pieces/motion.ts'
 import { SIDE_HEADING, type PieceKind } from './pieces/shapes.ts'
 import { Camera, type Bounds, type Insets } from './view/camera.ts'
 import { CityView, GroundView } from './view/city.ts'
-import { disc, rect } from './view/draw.ts'
+import { rect } from './view/draw.ts'
 import { TileView } from './view/tiles.ts'
 import { TokenView } from './view/token.ts'
 
 /** Real-time milliseconds for a full day-to-night (or back) fade. */
 const NIGHT_FADE_MS = 4000
-/** Beacon blink period (real ms); on for just under half of it. */
-const BEACON_MS = 1600
 
 /** Runtime switches. Feel numbers live in `JuiceConfig` (juice/config.ts). */
 export interface BoardTuning {
@@ -103,9 +101,7 @@ export class Board {
   /** Day/night level shown, and the level it eases toward. */
   private night = 0
   private nightTarget = 0
-  /** Blinking night beacons, above everything in the actor layer; `beaconClock` drives the blink. */
-  private readonly beacons = new Graphics({ zIndex: 1e6 })
-  private beaconsDirty = true
+  /** Real-time clock for the beacon blink. */
   private beaconClock = 0
   /** Remaining hit-stop: the world crawls while the camera (and its shake) keeps running. */
   private freezeMs = 0
@@ -122,7 +118,6 @@ export class Board {
   constructor(app: Application, citySeed = 1) {
     this.app = app
     this.city = new CityView(citySeed, this.actorLayer)
-    this.actorLayer.addChild(this.beacons)
     this.camera = new Camera(this.world)
     this.camera.shakeTuning = this.juice.shake
     this.world.addChild(
@@ -216,34 +211,19 @@ export class Board {
     token.halo.visible = glow > 0.01
   }
 
-  /** Blinks the beacons (aviation style, in real time) and redraws them when buildings changed. */
+  /** Blinks the beacons on towers and hotels (aviation style, in real time). */
   private blinkBeacons(realMs: number): void {
     const glow = lightsAt(this.night)
-    this.beacons.visible = glow > 0.01
-    if (!this.beacons.visible) return
-    if (this.beaconsDirty) this.drawBeacons()
-    this.beaconClock = (this.beaconClock + realMs) % BEACON_MS
-    const on = this.beaconClock < BEACON_MS * 0.45
-    this.beacons.alpha = glow * (on ? 1 : 0.25)
-  }
-
-  /** Redraws all night beacons (tower tips, hotel roofs) after the city or a building changed. */
-  private drawBeacons(): void {
-    this.beaconsDirty = false
-    const t = this.viewT
-    const g = this.beacons.clear()
-    const all = [...this.city.beacons, ...this.tiles.flatMap((tile) => tile.beacons)]
-    for (const b of all) {
-      g.poly(disc(b.col, b.row, 0.12, b.z, t, 16)).fill({ color: b.color, alpha: 0.2 })
-      g.poly(disc(b.col, b.row, 0.04, b.z, t, 12)).fill(0xfff4f4)
-      g.poly(disc(b.col, b.row, 0.026, b.z, t, 10)).fill(b.color)
-    }
+    if (glow <= 0.01) return
+    this.beaconClock = (this.beaconClock + realMs) % 1_000_000
+    const a = glow * blinkAt(this.beaconClock)
+    this.city.setBlink(a)
+    for (const tile of this.tiles) tile.setBlink(a)
   }
 
   /** Rebuilds the city from a new (cosmetic) city seed. */
   setCitySeed(seed: number): void {
     this.city.setSeed(seed)
-    this.beaconsDirty = true
     this.city.draw(this.viewT)
   }
 
@@ -460,7 +440,6 @@ export class Board {
       drop ? this.juice.build : null,
       lift,
     )
-    this.beaconsDirty = true
   }
 
   /** Top center of a tile in world pixels (where effects spawn). */
@@ -675,7 +654,6 @@ export class Board {
     this.ground.draw(t)
     for (const tile of this.tiles) tile.draw(t)
     this.city.draw(t)
-    this.beaconsDirty = true
     if (this.debug) this.drawDebug()
     this.camera.setBounds(this.worldBounds())
   }
