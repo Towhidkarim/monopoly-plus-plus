@@ -18,9 +18,9 @@ The developer's standing brief: improve anything you spot along the way; the gam
 | `7cc7f8b` | Step 2: deeds with real lot portraits (`lotPortrait` on the board handle), event cards, card motion |
 | `249f31c` | Step 3: buy moment and auction, focus mode for decisions (D34) |
 
-### In the working tree, NOT committed, NOT yet reviewed
+### Committed in `ba31316` but NOT yet visually reviewed
 
-Built by Sonnet agents, who reported `pnpm check` passing:
+Built by Sonnet agents; `pnpm check` passes:
 
 - **Step 4, trade table and incoming offers:** `TradeComposer.tsx`, `TradeParts.tsx`, `OfferPanel.tsx`, new `tradeFx.ts`, a `coin-drop` keyframe in `index.css`, and `?open=trade` support in `GameScreen.tsx`.
 - **Step 5, raise-money bill and My city:** `DebtPanel.tsx`, `MyCity.tsx`, plus small additions in `ui.tsx` (`DeedSwatch`), `icons.tsx`, `TitleDeed.tsx` (slot pop) and `GameScreen.tsx` (`onTrade`, `onAsk`).
@@ -32,7 +32,7 @@ Built by Sonnet agents, who reported `pnpm check` passing:
    - Trade: `?demo=play&seed=7&open=trade`.
    - Incoming offer: see the console snippet below.
    - Debt and My city: `?scene=debt` and `?scene=build&open=city`. With seed 7 the fast-forward never reaches those moments (it ends in game over), so try other seeds.
-3. Fix what's needed, then commit step 4 and step 5 separately if the files allow, otherwise as one commit.
+3. Fix what's needed and commit the fixes.
 4. **Step 6:** setup screen, game over (mayor certificate and podium), menu, rulebook help, board tooltip, callouts. Fix the copy: remove the dev links (#playground, Sound board), and use the same wording for "New game" everywhere. Specs: `Setup.dc.html`, `Results.dc.html`, `Menu.dc.html`, `Moments.dc.html`.
 5. **Step 7:** smaller windows with no overlap, then a keyboard and accessibility pass.
 6. After Milestone 8: try 3D dice thrown onto the board on `#playground` first: Pixi cubes, a tumble solved backward to the engine's result, bounce clacks, hit-stop, the total pops, then the dice fly into the tray.
