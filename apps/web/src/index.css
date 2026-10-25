@@ -183,6 +183,36 @@
 
   :root {
     color-scheme: dark;
+    /* Cursors: system keywords here; cursors.ts swaps in the drawn set under html[data-cursor='game']. */
+    --cur-default: default;
+    --cur-pointer: pointer;
+    --cur-grab: grab;
+    --cur-grabbing: grabbing;
+  }
+
+  body {
+    cursor: var(--cur-default);
+  }
+
+  /* Preflight resets buttons to cursor: default; put the pointer back on everything clickable. */
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']),
+  a[href],
+  summary,
+  select:not(:disabled),
+  label:has(input[type='checkbox'], input[type='radio']),
+  input[type='range']:not(:disabled) {
+    cursor: var(--cur-pointer);
+  }
+
+  button:disabled,
+  [aria-disabled='true'] {
+    cursor: not-allowed;
+  }
+
+  input:not([type='checkbox'], [type='radio'], [type='range'], [type='button']),
+  textarea {
+    cursor: text;
   }
 }
 

@@ -5,7 +5,14 @@
 export { mountBoard } from './mount.ts'
 export type { BoardHandle, BoardOptions } from './mount.ts'
 export { Board, DEFAULT_TUNING } from './board.ts'
-export type { BoardBeat, BoardListeners, BoardPlayer, BoardSnapshot, BoardTuning } from './board.ts'
+export type {
+  BoardCursors,
+  BoardBeat,
+  BoardListeners,
+  BoardPlayer,
+  BoardSnapshot,
+  BoardTuning,
+} from './board.ts'
 export { DEFAULT_JUICE, cloneJuice } from './juice/config.ts'
 export type { JuiceConfig } from './juice/config.ts'
 export type { Insets } from './view/camera.ts'

@@ -34,7 +34,7 @@ import {
   type FlyRects,
 } from './TradeParts.tsx'
 import { HAND_SCALE, HOLD_MS, flyDeal, useResultHold, useWide } from './tradeFx.ts'
-import { Btn, Eyebrow, Money, Panel, TokenAvatar } from './ui.tsx'
+import { Btn, Eyebrow, Money, Panel, TokenAvatar, FX, FX_BRIGHT } from './ui.tsx'
 
 /** How the trade table opens: fresh, or prefilled as a counter to an offer. */
 export interface TradeDraft {
@@ -235,7 +235,7 @@ export function TradeComposer({
           onChange={(e) =>
             edit(side === 'give' ? setGive : setGet, { ...bundle, jailCards: Number(e.target.value) })
           }
-          className="rounded-lg bg-black/25 px-2 py-1 text-ink"
+          className={`rounded-lg bg-black/25 px-2 py-1 text-ink transition-colors hover:bg-black/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent`}
         >
           {Array.from({ length: max + 1 }, (_, n) => (
             <option key={n} value={n}>
@@ -280,7 +280,7 @@ export function TradeComposer({
                   aria-pressed={on}
                   onClick={() => pickPartner(seat)}
                   disabled={(draft.replaces !== undefined && !on) || settled}
-                  className={`flex h-10 items-center gap-2 rounded-full border-[1.5px] pr-3.5 pl-1.5 text-sm font-extrabold transition-[scale,background-color,border-color] duration-200 ease-spring active:scale-95 disabled:opacity-30 ${on ? 'border-accent bg-accent/12' : 'border-line hover:bg-white/5'}`}
+                  className={`flex h-10 items-center gap-2 rounded-full border-[1.5px] pr-3.5 pl-1.5 text-sm font-extrabold ${FX} disabled:opacity-30 ${on ? 'border-accent bg-accent/12 enabled:hover:bg-accent/20' : 'border-line enabled:hover:bg-white/5'}`}
                 >
                   <TokenAvatar color={cssHex(seats[seat]!.color)} piece={seats[seat]!.piece} size={28} />
                   {p.name}
@@ -296,7 +296,7 @@ export function TradeComposer({
                 type="button"
                 onClick={() => suggest(m.space, m.owner)}
                 disabled={settled}
-                className="flex h-9 items-center gap-2 rounded-full border border-dashed border-accent/60 bg-accent/8 px-3 text-[13px] font-bold text-gold transition-[scale,background-color] duration-200 ease-spring hover:bg-accent/16 active:scale-95 disabled:opacity-30"
+                className={`flex h-9 items-center gap-2 rounded-full border border-dashed border-accent/60 bg-accent/8 px-3 text-[13px] font-bold text-gold ${FX_BRIGHT} enabled:hover:bg-accent/16 disabled:opacity-30`}
               >
                 <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
                   <path
@@ -312,7 +312,7 @@ export function TradeComposer({
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="flex size-10 items-center justify-center rounded-xl border border-line text-ink transition-[scale,background-color] duration-200 ease-spring hover:bg-white/8 active:scale-90"
+            className={`flex size-10 items-center justify-center rounded-xl border border-line text-ink ${FX} enabled:hover:bg-white/8`}
           >
             <Icon name="close" size={16} />
           </button>
@@ -430,7 +430,7 @@ export function TradeComposer({
                 sound.play('money.coin')
                 edit(setGive, { ...give, cash: give.cash + verdict.more! })
               }}
-              className="h-11 rounded-[14px] border border-accent/60 bg-accent/10 px-4 text-sm font-extrabold whitespace-nowrap text-gold transition-[scale,background-color] duration-200 ease-spring hover:bg-accent/20 active:scale-95"
+              className={`h-11 rounded-[14px] border border-accent/60 bg-accent/10 px-4 text-sm font-extrabold whitespace-nowrap text-gold ${FX_BRIGHT} enabled:hover:bg-accent/20`}
             >
               Add <Money value={verdict.more} /> to make it work
             </button>

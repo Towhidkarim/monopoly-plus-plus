@@ -7,6 +7,7 @@ import { sound } from '../audio/engine.ts'
 import { savePrefs } from '../game/prefs.ts'
 import { buildableGroups } from '@skyline/bots'
 import { cityOf } from '../game/setup.ts'
+import { applyCursorPref, type CursorPref } from '../cursors.ts'
 import { skyLevel, type SkyPref } from '../game/sky.ts'
 import type { GameStore } from '../game/store.ts'
 import { ActionDock } from './game/ActionDock.tsx'
@@ -59,6 +60,7 @@ export function GameScreen({
   const [botOffers, setBotOffers] = useState(store.settings.botOffers)
   const [cityLife, setCityLife] = useState(store.settings.cityLife)
   const [sky, setSky] = useState<SkyPref>(store.settings.sky)
+  const [cursor, setCursor] = useState<CursorPref>(store.settings.cursor)
   const [trade, setTrade] = useState<(TradeDraft & { me: number }) | null>(() =>
     initialPanel() === 'trade' ? { me: store.getSnapshot().viewer ?? 0 } : null,
   )
@@ -121,6 +123,7 @@ export function GameScreen({
       botOffers: s.botOffers,
       cityLife: s.cityLife,
       sky: s.sky,
+      cursor: s.cursor,
     })
   }
   const changeSpeed = (v: SpeedChoice) => {
@@ -278,6 +281,14 @@ export function GameScreen({
                 onSky={(v) => {
                   store.setSettings({ sky: v })
                   setSky(v)
+                  persist()
+                }}
+                cursor={cursor}
+                onCursor={() => {
+                  const next = cursor === 'game' ? 'system' : 'game'
+                  store.setSettings({ cursor: next })
+                  setCursor(next)
+                  handle?.setCursors(applyCursorPref(next))
                   persist()
                 }}
                 botOffers={botOffers}

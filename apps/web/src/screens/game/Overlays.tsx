@@ -9,6 +9,7 @@ import {
   ownsGroup,
   type GameState,
 } from '@skyline/engine'
+import type { CursorPref } from '../../cursors.ts'
 import type { SkyPref } from '../../game/sky.ts'
 import type { GameStore, Snapshot } from '../../game/store.ts'
 import { sound } from '../../audio/engine.ts'
@@ -429,7 +430,7 @@ export function HelpOverlay({ onClose }: { onClose: () => void }) {
             type="button"
             onClick={onClose}
             aria-label="Close help"
-            className="absolute top-[18px] right-[18px] flex size-9 items-center justify-center rounded-[10px] border border-card-edge text-card-ink transition-colors hover:bg-black/[0.05]"
+            className="absolute top-[18px] right-[18px] flex size-9 items-center justify-center rounded-[10px] border border-card-edge text-card-ink transition-[background-color,scale] duration-200 ease-spring hover:bg-black/[0.07] active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
             <Icon name="close" size={14} />
           </button>
@@ -460,7 +461,7 @@ export function HelpOverlay({ onClose }: { onClose: () => void }) {
 }
 
 const seg = (on: boolean) =>
-  `h-8 flex-1 rounded-[9px] text-[13px] font-extrabold transition-colors ${on ? 'bg-accent text-accent-ink' : 'text-ink-muted hover:text-ink'}`
+  `h-8 flex-1 rounded-[9px] text-[13px] font-extrabold transition-[background-color,color,scale] duration-200 ease-spring active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${on ? 'bg-accent text-accent-ink' : 'text-ink-muted hover:bg-white/5 hover:text-ink'}`
 
 const SKY_CHOICES: readonly (readonly [SkyPref, string])[] = [
   ['auto', 'Auto'],
@@ -483,7 +484,7 @@ function Switch({
   return (
     <label
       aria-label={label}
-      className="flex cursor-pointer items-center justify-between gap-2.5 rounded-xl px-1.5 py-2 hover:bg-white/[0.03]"
+      className="flex items-center justify-between gap-2.5 rounded-xl px-1.5 py-2 transition-colors hover:bg-white/5"
     >
       <span className="flex flex-col">
         <span className="text-sm font-bold">{label}</span>
@@ -512,6 +513,8 @@ export function GameMenu({
   onCityLife,
   sky,
   onSky,
+  cursor,
+  onCursor,
   botOffers,
   onBotOffers,
   onLog,
@@ -528,6 +531,8 @@ export function GameMenu({
   onCityLife: () => void
   sky: SkyPref
   onSky: (v: SkyPref) => void
+  cursor: CursorPref
+  onCursor: () => void
   botOffers: boolean
   onBotOffers: () => void
   onLog: () => void
@@ -588,6 +593,12 @@ export function GameMenu({
           onChange={onReducedMotion}
         />
         <Switch label="City life" hint="Cars and trains in the city" on={cityLife} onChange={onCityLife} />
+        <Switch
+          label="Game cursor"
+          hint="Off uses your system cursor"
+          on={cursor === 'game'}
+          onChange={onCursor}
+        />
         <Switch
           label="Offers from bots"
           hint="Bots may propose deals to you"

@@ -28,6 +28,7 @@ import { describe, type LogEntry } from './log.ts'
 import { applyEvent, desyncs, presentFrom, type Presented } from './presented.ts'
 import { loadPrefs } from './prefs.ts'
 import type { SkyPref } from './sky.ts'
+import type { CursorPref } from '../cursors.ts'
 import { saveGame, type GameSetup, type SavedGame } from './setup.ts'
 import { BIG_RENT, TIMINGS, coinsLandMs } from './timings.ts'
 
@@ -84,6 +85,8 @@ export interface StoreSettings {
   cityLife: boolean
   /** Day/night: follow the round count, or hold day or night. */
   sky: SkyPref
+  /** Custom game cursor, or the system one. */
+  cursor: CursorPref
 }
 
 /** What a trade partner thinks of a deal before it is sent (bots only; humans decide live). */
@@ -127,6 +130,7 @@ export class GameStore {
     botOffers: true,
     cityLife: true,
     sky: 'auto',
+    cursor: 'game',
   }
   private snap: Snapshot
   private readonly listeners = new Set<() => void>()

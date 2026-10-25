@@ -10,7 +10,7 @@ import { Stamp } from './cardMotion.tsx'
 import { Icon } from './icons.tsx'
 import { DeedCard } from './TitleDeed.tsx'
 import { HAND_SCALE, dropIn, slideFrom, tiltOf } from './tradeFx.ts'
-import { Money } from './ui.tsx'
+import { Money, FX, FX_BRIGHT } from './ui.tsx'
 
 /** Shared pieces of the trade table and the incoming-offer panel (felt, mats, cards, coins, bot). */
 
@@ -108,7 +108,7 @@ export function HandCard({
       aria-label={`${sp.name}${onTable ? ', on the table, click to take back' : ', click to add to the deal'}`}
       aria-pressed={onTable}
       onClick={(e) => onPick?.(e.currentTarget.getBoundingClientRect())}
-      className={`relative block shrink-0 rounded-[14px] text-left transition-[translate,scale,opacity] duration-200 ease-spring focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent enabled:hover:-translate-y-1 enabled:active:scale-95 disabled:cursor-default ${onTable ? 'opacity-35' : ''}`}
+      className={`relative block shrink-0 rounded-[14px] text-left transition-[translate,scale,opacity] duration-200 ease-spring focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent enabled:hover:-translate-y-1 enabled:active:scale-[0.97] ${onTable ? 'opacity-35' : ''}`}
     >
       <DeedFace s={s} seats={seats} space={space} k={k} selected={onTable} />
       {blocked && (
@@ -176,7 +176,7 @@ export function MatCard({
       title={`Take ${sp.name} back`}
       aria-label={`${sp.name}, on the table, click to take back`}
       onClick={(e) => onClick(e.currentTarget.getBoundingClientRect())}
-      className="block shrink-0 rounded-[14px] text-left transition-[translate,scale] duration-200 ease-spring hover:-translate-y-1 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent active:scale-95"
+      className="block shrink-0 rounded-[14px] text-left transition-[translate,scale] duration-200 ease-spring hover:-translate-y-1 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent active:scale-[0.97]"
       style={style}
     >
       {face}
@@ -399,7 +399,7 @@ export function CashEditor({
               sound.play('money.coin')
               set(value + step)
             }}
-            className="h-10 shrink-0 rounded-xl bg-coin px-2 text-sm font-extrabold text-[#3a2400] shadow-[inset_0_-3px_0_var(--color-coin-dark)] transition-[translate,scale,filter] duration-200 ease-spring hover:-translate-y-px hover:brightness-105 active:scale-90 active:duration-75 disabled:opacity-30 disabled:hover:translate-y-0"
+            className={`h-10 shrink-0 rounded-xl bg-coin px-2 text-sm font-extrabold text-[#3a2400] shadow-[inset_0_-3px_0_var(--color-coin-dark)] ${FX_BRIGHT} disabled:opacity-30`}
           >
             +{step}
           </button>
@@ -408,7 +408,7 @@ export function CashEditor({
           type="button"
           disabled={locked || value === 0}
           onClick={() => set(0)}
-          className="h-10 shrink-0 rounded-xl px-1.5 text-xs font-bold text-ink-muted underline decoration-white/25 underline-offset-4 transition hover:bg-white/10 hover:text-ink active:scale-95 disabled:pointer-events-none disabled:no-underline disabled:opacity-30"
+          className={`h-10 shrink-0 rounded-xl px-1.5 text-xs font-bold text-ink-muted underline decoration-white/25 underline-offset-4 ${FX} enabled:hover:bg-white/10 enabled:hover:text-ink disabled:pointer-events-none disabled:no-underline disabled:opacity-30`}
         >
           Clear
         </button>

@@ -9,11 +9,21 @@ import { PieceIcon } from './icons.tsx'
 
 type BtnKind = 'primary' | 'secondary' | 'danger' | 'ghost'
 
+/**
+ * Shared hover and press feel for anything clickable: a one-pixel spring lift, a small press
+ * squash, and an accent focus ring. Transform (translate, scale), filter and color only.
+ * Add FX_BRIGHT on gold or colored fills, FX_GHOST on outline and text buttons.
+ */
+export const FX =
+  'transition-[translate,scale,filter,background-color,color,border-color,opacity] duration-200 ease-spring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent enabled:hover:-translate-y-px enabled:active:scale-[0.97] active:duration-75'
+export const FX_BRIGHT = `${FX} enabled:hover:brightness-[1.06]`
+export const FX_GHOST = `${FX} enabled:hover:bg-white/5 enabled:hover:text-ink`
+
 const BTN_STYLES: Record<BtnKind, string> = {
-  primary: 'bg-accent font-display text-accent-ink shadow-gold hover:brightness-105',
-  secondary: 'border border-line bg-transparent text-ink hover:bg-white/5',
-  danger: 'bg-alert text-accent-ink shadow-[inset_0_-4px_0_rgba(0,0,0,0.18)] hover:brightness-105',
-  ghost: 'text-ink-muted hover:bg-white/5 hover:text-ink',
+  primary: `bg-accent font-display text-accent-ink shadow-gold ${FX_BRIGHT}`,
+  secondary: `border border-line bg-transparent text-ink ${FX_GHOST}`,
+  danger: `bg-alert text-accent-ink shadow-[inset_0_-4px_0_rgba(0,0,0,0.18)] ${FX_BRIGHT}`,
+  ghost: `text-ink-muted ${FX_GHOST}`,
 }
 
 export function Btn({
@@ -41,7 +51,7 @@ export function Btn({
       }}
       disabled={disabled}
       title={title}
-      className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-extrabold transition-[translate,scale,filter,background-color,color] duration-200 ease-spring hover:-translate-y-px active:scale-95 active:duration-75 disabled:pointer-events-none disabled:opacity-40 ${BTN_STYLES[kind]} ${className}`}
+      className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-extrabold disabled:opacity-40 ${BTN_STYLES[kind]} ${className}`}
     >
       {children}
     </button>

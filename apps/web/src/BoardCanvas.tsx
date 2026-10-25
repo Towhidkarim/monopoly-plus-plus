@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { mountBoard, type BoardHandle } from '@skyline/board'
+import { currentCursorSet } from './cursors.ts'
 import { TileTooltip } from './TileTooltip.tsx'
 
 interface Props {
@@ -22,7 +23,7 @@ export function BoardCanvas({ onReady, citySeed, renderTooltip, children }: Prop
     let handle: BoardHandle | undefined
     let cancelled = false
     // init is async; if we unmount first (StrictMode does this in dev), destroy once it resolves.
-    void mountBoard(host, { citySeed }).then((h) => {
+    void mountBoard(host, { citySeed, cursors: currentCursorSet() }).then((h) => {
       if (cancelled) {
         h.destroy()
         return
@@ -48,7 +49,10 @@ export function BoardCanvas({ onReady, citySeed, renderTooltip, children }: Prop
   // Canvas is absolutely positioned so it never feeds back into the host's size (resizeTo loop).
   return (
     <div className="relative min-w-0 flex-1 overflow-hidden select-none">
-      <div ref={hostRef} className="absolute inset-0 cursor-grab [&>canvas]:absolute [&>canvas]:inset-0" />
+      <div
+        ref={hostRef}
+        className="absolute inset-0 cursor-(--cur-grab) [&>canvas]:absolute [&>canvas]:inset-0"
+      />
       <div ref={tooltipRef} className="pointer-events-none absolute top-0 left-0 z-10 will-change-transform">
         {hovered !== null && (renderTooltip ? renderTooltip(hovered) : <TileTooltip index={hovered} />)}
       </div>

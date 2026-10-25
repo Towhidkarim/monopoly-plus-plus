@@ -241,7 +241,7 @@ export function BuyMoment({
                   <button
                     type="button"
                     onClick={onCity}
-                    className="font-semibold text-accent hover:underline"
+                    className={`rounded-sm font-semibold text-accent transition-colors hover:text-gold hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent`}
                   >
                     Mortgage something in My city
                   </button>{' '}

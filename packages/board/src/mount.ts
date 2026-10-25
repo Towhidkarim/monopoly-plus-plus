@@ -1,5 +1,5 @@
 import { Application } from 'pixi.js'
-import { Board } from './board.ts'
+import { Board, type BoardCursors } from './board.ts'
 import { palette } from './palette.ts'
 import { LotPortraits } from './portrait.ts'
 
@@ -8,6 +8,8 @@ export interface BoardOptions {
   background?: number
   /** Seed of the generated city in the middle (cosmetic; the game's dice seed is separate). */
   citySeed?: number | undefined
+  /** CSS cursor values for the canvas; defaults to the system 'grab' / 'pointer' / 'grabbing'. */
+  cursors?: Partial<BoardCursors> | undefined
 }
 
 export interface BoardHandle {
@@ -18,6 +20,8 @@ export interface BoardHandle {
    * cropped). `level`: -1 empty lot for sale, 0 owned, 1 to 4 houses, 5 hotel. Null for spaces
    * without a building (stations, utilities). Cached per space, level and sky.
    */
+  /** Swaps the canvas cursors live (for example when the player toggles the game cursor). */
+  setCursors(cursors: Partial<BoardCursors>): void
   lotPortrait(space: number, level: number, night: boolean): Promise<string | null>
   destroy(): void
 }
@@ -40,12 +44,14 @@ export async function mountBoard(host: HTMLElement, options: BoardOptions = {}):
   })
   host.appendChild(app.canvas)
   const board = new Board(app, options.citySeed)
+  if (options.cursors) board.setCursors(options.cursors)
 
   const portraits = new LotPortraits(app, options.citySeed ?? 1)
 
   return {
     app,
     board,
+    setCursors: (c) => board.setCursors(c),
     lotPortrait: (space, level, night) => portraits.get(space, level, night),
     destroy() {
       portraits.destroy()

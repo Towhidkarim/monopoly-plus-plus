@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { loadPrefs } from '../game/prefs.ts'
+import { currentCursorSet } from '../cursors.ts'
 import { mountBoard, type BoardHandle } from '@skyline/board'
 
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -34,7 +35,7 @@ export function SetupBackdrop({ citySeed, panelWidth }: { citySeed: number; pane
     let mounted: BoardHandle | undefined
     let cancelled = false
     // init is async; if we unmount first (StrictMode, or Start pressed), destroy once it resolves.
-    void mountBoard(host, { citySeed: seedRef.current }).then((h) => {
+    void mountBoard(host, { citySeed: seedRef.current, cursors: currentCursorSet() }).then((h) => {
       if (cancelled) {
         h.destroy()
         return

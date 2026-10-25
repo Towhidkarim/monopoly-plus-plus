@@ -49,7 +49,10 @@ const PANEL_WIDTH = 580
 const randomSeed = () => Math.floor(Math.random() * 1_000_000) // UI only: picks the game seed
 
 const SEG_ON = 'bg-accent text-accent-ink'
-const SEG_OFF = 'text-ink-muted hover:text-ink'
+const SEG_OFF = 'text-ink-muted hover:bg-white/5 hover:text-ink'
+/** Shared press feel and focus ring for segmented buttons. */
+const SEG_FX =
+  'transition-[background-color,color,scale] duration-200 ease-spring active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent'
 
 export function SetupScreen({ onStart }: { onStart: (setup: GameSetup, saved?: SavedGame) => void }) {
   const [saved] = useState(loadGame)
@@ -113,7 +116,7 @@ export function SetupScreen({ onStart }: { onStart: (setup: GameSetup, saved?: S
               <button
                 type="button"
                 onClick={() => onStart(saved.setup, saved)}
-                className="px-5 font-card text-base font-extrabold text-[#9a7322] transition-colors hover:bg-black/[0.04]"
+                className="px-5 font-card text-base font-extrabold text-[#9a7322] transition-colors hover:bg-black/[0.06] hover:text-[#7a5a14] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               >
                 Continue →
               </button>
@@ -131,10 +134,10 @@ export function SetupScreen({ onStart }: { onStart: (setup: GameSetup, saved?: S
                     type="button"
                     aria-pressed={on}
                     onClick={() => setPreset(m.preset)}
-                    className={`relative flex flex-col overflow-hidden rounded-[14px] bg-card text-left font-card-body text-card-ink transition-[translate,box-shadow] duration-200 ease-spring ${
+                    className={`relative flex flex-col overflow-hidden rounded-[14px] bg-card text-left font-card-body text-card-ink transition-[translate,box-shadow,scale] duration-200 ease-spring active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
                       on
                         ? '-translate-y-1 shadow-[0_0_0_3px_#f5b54a,0_14px_26px_rgba(2,6,16,0.5)]'
-                        : 'shadow-[0_8px_18px_rgba(2,6,16,0.4),0_2px_0_#e4dccb] hover:-translate-y-0.5'
+                        : 'shadow-[0_8px_18px_rgba(2,6,16,0.4),0_2px_0_#e4dccb] hover:-translate-y-1 hover:shadow-[0_12px_22px_rgba(2,6,16,0.45),0_2px_0_#e4dccb]'
                     }`}
                   >
                     <span
@@ -182,7 +185,7 @@ export function SetupScreen({ onStart }: { onStart: (setup: GameSetup, saved?: S
                     type="button"
                     aria-pressed={seats.length === n}
                     onClick={() => resize(n)}
-                    className={`h-[30px] w-[34px] rounded-[9px] font-display text-sm font-bold ${seats.length === n ? SEG_ON : SEG_OFF}`}
+                    className={`h-[30px] w-[34px] rounded-[9px] font-display text-sm font-bold ${SEG_FX} ${seats.length === n ? SEG_ON : SEG_OFF}`}
                   >
                     {n}
                   </button>
@@ -210,7 +213,7 @@ export function SetupScreen({ onStart }: { onStart: (setup: GameSetup, saved?: S
                         type="button"
                         aria-pressed={on}
                         onClick={() => update(i, { kind })}
-                        className={`h-[30px] rounded-lg px-2.5 text-xs font-extrabold ${
+                        className={`h-[30px] rounded-lg px-2.5 text-xs font-extrabold ${SEG_FX} ${
                           on ? SEG_ON : SEG_OFF
                         }`}
                       >
@@ -219,14 +222,14 @@ export function SetupScreen({ onStart }: { onStart: (setup: GameSetup, saved?: S
                     )
                   })}
                 </div>
-                <label className="relative flex h-[30px] items-center rounded-[10px] border border-line text-xs font-bold text-ink-muted">
+                <label className="relative flex h-[30px] items-center rounded-[10px] border border-line text-xs font-bold text-ink-muted transition-colors hover:bg-white/5 hover:text-ink">
                   <select
                     value={seat.piece}
                     onChange={(e) =>
                       update(i, { piece: PIECES.find((p) => p.kind === e.target.value)?.kind ?? seat.piece })
                     }
                     aria-label={`Player ${i + 1} piece`}
-                    className="h-full cursor-pointer appearance-none rounded-[10px] bg-transparent pr-6 pl-2.5 outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+                    className="h-full appearance-none rounded-[10px] bg-transparent pr-6 pl-2.5 outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
                   >
                     {PIECES.map((p) => (
                       <option key={p.kind} value={p.kind} className="bg-panel text-ink">
@@ -292,7 +295,7 @@ function CityPill({ citySeed, onReroll }: { citySeed: number; onReroll: () => vo
       <button
         type="button"
         onClick={onReroll}
-        className="flex h-9 items-center gap-1.5 rounded-full bg-card px-3.5 text-[13px] font-extrabold text-card-ink shadow-keycap transition-[translate,scale] duration-200 ease-spring hover:-translate-y-px active:scale-95"
+        className="flex h-9 items-center gap-1.5 rounded-full bg-card px-3.5 text-[13px] font-extrabold text-card-ink shadow-keycap transition-[translate,scale,filter] duration-200 ease-spring hover:-translate-y-px hover:brightness-[1.06] active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
           <rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="#1f2a3d" strokeWidth="2.2" />

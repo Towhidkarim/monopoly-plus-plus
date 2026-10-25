@@ -21,7 +21,7 @@ import { familyColor, familyName } from './deed.ts'
 import { fmtMoney } from './format.ts'
 import { HOLD_MS, useResultHold } from './tradeFx.ts'
 import type { TurnView } from './turn.ts'
-import { Btn, DeedSwatch, Eyebrow, Kbd, TokenAvatar } from './ui.tsx'
+import { Btn, DeedSwatch, Eyebrow, Kbd, TokenAvatar, FX_BRIGHT } from './ui.tsx'
 import type { PieceKind } from '@skyline/board'
 
 type Raise = Extract<Action, { type: 'SELL_BUILDING' | 'MORTGAGE' }>
@@ -232,7 +232,9 @@ function Sheet({
           className={`flex max-h-[calc(100vh-9rem)] w-140 max-w-full shrink-0 animate-rise flex-col overflow-hidden rounded-3xl border border-alert/40 bg-panel shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_0_4px_rgba(251,113,133,0.08),0_28px_60px_rgba(2,6,16,0.65)] ${leave && !reduced ? 'transition-opacity duration-300' : ''} ${leave ? 'opacity-60' : ''}`}
         >
           <div className="flex flex-col gap-3.5 px-6 pt-5.5 pb-4">
-            <Eyebrow className="text-[12px] tracking-[0.14em] text-rose-300">
+            <Eyebrow
+              className={`h-14 rounded-2xl px-3.5 text-sm font-extrabold text-rose-300 underline underline-offset-4 transition-colors duration-200 hover:text-rose-200 enabled:hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-40`}
+            >
               You owe {creditorName} {fmtMoney(v.owed)} {REASON[v.reason] ?? ''}
             </Eyebrow>
             <h2 className="font-display text-[32px] leading-tight font-bold">
@@ -476,7 +478,7 @@ function TealBtn({
         sound.play('ui.click')
         onClick()
       }}
-      className="h-10 shrink-0 rounded-xl border border-teal/50 bg-teal/10 px-3.5 font-display text-[15px] font-bold text-teal tabular-nums transition-[translate,scale,background-color] duration-200 ease-spring hover:-translate-y-px hover:bg-teal/20 active:scale-95 active:duration-75 disabled:pointer-events-none disabled:opacity-40"
+      className={`h-10 shrink-0 rounded-xl border border-teal/50 bg-teal/10 px-3.5 font-display text-[15px] font-bold text-teal tabular-nums ${FX_BRIGHT} enabled:hover:bg-teal/20 disabled:pointer-events-none disabled:opacity-40`}
     >
       {children}
     </button>

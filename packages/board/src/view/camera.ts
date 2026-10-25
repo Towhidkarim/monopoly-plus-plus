@@ -141,6 +141,11 @@ export class Camera {
 
   // ---- input -------------------------------------------------------------
 
+  /** True only while a drag or pinch is in progress (`dragging` stays set after release so the tap can be ignored). */
+  get panning(): boolean {
+    return this.dragging && this.pointers.size > 0
+  }
+
   onPointerDown(e: FederatedPointerEvent): void {
     this.pointers.set(e.pointerId, { x: e.global.x, y: e.global.y })
     if (this.pointers.size === 1) {

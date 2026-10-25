@@ -8,7 +8,7 @@ import { activeRow, familyOf } from './deed.ts'
 import { DiceTray } from './DiceTray.tsx'
 import { Icon } from './icons.tsx'
 import { DeedCard } from './TitleDeed.tsx'
-import { Btn, Eyebrow, Kbd, Panel, TokenAvatar } from './ui.tsx'
+import { Btn, Eyebrow, Kbd, Panel, TokenAvatar, FX } from './ui.tsx'
 import { fmtMoney } from './format.ts'
 
 /** Property names, longest first, so a hint can highlight the one it talks about. */
@@ -102,7 +102,7 @@ export function LeftColumn({
               <button
                 type="button"
                 onClick={onCity}
-                className="self-start text-[13px] font-bold text-accent transition-colors hover:text-gold"
+                className="self-start rounded-md text-[13px] font-bold text-accent transition-colors hover:text-gold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               >
                 Open My city →
               </button>
@@ -160,7 +160,7 @@ function SelectedSpace({
       type="button"
       onClick={onClose}
       aria-label="Close"
-      className="absolute top-2 right-2 flex size-8 items-center justify-center rounded-lg bg-table/40 text-ink hover:bg-table/70"
+      className={`absolute top-2 right-2 flex size-8 items-center justify-center rounded-lg bg-table/40 text-ink ${FX} enabled:hover:bg-table/70`}
     >
       <Icon name="close" size={16} />
     </button>
@@ -219,7 +219,7 @@ function SelectedSpace({
           <button
             type="button"
             onClick={onCity}
-            className="mt-2 text-[13px] font-bold text-accent hover:text-gold"
+            className="mt-2 rounded-md text-[13px] font-bold text-accent transition-colors hover:text-gold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
             Manage the whole set in My city →
           </button>
@@ -278,7 +278,7 @@ export function ActivityFeed({
               type="button"
               onClick={onToggleLog}
               aria-label="Close log"
-              className="text-ink-muted transition-colors hover:text-ink"
+              className="rounded-md text-ink-muted transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             >
               <Icon name="close" size={16} />
             </button>
@@ -305,7 +305,7 @@ export function ActivityFeed({
           <button
             type="button"
             onClick={onToggleLog}
-            className="pointer-events-auto flex items-center gap-1.5 self-end px-0.5 py-1 text-[13px] font-bold text-accent transition-colors hover:text-gold"
+            className="pointer-events-auto flex items-center gap-1.5 self-end rounded-md px-0.5 py-1 text-[13px] font-bold text-accent transition-colors hover:text-gold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
             Full log <Kbd>L</Kbd>
           </button>

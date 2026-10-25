@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import type { GameStore, Snapshot } from '../../game/store.ts'
 import { Icon } from './icons.tsx'
 import type { TurnView } from './turn.ts'
-import { Kbd } from './ui.tsx'
+import { Kbd, FX, FX_BRIGHT } from './ui.tsx'
 
 /**
  * Bottom dock: one big primary action (Space), My city on the left, Trade on the right.
@@ -53,7 +53,7 @@ export function ActionDock({
             <button
               type="button"
               onClick={primary.run}
-              className={`flex h-[66px] items-center gap-3 rounded-[18px] bg-accent px-8.5 font-display text-xl font-bold text-accent-ink shadow-gold-lg transition-[translate,scale,filter] duration-200 ease-spring hover:-translate-y-px hover:brightness-105 active:scale-95 active:duration-75 ${store.settings.reducedMotion ? '' : 'animate-breathe'}`}
+              className={`flex h-[66px] items-center gap-3 rounded-[18px] bg-accent px-8.5 font-display text-xl font-bold text-accent-ink shadow-gold-lg ${FX_BRIGHT} ${store.settings.reducedMotion ? '' : 'animate-breathe'}`}
             >
               {primary.label.startsWith('Roll') && <Icon name="dice" size={24} />}
               {primary.label}
@@ -79,7 +79,7 @@ export function ActionDock({
                 type="button"
                 onClick={() => store.skip()}
                 title="Skip animations (S)"
-                className="flex items-center gap-1 rounded-lg px-2 py-1 font-bold text-ink transition-colors hover:bg-white/10"
+                className={`flex items-center gap-1 rounded-lg px-2 py-1 font-bold text-ink ${FX} enabled:hover:bg-white/10`}
               >
                 <Icon name="skip" size={14} /> Skip
               </button>
@@ -140,7 +140,7 @@ function DockButton({
       disabled={disabled}
       title={title}
       aria-pressed={active || undefined}
-      className={`relative flex h-[58px] items-center gap-2.5 rounded-2xl border px-[18px] font-sans text-[15px] font-extrabold text-ink transition-[translate,scale,background-color,border-color] duration-200 ease-spring hover:-translate-y-px active:scale-95 active:duration-75 disabled:pointer-events-none disabled:opacity-40 ${active ? 'border-accent bg-accent/10' : 'border-line bg-transparent hover:bg-white/5'}`}
+      className={`relative flex h-[58px] items-center gap-2.5 rounded-2xl border px-[18px] font-sans text-[15px] font-extrabold text-ink ${FX} disabled:pointer-events-none disabled:opacity-40 ${active ? 'border-accent bg-accent/10 enabled:hover:bg-accent/15' : 'border-line bg-transparent enabled:hover:bg-white/5'}`}
     >
       {children}
       {hotkey && <Kbd>{hotkey}</Kbd>}

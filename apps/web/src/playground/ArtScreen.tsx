@@ -45,7 +45,10 @@ export function ArtScreen() {
 
   return (
     <div className="relative h-full">
-      <div ref={host} className="absolute inset-0 cursor-grab [&>canvas]:absolute [&>canvas]:inset-0" />
+      <div
+        ref={host}
+        className="absolute inset-0 cursor-(--cur-grab) [&>canvas]:absolute [&>canvas]:inset-0"
+      />
       <div className="pointer-events-none absolute inset-x-0 top-0 flex flex-wrap items-center gap-3 p-4">
         <div className="pointer-events-auto flex flex-wrap items-center gap-2 rounded-2xl border border-line bg-panel/95 px-4 py-2.5 shadow-xl backdrop-blur">
           <a href="#playground" className="text-sm text-ink-muted hover:text-ink">

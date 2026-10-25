@@ -4,7 +4,7 @@ import { sound } from '../../audio/engine.ts'
 import type { GameStore, Snapshot } from '../../game/store.ts'
 import { cssHex, groupColor, groupName } from '../../spaceInfo.ts'
 import { Icon } from './icons.tsx'
-import { TickingMoney, TokenAvatar } from './ui.tsx'
+import { TickingMoney, TokenAvatar, FX } from './ui.tsx'
 
 const PRESET_LABEL = { standard: 'Standard', turbo: 'Turbo', classic: 'Classic' } as const
 
@@ -196,7 +196,7 @@ function HudButton({
       aria-label={label}
       title={title}
       onClick={onClick}
-      className="flex size-11 max-[1100px]:size-9 items-center justify-center rounded-[14px] border border-line bg-panel text-ink shadow-[inset_0_1px_0_rgba(255,255,255,0.07)] transition-[translate,scale,background-color] duration-200 ease-spring hover:-translate-y-px hover:bg-panel-2 active:scale-90 active:duration-75"
+      className={`flex size-11 max-[1100px]:size-9 items-center justify-center rounded-[14px] border border-line bg-panel text-ink shadow-[inset_0_1px_0_rgba(255,255,255,0.07)] ${FX} enabled:hover:bg-panel-2 enabled:hover:text-gold`}
     >
       {children}
     </button>

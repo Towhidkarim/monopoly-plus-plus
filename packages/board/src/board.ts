@@ -21,6 +21,16 @@ const NIGHT_FADE_MS = 4000
 const WAVE_STEP_MS = 45
 const WAVE_LEN_MS = 420
 
+/** CSS cursor values the host may supply for the canvas (any valid `cursor` value). */
+export interface BoardCursors {
+  grab: string
+  pointer: string
+  /** While panning; falls back to `grab`. */
+  grabbing?: string
+}
+
+const DEFAULT_CURSORS: BoardCursors = { grab: 'grab', pointer: 'pointer', grabbing: 'grabbing' }
+
 /** Runtime switches. Feel numbers live in `JuiceConfig` (juice/config.ts). */
 export interface BoardTuning {
   /** Camera follows the moving token. */
@@ -120,6 +130,7 @@ export class Board {
   private hovered: number | null = null
   private selected: number | null = null
   private debug = false
+  private cursors: BoardCursors = DEFAULT_CURSORS
 
   private readonly app: Application
 
@@ -760,9 +771,16 @@ export class Board {
     stage.on('globalpointermove', (e) => {
       this.camera.onPointerMove(e)
       this.pick(e)
+      this.refreshCursor()
     })
-    stage.on('pointerup', (e) => this.camera.onPointerUp(e))
-    stage.on('pointerupoutside', (e) => this.camera.onPointerUp(e))
+    stage.on('pointerup', (e) => {
+      this.camera.onPointerUp(e)
+      this.refreshCursor()
+    })
+    stage.on('pointerupoutside', (e) => {
+      this.camera.onPointerUp(e)
+      this.refreshCursor()
+    })
     stage.on('pointertap', () => {
       if (this.camera.dragging) return
       this.select(this.hovered === this.selected ? null : this.hovered)
@@ -772,7 +790,12 @@ export class Board {
   }
 
   private pick(e: FederatedPointerEvent): void {
-    if (this.morphing || this.camera.dragging) return
+    if (this.morphing || this.camera.panning) return
+    // globalpointermove also fires over DOM UI on top of the canvas; only pick under the bare canvas.
+    if (e.nativeEvent.target !== this.app.canvas) {
+      this.setHover(null)
+      return
+    }
     const local = this.world.toLocal(e.global)
     const { col, row } = unproject(local.x, local.y, 0, this.viewT)
     this.setHover(tileAt(col, row))
@@ -783,8 +806,20 @@ export class Board {
     if (this.hovered !== null) this.tiles[this.hovered]!.hovered = false
     this.hovered = index
     if (index !== null) this.tiles[index]!.hovered = true
-    this.app.canvas.style.cursor = index === null ? 'grab' : 'pointer'
+    this.refreshCursor()
     this.listeners.hover?.(index)
+  }
+
+  /** Replaces the canvas cursors (the host's custom cursor, or the system keywords). */
+  setCursors(cursors: Partial<BoardCursors>): void {
+    this.cursors = { ...DEFAULT_CURSORS, ...cursors }
+    this.refreshCursor()
+  }
+
+  private refreshCursor(): void {
+    const c = this.cursors
+    const css = this.camera.panning ? (c.grabbing ?? c.grab) : this.hovered === null ? c.grab : c.pointer
+    if (this.app.canvas.style.cursor !== css) this.app.canvas.style.cursor = css
   }
 
   private readonly onResize = (): void => {

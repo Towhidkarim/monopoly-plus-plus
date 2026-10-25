@@ -46,7 +46,7 @@ export function Toggle({
   onChange: (v: boolean) => void
 }) {
   return (
-    <label className="flex cursor-pointer items-center justify-between text-sm text-ink">
+    <label className="flex items-center justify-between text-sm text-ink">
       {label}
       <button
         type="button"

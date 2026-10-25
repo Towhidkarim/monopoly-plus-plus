@@ -20,7 +20,7 @@ import { cssHex, groupColor, groupName } from '../../spaceInfo.ts'
 import { useReducedMotion } from './cardEnv.tsx'
 import { BuildIcon, Icon, MedalIcon, SkylineIcon, StarIcon } from './icons.tsx'
 import { DeedCard } from './TitleDeed.tsx'
-import { Btn, DeedSwatch, TickingMoney } from './ui.tsx'
+import { Btn, DeedSwatch, TickingMoney, FX, FX_BRIGHT, FX_GHOST } from './ui.tsx'
 import { fmtMoney } from './format.ts'
 
 interface Family {
@@ -109,7 +109,7 @@ export function MyCity({
           onClick={onClose}
           aria-label="Close My city"
           title="Close (Esc)"
-          className="flex size-9.5 items-center justify-center rounded-xl border border-line transition hover:bg-white/10 active:scale-95"
+          className={`flex size-9.5 items-center justify-center rounded-xl border border-line ${FX} enabled:hover:bg-white/10`}
         >
           <Icon name="close" size={16} />
         </button>
@@ -272,7 +272,7 @@ function SetSection({
                   onClick={() => onFocus(i)}
                   title={`${SPACES[i]!.name}: show on the board`}
                   aria-label={`${SPACES[i]!.name}, show on the board`}
-                  className={`block text-left transition-[translate] duration-200 ease-spring hover:-translate-y-1 ${k > 0 ? '-ml-2' : ''}`}
+                  className={`block rounded-[14px] text-left transition-[translate,scale] duration-200 ease-spring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent hover:-translate-y-1 active:scale-[0.97] ${k > 0 ? '-ml-2' : ''}`}
                   style={{ rotate: `${tilt}deg`, zIndex: k }}
                 >
                   <div style={{ zoom: 0.7 }}>
@@ -335,7 +335,7 @@ function SetSection({
           type="button"
           onClick={() => setRows((v) => !v)}
           aria-expanded={rows}
-          className="mt-2.5 text-xs font-bold text-ink-muted hover:text-ink"
+          className={`mt-2.5 rounded-md px-1 py-0.5 text-xs font-bold text-ink-muted ${FX_GHOST}`}
         >
           {rows ? 'Hide mortgages ▴' : 'Mortgages ▾'}
         </button>
@@ -378,7 +378,7 @@ function SetSection({
                         sound.play('ui.click')
                         onAsk(ownerSeat, i)
                       }}
-                      className="h-9 shrink-0 rounded-[10px] px-3 text-[13px] font-extrabold text-accent transition hover:bg-accent/10 active:scale-95"
+                      className={`h-9 shrink-0 rounded-[10px] px-3 text-[13px] font-extrabold text-accent ${FX} enabled:hover:bg-accent/10`}
                     >
                       Ask in a trade →
                     </button>
@@ -460,7 +460,7 @@ function RowName({ name, onFocus, bold }: { name: string; onFocus: () => void; b
     <button
       type="button"
       onClick={onFocus}
-      className={`min-w-0 truncate text-left text-sm hover:underline ${bold ? 'font-extrabold' : 'font-bold'}`}
+      className={`min-w-0 truncate rounded-sm text-left text-sm transition-colors hover:text-gold hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${bold ? 'font-extrabold' : 'font-bold'}`}
       title="Show on the board"
     >
       {name}
@@ -490,7 +490,7 @@ function RowBtn({
       }}
       disabled={disabled}
       title={title}
-      className={`h-9 shrink-0 rounded-[10px] border px-3 text-[13px] font-extrabold tabular-nums transition-[translate,scale,background-color] duration-200 ease-spring hover:-translate-y-px active:scale-95 active:duration-75 disabled:pointer-events-none disabled:opacity-35 ${tone === 'teal' ? 'border-teal/45 bg-teal/8 text-teal hover:bg-teal/15' : 'border-accent/50 bg-accent/10 text-gold hover:bg-accent/20'}`}
+      className={`h-9 shrink-0 rounded-[10px] border px-3 text-[13px] font-extrabold tabular-nums ${FX_BRIGHT} disabled:pointer-events-none disabled:opacity-35 ${tone === 'teal' ? 'border-teal/45 bg-teal/8 text-teal enabled:hover:bg-teal/15' : 'border-accent/50 bg-accent/10 text-gold enabled:hover:bg-accent/20'}`}
     >
       {children}
     </button>
@@ -520,7 +520,7 @@ function GoldBtn({ label, onClick, disabled }: { label: string; onClick: () => v
           )
         onClick()
       }}
-      className="inline-flex h-11.5 min-w-0 flex-1 items-center justify-center gap-2 rounded-[14px] bg-accent px-3 font-display text-sm font-bold text-accent-ink shadow-[inset_0_-3px_0_rgba(0,0,0,0.18)] transition-[filter] hover:brightness-105 disabled:pointer-events-none disabled:opacity-40"
+      className="inline-flex h-11.5 min-w-0 flex-1 items-center justify-center gap-2 rounded-[14px] bg-accent px-3 font-display text-sm font-bold text-accent-ink shadow-[inset_0_-3px_0_rgba(0,0,0,0.18)] transition-[translate,filter] duration-200 ease-spring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent enabled:hover:-translate-y-px enabled:hover:brightness-[1.06] disabled:pointer-events-none disabled:opacity-40"
     >
       <BuildIcon color="#1c1205" />
       <span className="truncate">{label}</span>
