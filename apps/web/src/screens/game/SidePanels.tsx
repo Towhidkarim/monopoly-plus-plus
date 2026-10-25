@@ -4,10 +4,10 @@ import type { GameStore, Snapshot } from '../../game/store.ts'
 import { TIMINGS } from '../../game/timings.ts'
 import type { LogEntry } from '../../game/log.ts'
 import { cssHex, spaceInfo } from '../../spaceInfo.ts'
-import { activeRow } from './deed.ts'
+import { activeRow, familyOf } from './deed.ts'
 import { DiceTray } from './DiceTray.tsx'
 import { Icon } from './icons.tsx'
-import { TitleDeed } from './TitleDeed.tsx'
+import { DeedCard } from './TitleDeed.tsx'
 import { Btn, Eyebrow, Kbd, Panel, TokenAvatar } from './ui.tsx'
 import { fmtMoney } from './format.ts'
 
@@ -148,6 +148,13 @@ function SelectedSpace({
           ? `Mortgage +${fmtMoney(mortgageValue(index))}`
           : `Lift −${fmtMoney(unmortgageCost(s, index))}`
 
+  const seatInfo = ownerSeat >= 0 ? store.setup.seats[ownerSeat] : undefined
+  const deedOwner =
+    owner && seatInfo ? { name: owner.name, color: cssHex(seatInfo.color), piece: seatInfo.piece } : null
+  const heldInSet = ownerSeat >= 0 ? familyOf(index).filter((i) => p.owner[i] === ownerSeat).length : 0
+  // Houses for a property; for stations and utilities, the number owned minus one.
+  const deedLevel = sp.kind === 'property' ? p.houses[index]! : Math.max(0, heldInSet - 1)
+
   const close = (
     <button
       type="button"
@@ -174,7 +181,16 @@ function SelectedSpace({
   return (
     <div className="pointer-events-auto relative flex animate-rise flex-col gap-2">
       <div className="relative">
-        <TitleDeed index={index} active={activeRow(s, index)} className="w-72" />
+        <DeedCard
+          index={index}
+          active={activeRow(s, index)}
+          state={ownerSeat < 0 ? 'forSale' : p.mortgaged[index] ? 'mortgaged' : 'owned'}
+          owner={deedOwner}
+          level={deedLevel}
+          setOwned={heldInSet}
+          moment
+          dealFrom={{ x: -160, y: 60 }}
+        />
         {close}
       </div>
       <div className="rounded-[20px] border border-line bg-panel/95 px-4 py-3 text-sm shadow-panel">

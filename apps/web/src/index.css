@@ -194,3 +194,45 @@
     animation-iteration-count: 1 !important;
   }
 }
+
+/* Card motion (D32 Feel study). Transform and opacity only; the JS side skips these with reduced motion. */
+@keyframes card-deal {
+  0% {
+    transform: translate(var(--deal-x, -360px), var(--deal-y, 140px)) rotate(-28deg) scale(0.55);
+    opacity: 0;
+  }
+  55% {
+    transform: translate(14px, -10px) rotate(4deg) scale(1.04);
+    opacity: 1;
+  }
+  75% {
+    transform: translate(-4px, 2px) rotate(-1.5deg) scale(0.99);
+  }
+  100% {
+    transform: none;
+    opacity: 1;
+  }
+}
+@keyframes card-sway {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+@keyframes card-stamp {
+  0% {
+    transform: scale(2.6) rotate(calc(var(--rot, -9deg) - 7deg));
+    opacity: 0;
+  }
+  55% {
+    transform: scale(0.9) rotate(var(--rot, -9deg));
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(var(--rot, -9deg));
+    opacity: 1;
+  }
+}

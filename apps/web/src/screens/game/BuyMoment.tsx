@@ -1,7 +1,7 @@
 import { SPACES, type Action } from '@skyline/engine'
 import type { Snapshot } from '../../game/store.ts'
 import { setProgress } from './deed.ts'
-import { TitleDeed } from './TitleDeed.tsx'
+import { DeedCard } from './TitleDeed.tsx'
 import type { TurnView } from './turn.ts'
 import { Btn, Eyebrow, Kbd, Money, SetBar } from './ui.tsx'
 
@@ -19,9 +19,15 @@ export function BuyMoment({ snap, turn, onCity }: { snap: Snapshot; turn: TurnVi
   const act = (a: Action | undefined) => a && turn.act(a)
 
   return (
-    <div className="pointer-events-auto absolute inset-x-0 top-24 bottom-0 flex items-start justify-center bg-table/55 px-4 pt-8">
+    <div className="pointer-events-auto absolute inset-0 z-10 flex items-center justify-center bg-table/55 px-4 pt-20">
       <div className="flex animate-rise flex-wrap items-stretch justify-center gap-8">
-        <TitleDeed index={space} className="rotate-[-1.5deg]" />
+        <DeedCard
+          index={space}
+          state="forSale"
+          setOwned={set.mine - 1}
+          moment
+          dealFrom={{ x: -120, y: 80 }}
+        />
         <div className="flex w-90 flex-col justify-center gap-4">
           <div>
             <Eyebrow className="text-gold">For sale</Eyebrow>

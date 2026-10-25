@@ -5,6 +5,9 @@ import type { GameStore, Snapshot } from '../../game/store.ts'
 import { sound } from '../../audio/engine.ts'
 import { usePanelSound } from '../../audio/usePanelSound.ts'
 import { cssHex } from '../../spaceInfo.ts'
+import { CardArt } from './cardArt.tsx'
+import { DECK_STYLE, artOf, flavorOf, moneyOf, textParts } from './cardInfo.ts'
+import { CardStage } from './cardMotion.tsx'
 import { Icon } from './icons.tsx'
 import { SPEEDS, type SpeedChoice } from './format.ts'
 import { Btn, Eyebrow, Kbd, Money, Panel } from './ui.tsx'
@@ -13,48 +16,144 @@ import { Btn, Eyebrow, Kbd, Money, Panel } from './ui.tsx'
 export function CardPopup({ snap, store }: { snap: Snapshot; store: GameStore }) {
   const c = snap.card
   if (!c) return null
-  const card = (c.deck === 'chance' ? CHANCE_CARDS : CHEST_CARDS)[c.cardId]
-  const chance = c.deck === 'chance'
+  const cards = c.deck === 'chance' ? CHANCE_CARDS : CHEST_CARDS
+  const card = cards[c.cardId]
+  const deck = DECK_STYLE[c.deck]
+  const money = card ? moneyOf(card, snap.state.config.goSalary) : null
   return (
     <div
       className={`absolute inset-x-0 top-24 bottom-0 flex items-start justify-center px-4 pt-20 ${c.waiting ? 'pointer-events-auto bg-table/55' : 'pointer-events-none'}`}
     >
-      <div className="flex animate-pop flex-col items-center gap-5">
-        <div className="relative h-100 w-80">
+      <div className="flex flex-col items-center gap-[18px]">
+        <div className="relative h-[440px] w-[300px]">
+          {/* The deck behind the drawn card. */}
           <div
-            className={`absolute inset-0 translate-x-4 translate-y-2.5 rotate-6 rounded-[26px] opacity-55 ${chance ? 'bg-indigo-600' : 'bg-teal-600'}`}
+            aria-hidden="true"
+            className="absolute inset-[8px_-4px_-4px_8px] rotate-[2.5deg] rounded-[22px] border-2"
+            style={{ background: deck.back, borderColor: deck.backEdge }}
           />
-          <div className="absolute inset-0 flex -rotate-2 flex-col overflow-hidden rounded-[26px] bg-slate-50 text-table shadow-2xl shadow-black/60">
-            <div
-              className={`flex items-center gap-2.5 px-6 py-4 text-slate-50 ${chance ? 'bg-indigo' : 'bg-teal-600'}`}
+          <div
+            aria-hidden="true"
+            className="absolute inset-[16px_-10px_-10px_16px] rotate-5 rounded-[22px] shadow-[0_14px_30px_rgba(2,6,16,0.5)]"
+            style={{ background: deck.back }}
+          />
+          <CardStage
+            deal
+            radius={22}
+            dealFrom={{ x: 30, y: 90 }}
+            back={{ color: deck.back, edge: deck.backEdge }}
+            className="absolute inset-0"
+          >
+            <article
+              aria-label={`${deck.name} card`}
+              className="relative h-[440px] w-[300px] overflow-hidden rounded-[22px] bg-card font-card-body text-card-ink shadow-[0_30px_60px_rgba(2,6,16,0.65),0_3px_0_var(--color-card-edge)]"
             >
-              <Icon name={chance ? 'chance' : 'fund'} />
-              <span className="text-sm font-bold tracking-[0.14em] uppercase">
-                {chance ? 'Opportunity' : 'City Fund'}
+              <div
+                className="relative h-[100px]"
+                style={{
+                  background: deck.band,
+                  backgroundImage:
+                    'repeating-linear-gradient(135deg, rgba(255,255,255,0.09) 0 10px, rgba(255,255,255,0) 10px 20px)',
+                }}
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 16 16"
+                  aria-hidden="true"
+                  className="absolute top-4 left-4"
+                >
+                  <path d={deck.pip} fill="#fff" />
+                </svg>
+                <span className="absolute inset-x-0 top-[18px] text-center text-xs font-bold tracking-[0.22em] text-white uppercase">
+                  {deck.name}
+                </span>
+                <div
+                  className="absolute top-[46px] left-[105px] flex size-[90px] items-center justify-center rounded-full border-4 bg-card shadow-[0_6px_14px_rgba(20,16,8,0.25)]"
+                  style={{ borderColor: deck.band }}
+                >
+                  {card && <CardArt kind={artOf(card)} band={deck.band} tint={rgba(deck.band, 0.18)} />}
+                </div>
+              </div>
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-2 rounded-[15px] border-[1.5px]"
+                style={{ borderColor: deck.band }}
+              />
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-3 rounded-xl border"
+                style={{ borderColor: rgba(deck.band, 0.25) }}
+              />
+              <div className="flex flex-col items-center gap-3 px-7 pt-14 text-center">
+                <span
+                  className="font-card text-[13px] font-extrabold tracking-[0.12em] uppercase"
+                  style={{ color: deck.band }}
+                >
+                  {card ? flavorOf(card) : ''}
+                </span>
+                <p className="m-0 font-card text-[23px] leading-[1.22] font-extrabold">
+                  {card &&
+                    textParts(card.text).map((p, i) =>
+                      p.chip ? (
+                        <span
+                          key={i}
+                          className="rounded-md px-1.5"
+                          style={{ background: p.chip.bg, color: p.chip.ink }}
+                        >
+                          {p.text}
+                        </span>
+                      ) : (
+                        p.text
+                      ),
+                    )}
+                </p>
+                {money && (
+                  <span
+                    className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[15px] font-bold"
+                    style={{
+                      background: money.bad ? '#fbe9e7' : '#e9f3ec',
+                      color: money.bad ? '#9b1c1c' : '#14513b',
+                    }}
+                  >
+                    <span
+                      aria-hidden="true"
+                      className="flex size-[18px] items-center justify-center rounded-full bg-coin text-[10px] font-extrabold text-[#5a3a00] shadow-[inset_0_-2px_0_var(--color-coin-dark)]"
+                    >
+                      ₵
+                    </span>
+                    {money.text}
+                  </span>
+                )}
+              </div>
+              <span className="absolute inset-x-6 bottom-[22px] flex justify-between text-[11px] text-[#6b7385]">
+                <span>Drawn by {store.nameOf(c.playerId)}</span>
+                <span>
+                  {deck.name} · {String(c.cardId + 1).padStart(2, '0')} / {cards.length}
+                </span>
               </span>
-            </div>
-            <div className="flex flex-1 items-center justify-center px-7 text-center text-[26px] leading-snug font-bold">
-              {card?.text}
-            </div>
-            <div className="border-t border-slate-200 px-6 py-3 text-[13px] text-slate-500">
-              Drawn by {store.nameOf(c.playerId)}
-            </div>
-          </div>
+            </article>
+          </CardStage>
         </div>
         {c.waiting ? (
-          <button
-            type="button"
+          <Btn
+            kind="primary"
             onClick={() => store.ackCard()}
-            className="flex h-14 items-center gap-3 rounded-2xl bg-accent px-11 text-[17px] font-bold text-table shadow-lg shadow-accent/35 transition hover:brightness-110 active:scale-95"
+            className="h-[58px] rounded-[18px] px-[30px] text-lg"
           >
-            Continue <Kbd onAccent>SPACE</Kbd>
-          </button>
+            Continue <Kbd>Space</Kbd>
+          </Btn>
         ) : (
           <div className="text-xs text-ink-muted">Bot cards close by themselves.</div>
         )}
       </div>
     </div>
   )
+}
+
+const rgba = (hex: string, a: number) => {
+  const n = parseInt(hex.slice(1), 16)
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`
 }
 
 export function GameOver({ snap, store, onQuit }: { snap: Snapshot; store: GameStore; onQuit: () => void }) {

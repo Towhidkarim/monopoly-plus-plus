@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { SPACES, isOwnable, rentFor } from '@skyline/engine'
 import type { BoardHandle } from '@skyline/board'
 import { BoardCanvas } from '../BoardCanvas.tsx'
@@ -14,6 +14,7 @@ import { ActionDock } from './game/ActionDock.tsx'
 import { AuctionPanel } from './game/AuctionPanel.tsx'
 import { BuyMoment } from './game/BuyMoment.tsx'
 import { DebtPanel } from './game/DebtPanel.tsx'
+import { BoardHandleContext } from './game/cardEnv.tsx'
 import { CalloutLayer, FxLayer } from './game/Fx.tsx'
 import { Hud } from './game/Hud.tsx'
 import { MyCity } from './game/MyCity.tsx'
@@ -78,6 +79,10 @@ export function GameScreen({ store, onQuit }: { store: GameStore; onQuit: () => 
     handle.board.setNight(skyLevel(round, sky), !skyDone.current)
     skyDone.current = true
   }, [handle, round, sky])
+
+  // Cards read the board (lot portraits), the sky and reduced motion from here.
+  const night = skyLevel(round, sky) > 0.5
+  const cardEnv = useMemo(() => ({ handle, night, reducedMotion }), [handle, night, reducedMotion])
 
   const turn = turnView(snap, store)
   const viewer = snap.viewer
@@ -160,121 +165,123 @@ export function GameScreen({ store, onQuit }: { store: GameStore; onQuit: () => 
   }, [])
 
   return (
-    <div className="flex h-full">
-      <BoardCanvas
-        onReady={setHandle}
-        citySeed={cityOf(store.setup)}
-        renderTooltip={(i) => <GameTooltip index={i} snap={snap} />}
-      >
-        <div className="pointer-events-none absolute inset-0">
-          <Hud
-            snap={snap}
-            store={store}
-            speedLabel={speed === 'instant' ? 'Instant' : `${speed}×`}
-            onSpeed={() => changeSpeed(SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length]!)}
-            onHelp={() => setHelp(true)}
-            onMenu={() => setMenu((v) => !v)}
-          />
-          <TurnBanner snap={snap} store={store} turn={turn} />
-          <LeftColumn
-            snap={snap}
-            store={store}
-            selected={selected}
-            onCity={() => setCityOpen(true)}
-            onDeselect={() => select(null)}
-          />
-          {!cityOpen && (
-            <ActivityFeed
+    <BoardHandleContext.Provider value={cardEnv}>
+      <div className="flex h-full">
+        <BoardCanvas
+          onReady={setHandle}
+          citySeed={cityOf(store.setup)}
+          renderTooltip={(i) => <GameTooltip index={i} snap={snap} />}
+        >
+          <div className="pointer-events-none absolute inset-0">
+            <Hud
               snap={snap}
               store={store}
-              showLog={showLog}
-              onToggleLog={() => setShowLog((v) => !v)}
+              speedLabel={speed === 'instant' ? 'Instant' : `${speed}×`}
+              onSpeed={() => changeSpeed(SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length]!)}
+              onHelp={() => setHelp(true)}
+              onMenu={() => setMenu((v) => !v)}
             />
-          )}
-          <ActionDock
-            snap={snap}
-            store={store}
-            turn={turn}
-            cityBadge={cityBadge}
-            cityOpen={cityOpen}
-            onCity={toggleCity}
-            onTrade={openTrade}
-          />
-          <CalloutLayer store={store} />
-          <AuctionPanel snap={snap} store={store} turn={turn} />
-          <BuyMoment snap={snap} turn={turn} onCity={() => setCityOpen(true)} />
-          <DebtPanel snap={snap} store={store} turn={turn} />
-          <OfferPanel snap={snap} store={store} turn={turn} onCounter={setTrade} />
-          <CardPopup snap={snap} store={store} />
-          {cityOpen && viewer !== null && (
-            <MyCity
+            <TurnBanner snap={snap} store={store} turn={turn} />
+            <LeftColumn
               snap={snap}
               store={store}
-              seat={viewer}
-              onClose={() => setCityOpen(false)}
-              onFocus={(i) => select(i)}
+              selected={selected}
+              onCity={() => setCityOpen(true)}
+              onDeselect={() => select(null)}
             />
-          )}
-          {menu && (
-            <GameMenu
-              speed={speed}
-              fastBots={fastBots}
-              onSpeed={changeSpeed}
-              onFastBots={() => {
-                store.setSettings({ fastBots: !fastBots })
-                setFastBots(!fastBots)
-                persist()
-              }}
-              reducedMotion={reducedMotion}
-              onReducedMotion={() => {
-                // City life follows reduced motion until the player flips it themselves.
-                store.setSettings({ reducedMotion: !reducedMotion, cityLife: reducedMotion })
-                setReducedMotion(!reducedMotion)
-                setCityLife(reducedMotion)
-                persist()
-              }}
-              cityLife={cityLife}
-              onCityLife={() => {
-                store.setSettings({ cityLife: !cityLife })
-                setCityLife(!cityLife)
-                persist()
-              }}
-              sky={sky}
-              onSky={(v) => {
-                store.setSettings({ sky: v })
-                setSky(v)
-                persist()
-              }}
-              botOffers={botOffers}
-              onBotOffers={() => {
-                store.setSettings({ botOffers: !botOffers })
-                setBotOffers(!botOffers)
-                persist()
-              }}
-              onLog={() => {
-                setShowLog(true)
-                setCityOpen(false)
-                setMenu(false)
-              }}
-              onQuit={onQuit}
-              onClose={() => setMenu(false)}
-            />
-          )}
-          {trade && (
-            <TradeComposer
+            {!cityOpen && (
+              <ActivityFeed
+                snap={snap}
+                store={store}
+                showLog={showLog}
+                onToggleLog={() => setShowLog((v) => !v)}
+              />
+            )}
+            <ActionDock
               snap={snap}
               store={store}
-              me={trade.me}
-              draft={trade}
-              onClose={() => setTrade(null)}
+              turn={turn}
+              cityBadge={cityBadge}
+              cityOpen={cityOpen}
+              onCity={toggleCity}
+              onTrade={openTrade}
             />
-          )}
-          {help && <HelpOverlay onClose={() => setHelp(false)} />}
-        </div>
-        <GameOver snap={snap} store={store} onQuit={onQuit} />
-      </BoardCanvas>
-      <FxLayer store={store} />
-    </div>
+            <CalloutLayer store={store} />
+            <AuctionPanel snap={snap} store={store} turn={turn} />
+            <BuyMoment snap={snap} turn={turn} onCity={() => setCityOpen(true)} />
+            <DebtPanel snap={snap} store={store} turn={turn} />
+            <OfferPanel snap={snap} store={store} turn={turn} onCounter={setTrade} />
+            <CardPopup snap={snap} store={store} />
+            {cityOpen && viewer !== null && (
+              <MyCity
+                snap={snap}
+                store={store}
+                seat={viewer}
+                onClose={() => setCityOpen(false)}
+                onFocus={(i) => select(i)}
+              />
+            )}
+            {menu && (
+              <GameMenu
+                speed={speed}
+                fastBots={fastBots}
+                onSpeed={changeSpeed}
+                onFastBots={() => {
+                  store.setSettings({ fastBots: !fastBots })
+                  setFastBots(!fastBots)
+                  persist()
+                }}
+                reducedMotion={reducedMotion}
+                onReducedMotion={() => {
+                  // City life follows reduced motion until the player flips it themselves.
+                  store.setSettings({ reducedMotion: !reducedMotion, cityLife: reducedMotion })
+                  setReducedMotion(!reducedMotion)
+                  setCityLife(reducedMotion)
+                  persist()
+                }}
+                cityLife={cityLife}
+                onCityLife={() => {
+                  store.setSettings({ cityLife: !cityLife })
+                  setCityLife(!cityLife)
+                  persist()
+                }}
+                sky={sky}
+                onSky={(v) => {
+                  store.setSettings({ sky: v })
+                  setSky(v)
+                  persist()
+                }}
+                botOffers={botOffers}
+                onBotOffers={() => {
+                  store.setSettings({ botOffers: !botOffers })
+                  setBotOffers(!botOffers)
+                  persist()
+                }}
+                onLog={() => {
+                  setShowLog(true)
+                  setCityOpen(false)
+                  setMenu(false)
+                }}
+                onQuit={onQuit}
+                onClose={() => setMenu(false)}
+              />
+            )}
+            {trade && (
+              <TradeComposer
+                snap={snap}
+                store={store}
+                me={trade.me}
+                draft={trade}
+                onClose={() => setTrade(null)}
+              />
+            )}
+            {help && <HelpOverlay onClose={() => setHelp(false)} />}
+          </div>
+          <GameOver snap={snap} store={store} onQuit={onQuit} />
+        </BoardCanvas>
+        <FxLayer store={store} />
+      </div>
+    </BoardHandleContext.Provider>
   )
 }
 

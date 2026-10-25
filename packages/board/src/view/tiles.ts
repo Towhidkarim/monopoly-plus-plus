@@ -19,7 +19,7 @@ const LIFT_SELECT = 0.2
  * Architecture family per color group, cheap to expensive: houses on the first streets, glass on
  * the last. Fixed for now; the seeded city (DECISIONS.md D25) will vary it per game.
  */
-const GROUP_FAMILY: readonly Family[] = [
+export const GROUP_FAMILY: readonly Family[] = [
   'cottage',
   'cottage',
   'brick',
@@ -31,7 +31,7 @@ const GROUP_FAMILY: readonly Family[] = [
 ]
 
 /** The building plot: the part of a property tile behind the pieces' standing strip (ring.ts). */
-const lotOf = (fp: Footprint): Lot => ({ ...lotRect(fp), z: 0 })
+export const lotOf = (fp: Footprint): Lot => ({ ...lotRect(fp), z: 0 })
 
 /** How far a building fades while it would cover pieces on the neighboring tile. */
 const VEIL = 0.55
