@@ -236,3 +236,22 @@
     opacity: 1;
   }
 }
+
+/* Trade table: a coin dropping onto a stack (transform and opacity only). */
+@keyframes coin-drop {
+  0% {
+    transform: translateY(-22px);
+    opacity: 0;
+  }
+  55% {
+    transform: translateY(3px);
+    opacity: 1;
+  }
+  78% {
+    transform: translateY(-2px);
+  }
+  100% {
+    transform: none;
+    opacity: 1;
+  }
+}

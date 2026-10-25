@@ -1,15 +1,33 @@
-import { reduce } from '@skyline/engine'
+import { useEffect, useRef, useState } from 'react'
+import { reduce, type GameState, type TradeOffer } from '@skyline/engine'
 import { usePanelSound } from '../../audio/usePanelSound.ts'
-import type { GameStore, Snapshot } from '../../game/store.ts'
+import type { GameStore, Snapshot, TradeOutcome } from '../../game/store.ts'
 import { mortgageFee, reaction } from '../../game/trade.ts'
+import { cssHex } from '../../spaceInfo.ts'
+import { useReducedMotion } from './cardEnv.tsx'
+import { Icon } from './icons.tsx'
 import type { TradeDraft } from './TradeComposer.tsx'
-import { Avatar, BundleCards, DealNotes, SpeechBubble } from './TradeParts.tsx'
+import { BundleOnMat, DealNotes, Felt, Mat, ResultStamp, SpeechBubble } from './TradeParts.tsx'
+import { HAND_SCALE, flyDeal } from './tradeFx.ts'
 import type { TurnView } from './turn.ts'
-import { Btn, Eyebrow, Kbd, Panel } from './ui.tsx'
+import { Btn, Eyebrow, Kbd, Panel, TokenAvatar } from './ui.tsx'
+
+/** How long "Deal!" holds before the cards fly off. */
+const DEAL_HOLD_MS = 700
+const FADE_MS = 220
+
+/** An offer on screen, with the state it was shown against (the deal changes the live state). */
+interface Kept {
+  offer: TradeOffer
+  s0: GameState
+  done: boolean
+}
 
 /**
  * An offer waiting on a human, laid out like the trade table: who offers, what they say, what
- * you get and give, what it does to sets, and Accept, Decline or Counter. Play waits for it.
+ * you get and give on felt mats, what it does to sets, and Accept, Decline or Counter. Play
+ * waits for it. When it is answered the panel stays for the ending: "Deal!" and the cards flying
+ * to their new owners on Accept, a fade on Decline.
  */
 export function OfferPanel({
   snap,
@@ -22,97 +40,206 @@ export function OfferPanel({
   turn: TurnView
   onCounter: (draft: TradeDraft & { me: number }) => void
 }) {
-  const offer = turn.offer
-  if (turn.moment !== 'offer' || !offer) return null
-  return <OfferCard key={offer.id} snap={snap} store={store} offer={offer} onCounter={onCounter} />
+  const live = turn.moment === 'offer' ? turn.offer : null
+  const [kept, setKept] = useState<Kept | null>(null)
+  if (live && kept?.offer.id !== live.id) setKept({ offer: live, s0: snap.state, done: false })
+  const shown = live ?? (kept && !kept.done ? kept.offer : null)
+  // Gone without an answer of ours (busy, or withdrawn off screen): nothing to play out.
+  const outcome = shown && !live ? snap.tradeOutcomes[shown.id] : undefined
+  if (!shown || (!live && !outcome) || !kept) return null
+  return (
+    <OfferCard
+      key={shown.id}
+      store={store}
+      offer={shown}
+      s={live ? snap.state : kept.s0}
+      leaving={outcome}
+      onDone={() => setKept((k) => (k ? { ...k, done: true } : k))}
+      onCounter={onCounter}
+    />
+  )
 }
 
 function OfferCard({
-  snap,
   store,
   offer,
+  s,
+  leaving,
+  onDone,
   onCounter,
 }: {
-  snap: Snapshot
   store: GameStore
-  offer: NonNullable<TurnView['offer']>
+  offer: TradeOffer
+  s: GameState
+  leaving: TradeOutcome | undefined
+  onDone: () => void
   onCounter: (draft: TradeDraft & { me: number }) => void
 }) {
   usePanelSound()
-  const s = snap.state
+  const reduced = useReducedMotion()
+  const toId = s.players[offer.to]!.id
+  const fromId = s.players[offer.from]!.id
+  const seats = store.setup.seats
   const from = s.players[offer.from]!
   const to = s.players[offer.to]!
   const bot = store.seatKind(from.id) === 'bot'
-  const solo = store.setup.seats.filter((x) => x.kind === 'human').length === 1
+  const solo = seats.filter((x) => x.kind === 'human').length === 1
   const answer = (type: 'ACCEPT_TRADE' | 'REJECT_TRADE') => store.dispatch(to.id, { type, tradeId: offer.id })
-  const canAccept = reduce(s, to.id, { type: 'ACCEPT_TRADE', tradeId: offer.id }).ok
+  const canAccept = leaving !== undefined || reduce(s, to.id, { type: 'ACCEPT_TRADE', tradeId: offer.id }).ok
 
+  const rootRef = useRef<HTMLDivElement>(null)
+  /** Cards and coins on the mats: `in:` keys are what you receive, `out:` keys what you hand over. */
+  const pieces = useRef(new Map<string, HTMLElement>())
+  const reg = (side: 'in' | 'out') => (key: string, el: HTMLElement | null) => {
+    if (el) pieces.current.set(`${side}:${key}`, el)
+    else pieces.current.delete(`${side}:${key}`)
+  }
+  const doneRef = useRef(onDone)
+  useEffect(() => {
+    doneRef.current = onDone
+  })
+
+  // The ending. Every path reaches `done`, even if no animation frame ever runs.
+  useEffect(() => {
+    if (!leaving) return
+    const root = rootRef.current
+    let cancelFly = () => {}
+    let cancelFade = () => {}
+    const fadeOut = () => {
+      let finished = false
+      const end = () => {
+        if (finished) return
+        finished = true
+        if (root) root.style.opacity = '0'
+        doneRef.current()
+      }
+      const a = root?.animate([{ opacity: 1 }, { opacity: 0 }], { duration: FADE_MS, easing: 'ease-out' })
+      if (a) a.onfinish = end
+      const t = window.setTimeout(end, FADE_MS + 120)
+      cancelFade = () => {
+        finished = true
+        window.clearTimeout(t)
+        a?.cancel()
+      }
+    }
+    if (leaving !== 'accepted') {
+      fadeOut()
+      return cancelFade
+    }
+    const t = window.setTimeout(
+      () => {
+        const list = [...pieces.current].map(([key, el]) => ({
+          el,
+          to: key.startsWith('in') ? toId : fromId,
+        }))
+        cancelFly = flyDeal(list, reduced, fadeOut)
+      },
+      reduced ? 400 : DEAL_HOLD_MS,
+    )
+    return () => {
+      window.clearTimeout(t)
+      cancelFly()
+      cancelFade()
+    }
+  }, [leaving, reduced, toId, fromId, pieces, rootRef, doneRef])
+
+  const sender = seats[offer.from]!
   return (
-    <div className="pointer-events-auto absolute inset-x-0 top-24 bottom-0 flex items-start justify-center bg-table/60 px-4 pt-8">
-      <Panel className="flex w-200 max-w-full animate-rise flex-col overflow-hidden">
-        <header className="flex flex-wrap items-start gap-4 border-b border-line px-5 py-4">
-          <Avatar name={from.name} color={store.setup.seats[offer.from]!.color} size="size-11" />
+    <section
+      ref={rootRef}
+      aria-label={`Trade offer from ${from.name}`}
+      className="pointer-events-auto absolute inset-x-0 top-24 bottom-0 flex items-center justify-center bg-table/60 p-3"
+    >
+      <Panel className="relative flex max-h-full w-140 max-w-full animate-rise flex-col overflow-hidden rounded-3xl!">
+        {leaving && <ResultStamp outcome={leaving} size={48} />}
+        <div className="flex items-start gap-3.5 px-5.5 pt-5 pb-3.5">
+          <TokenAvatar color={cssHex(sender.color)} piece={sender.piece} size={46} />
           <div className="flex min-w-0 flex-1 flex-col gap-2">
-            <div>
-              <Eyebrow className="text-gold">Trade offer</Eyebrow>
-              <div className="text-xl font-bold">
-                {from.name} offers {solo ? 'you' : to.name} a deal
-              </div>
+            <Eyebrow className="text-accent">Trade offer</Eyebrow>
+            <div className="font-display text-[22px] leading-tight font-bold">
+              {from.name} offers {solo ? 'you' : to.name} a deal
             </div>
             {bot && (
               <div className="self-start">
-                <SpeechBubble text={reaction(store.botName(offer.from), 'offer', offer.id)} mood="empty" />
+                <SpeechBubble
+                  text={reaction(
+                    store.botName(offer.from),
+                    leaving === 'accepted' ? 'accepted' : 'offer',
+                    offer.id,
+                  )}
+                  mood="empty"
+                  tail="top"
+                />
               </div>
             )}
           </div>
-        </header>
-        <div className="grid grid-cols-1 gap-3 bg-table/60 px-4 py-4 sm:grid-cols-2">
-          <section className="flex flex-col gap-2.5 rounded-2xl border border-line bg-panel px-3.5 py-3">
-            <span className="text-sm font-bold text-teal">{solo ? 'You get' : `${to.name} gets`}</span>
-            <BundleCards s={s} bundle={offer.give} />
-          </section>
-          <section className="flex flex-col gap-2.5 rounded-2xl border border-line bg-panel px-3.5 py-3">
-            <span className="text-sm font-bold text-alert">{solo ? 'You give' : `${to.name} gives`}</span>
-            <BundleCards s={s} bundle={offer.get} />
-          </section>
         </div>
-        <footer className="flex flex-col gap-3 border-t border-line px-5 py-4">
-          <DealNotes
-            s={s}
-            me={offer.to}
-            them={offer.from}
-            themName={from.name}
-            give={offer.get}
-            get={offer.give}
-            fee={mortgageFee(s, offer.give.spaces)}
-          />
-          <div className="flex flex-wrap items-center justify-end gap-2">
+
+        <div className="min-h-0 overflow-y-auto">
+          <Felt className="mx-4.5 rounded-[18px]! p-3.5">
+            <div className="grid grid-cols-1 gap-3 min-[560px]:grid-cols-2">
+              <Mat tone="get" label={solo ? 'You get' : `${to.name} gets`}>
+                <BundleOnMat s={s} seats={seats} bundle={offer.give} k={HAND_SCALE} reg={reg('in')} />
+              </Mat>
+              <Mat tone="give" label={solo ? 'You give' : `${to.name} gives`}>
+                <BundleOnMat s={s} seats={seats} bundle={offer.get} k={HAND_SCALE} reg={reg('out')} />
+              </Mat>
+            </div>
+          </Felt>
+
+          <div className="mx-4.5 mt-3 flex flex-col gap-2">
+            <DealNotes
+              s={s}
+              me={offer.to}
+              them={offer.from}
+              themName={from.name}
+              give={offer.get}
+              get={offer.give}
+              fee={mortgageFee(s, offer.give.spaces)}
+            />
             {!canAccept && (
-              <span className="mr-auto text-sm text-alert">Not enough cash to accept this.</span>
+              <span className="flex items-center gap-1.5 text-sm font-bold text-alert">
+                <Icon name="alert" size={16} /> Not enough cash to accept this.
+              </span>
             )}
-            <Btn
-              kind="ghost"
-              onClick={() =>
-                onCounter({
-                  me: offer.to,
-                  partner: offer.from,
-                  give: { ...offer.get, spaces: [...offer.get.spaces] },
-                  get: { ...offer.give, spaces: [...offer.give.spaces] },
-                  replaces: offer.id,
-                })
-              }
-            >
-              Counter
-            </Btn>
-            <Btn kind="secondary" onClick={() => answer('REJECT_TRADE')}>
-              Decline <Kbd>N</Kbd>
-            </Btn>
-            <Btn kind="primary" onClick={() => answer('ACCEPT_TRADE')} disabled={!canAccept}>
-              Accept <Kbd onAccent>Y</Kbd>
-            </Btn>
           </div>
-        </footer>
+        </div>
+
+        <div className="flex items-center justify-end gap-2.5 px-4.5 pt-4 pb-5">
+          <Btn
+            kind="ghost"
+            disabled={leaving !== undefined}
+            className="h-[50px]! rounded-[14px]! text-ink! underline decoration-ink/50 underline-offset-4"
+            onClick={() =>
+              onCounter({
+                me: offer.to,
+                partner: offer.from,
+                give: { ...offer.get, spaces: [...offer.get.spaces] },
+                get: { ...offer.give, spaces: [...offer.give.spaces] },
+                replaces: offer.id,
+              })
+            }
+          >
+            Counter
+          </Btn>
+          <Btn
+            kind="secondary"
+            disabled={leaving !== undefined}
+            className="h-[50px]! rounded-[14px]! px-[18px]! text-[15px]!"
+            onClick={() => answer('REJECT_TRADE')}
+          >
+            Decline <Kbd>N</Kbd>
+          </Btn>
+          <Btn
+            kind="primary"
+            disabled={!canAccept || leaving !== undefined}
+            className="h-[50px]! rounded-[14px]! px-[22px]! text-base!"
+            onClick={() => answer('ACCEPT_TRADE')}
+          >
+            Accept <Kbd onAccent>Y</Kbd>
+          </Btn>
+        </div>
       </Panel>
-    </div>
+    </section>
   )
 }

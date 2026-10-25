@@ -176,3 +176,36 @@ export function HousePips({ level }: { level: number }) {
     </span>
   )
 }
+
+/** A tiny deed card: cream stock with the set's color band (dashed outline when someone else holds it). */
+export function DeedSwatch({
+  color,
+  small = false,
+  dashed = false,
+  gray = false,
+}: {
+  color: string
+  small?: boolean
+  dashed?: boolean
+  /** Mortgaged: desaturated. */
+  gray?: boolean
+}) {
+  const size = small ? 'h-8 w-6' : 'h-9 w-7'
+  if (dashed) {
+    return (
+      <span
+        aria-hidden="true"
+        className={`${size} shrink-0 rounded border-[1.5px] border-dashed`}
+        style={{ borderColor: `${color}99` }}
+      />
+    )
+  }
+  return (
+    <span
+      aria-hidden="true"
+      className={`${size} shrink-0 overflow-hidden rounded bg-card shadow-[0_2px_6px_rgba(0,0,0,0.3)] ${gray ? 'saturate-[0.35]' : ''}`}
+    >
+      <span className={`block ${small ? 'h-2.5' : 'h-[11px]'}`} style={{ background: color }} />
+    </span>
+  )
+}

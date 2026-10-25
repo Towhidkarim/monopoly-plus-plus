@@ -195,6 +195,19 @@ export function DeedCard({
   const lastLevel = useRef(houses)
   useEffect(() => {
     if (lastLevel.current !== houses && !reduced) {
+      // A new house drops into its slot with a pop (compact cards show the slot row).
+      cardRef.current?.querySelectorAll<SVGElement>('[data-slot]').forEach((el) => {
+        const k = Number(el.dataset.slot)
+        if (k >= lastLevel.current && k < houses)
+          el.animate(
+            [
+              { transform: 'translateY(-9px) scale(1.9)', opacity: 0 },
+              { transform: 'translateY(1px) scale(0.9)', opacity: 1, offset: 0.6 },
+              { transform: 'none', opacity: 1 },
+            ],
+            { duration: 380, easing: 'cubic-bezier(0.2, 0.9, 0.3, 1.2)' },
+          )
+      })
       cardRef.current?.animate(
         [
           { transform: 'none' },
@@ -271,7 +284,7 @@ export function DeedCard({
           </span>
           <span className="flex items-center gap-0.5" aria-hidden="true">
             {slots.map((k) => (
-              <svg key={k} width="11" height="10" viewBox="0 0 13 12">
+              <svg key={k} data-slot={k} width="11" height="10" viewBox="0 0 13 12">
                 <path
                   d={HOUSE}
                   fill={k < houses && !mortgaged && st === 'owned' ? color : 'transparent'}

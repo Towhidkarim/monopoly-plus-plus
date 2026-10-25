@@ -1,137 +1,468 @@
-import { useState } from 'react'
-import { HOTEL, SPACES, rentFor, type Action } from '@skyline/engine'
+import { useEffect, useState, type ReactNode } from 'react'
+import { HOTEL, SPACES, rentFor, type Action, type CashReason, type GameState } from '@skyline/engine'
 import { liquidationValue, raisePlan, raiseValue } from '@skyline/bots'
+import { sound } from '../../audio/engine.ts'
 import type { GameStore, Snapshot } from '../../game/store.ts'
+import { cssHex } from '../../spaceInfo.ts'
+import { useReducedMotion } from './cardEnv.tsx'
+import { Stamp } from './cardMotion.tsx'
 import { familyColor, familyName } from './deed.ts'
-import type { TurnView } from './turn.ts'
-import { Btn, Eyebrow, Panel } from './ui.tsx'
 import { fmtMoney } from './format.ts'
+import type { TurnView } from './turn.ts'
+import { Btn, DeedSwatch, Eyebrow, Kbd, TokenAvatar } from './ui.tsx'
+import type { PieceKind } from '@skyline/board'
 
 type Raise = Extract<Action, { type: 'SELL_BUILDING' | 'MORTGAGE' }>
 
-const REASON: Record<string, string> = { rent: 'rent', tax: 'tax', card: 'for a card', jailFine: 'the fine' }
+const REASON: Partial<Record<CashReason, string>> = {
+  rent: 'rent',
+  tax: 'tax',
+  card: 'for a card',
+  jailFine: 'the fine',
+}
+const BILL_TITLE: Partial<Record<CashReason, string>> = {
+  rent: 'Rent due',
+  tax: 'Tax due',
+  card: 'Card',
+  jailFine: 'Fine',
+}
 
-/** Owes more than they have: the gap, everything that can be sold or mortgaged, and one-click fixes. */
-export function DebtPanel({ snap, store, turn }: { snap: Snapshot; store: GameStore; turn: TurnView }) {
-  const [confirm, setConfirm] = useState(false)
+/** The bill sits on screen this long with its PAID or BANKRUPT stamp, then slides away. */
+const STAMP_HOLD = { paid: 1000, bankrupt: 1400 }
+const SLIDE_MS = 380
+
+/** Everything the bill and the options need, frozen so the bill can still show after the debt is gone. */
+interface DebtView {
+  seat: number
+  owed: number
+  cash: number
+  liquid: number
+  need: number
+  enough: boolean
+  reason: CashReason
+  round: number
+  creditor: { name: string; color: string; piece: PieceKind } | null
+  lines: { label: string; amount: number }[]
+  options: { a: Raise; title: string; detail: string }[]
+  recommended: Action[]
+  planAmount: number
+  planActions: Action[]
+}
+
+type Outcome = 'paid' | 'bankrupt'
+
+function houseWords(level: number): string {
+  if (level >= HOTEL) return ' · hotel'
+  return level > 0 ? ` · ${level} ${level === 1 ? 'house' : 'houses'}` : ''
+}
+
+function lineLabel(s: GameState, seat: number, reason: CashReason): string {
+  const pos = s.players[seat]!.position
+  const name = SPACES[pos]!.name
+  if (reason === 'rent') return `${name}${SPACES[pos]!.kind === 'property' ? houseWords(s.houses[pos]!) : ''}`
+  if (reason === 'tax') return name
+  if (reason === 'card') return 'Card'
+  if (reason === 'jailFine') return 'Lockup fine'
+  return 'Payment'
+}
+
+function buildView(snap: Snapshot, store: GameStore, turn: TurnView): DebtView {
   const s = snap.state
-  if (turn.moment !== 'debt') return null
   const seat = turn.actorSeat
   const me = s.players[seat]!
   const mine = s.debts.filter((d) => d.debtor === seat)
   const owed = mine.reduce((t, d) => t + d.amount, 0)
   const first = mine[0]!
-  const creditor = first.creditor >= 0 ? s.players[first.creditor]!.name : 'the bank'
+  const seatInfo = first.creditor >= 0 ? store.setup.seats[first.creditor] : undefined
   const need = owed - me.cash
   const liquid = liquidationValue(s, me.id)
   const enough = liquid >= need
   const plan = raisePlan(s, me.id, enough ? need : Infinity)
-  const options = turn.legal.filter((a): a is Raise => a.type === 'SELL_BUILDING' || a.type === 'MORTGAGE')
-  const pct = (v: number) => `${Math.max(0, Math.min(100, (v / owed) * 100))}%`
+  return {
+    seat,
+    owed,
+    cash: me.cash,
+    liquid,
+    need,
+    enough,
+    reason: first.reason,
+    round: s.round,
+    creditor: seatInfo
+      ? { name: s.players[first.creditor]!.name, color: cssHex(seatInfo.color), piece: seatInfo.piece }
+      : null,
+    lines: mine.map((d) => ({ label: lineLabel(s, seat, d.reason), amount: d.amount })),
+    options: turn.legal
+      .filter((a): a is Raise => a.type === 'SELL_BUILDING' || a.type === 'MORTGAGE')
+      .map((a) => ({ a, title: optionTitle(s, a), detail: detail(s, a) })),
+    recommended: plan.actions,
+    planAmount: plan.amount,
+    planActions: plan.actions,
+  }
+}
+
+/**
+ * Owes more than they have: a printed bill on card stock beside the options (everything that can
+ * be sold or mortgaged, one click each), a cash / assets / owed bar, an automatic fix, a trade and
+ * a bankruptcy exit. When the debt clears the bill is stamped PAID (or BANKRUPT), slides away and
+ * the coins fly to the creditor (the store's transfer effect).
+ */
+export function DebtPanel({
+  snap,
+  store,
+  turn,
+  onTrade,
+}: {
+  snap: Snapshot
+  store: GameStore
+  turn: TurnView
+  onTrade: (() => void) | null
+}) {
+  const s = snap.state
+  // Stay open while an action animates (turn.moment goes null then), until the debt is really gone.
+  const owing = turn.human && s.debts[0]?.debtor === turn.actorSeat
+  const view = owing ? buildView(snap, store, turn) : null
+  // The last live view is kept so the bill can still show once the debt is gone. Adjusting state
+  // while rendering (keyed on the view's content) avoids an effect and a ref read in render.
+  const [last, setLast] = useState<DebtView | null>(null)
+  const key = view ? JSON.stringify(view) : null
+  const [seen, setSeen] = useState<string | null>(null)
+  if (key !== seen) {
+    setSeen(key)
+    if (view) setLast(view)
+  }
+  const [out, setOut] = useState(false)
+  const reduced = useReducedMotion()
+
+  // The debt is gone: the bill shows its stamp, slides away, then unmounts. Timers set the final
+  // state, so it ends right even when no animation frame runs (hidden tab).
+  const gone = view === null && last !== null
+  const bankrupt = gone && s.players[last.seat]!.bankrupt
+  useEffect(() => {
+    if (!gone) return
+    const hold = STAMP_HOLD[bankrupt ? 'bankrupt' : 'paid']
+    const t1 = window.setTimeout(() => setOut(true), hold)
+    const t2 = window.setTimeout(
+      () => {
+        setLast(null)
+        setOut(false)
+      },
+      hold + SLIDE_MS + 60,
+    )
+    return () => {
+      clearTimeout(t1)
+      clearTimeout(t2)
+    }
+  }, [gone, bankrupt])
+
+  const shown = view ?? last
+  if (!shown) return null
+  const live = view !== null && turn.moment === 'debt' && turn.canAct
+  return (
+    <Sheet
+      v={shown}
+      live={live}
+      leave={gone ? { outcome: bankrupt ? 'bankrupt' : 'paid', out } : null}
+      reduced={reduced}
+      store={store}
+      turn={turn}
+      onTrade={onTrade}
+    />
+  )
+}
+
+function Sheet({
+  v,
+  live,
+  leave,
+  reduced,
+  store,
+  turn,
+  onTrade,
+}: {
+  v: DebtView
+  live: boolean
+  leave: { outcome: Outcome; out: boolean } | null
+  reduced: boolean
+  store: GameStore
+  turn: TurnView
+  onTrade: (() => void) | null
+}) {
+  const [confirm, setConfirm] = useState(false)
+  const creditorName = v.creditor?.name ?? 'the bank'
+  const total = Math.max(v.owed, v.cash + v.liquid)
+  const pct = (x: number) => `${Math.max(0, Math.min(100, (x / total) * 100))}%`
+  const out = leave?.out ?? false
+  const id = store.setup.seats[v.seat]!.id
 
   return (
-    <div className="pointer-events-auto absolute inset-x-0 top-24 bottom-0 flex items-start justify-center bg-table/55 px-4 pt-8">
-      <Panel className="w-150 max-w-full animate-rise overflow-hidden border-alert/50">
-        <div className="flex flex-col gap-3.5 px-6 pt-5 pb-4">
-          <Eyebrow className="text-alert">
-            You owe {creditor} {fmtMoney(owed)} {REASON[first.reason] ?? ''}
-          </Eyebrow>
-          <div className="text-[34px] leading-tight font-bold">Raise {fmtMoney(need)} to pay</div>
-          <div className="flex flex-col gap-1.5">
-            <div className="flex h-3 overflow-hidden rounded-full bg-line">
-              <div className="bg-accent" style={{ width: pct(me.cash) }} />
-              <div
-                className="bg-[repeating-linear-gradient(45deg,#22d3ee73_0_6px,#22d3ee33_6px_12px)]"
-                style={{ width: pct(Math.min(liquid, owed - me.cash)) }}
-              />
-            </div>
-            <div className="flex justify-between text-[13px] text-ink-muted tabular-nums">
-              <span>Cash {fmtMoney(me.cash)}</span>
-              <span>Everything below: +{fmtMoney(liquid)}</span>
-              <span>Owed {fmtMoney(owed)}</span>
-            </div>
-          </div>
-        </div>
+    <div
+      aria-label={`Raise money to pay ${creditorName}`}
+      className={`absolute inset-x-0 top-24 bottom-0 overflow-y-auto bg-table/55 px-4 pt-8 pb-6 ${leave ? 'pointer-events-none' : 'pointer-events-auto'} ${reduced ? '' : 'transition-opacity duration-300 ease-out'} ${out ? 'opacity-0' : ''}`}
+    >
+      <div
+        className={`mx-auto flex w-fit max-w-full items-start gap-9 ${reduced ? '' : 'transition-[translate] duration-400 ease-in'} ${out ? '-translate-y-10' : ''}`}
+      >
+        <Bill v={v} creditorName={creditorName} outcome={leave?.outcome ?? null} reduced={reduced} />
 
-        <div className="max-h-64 overflow-y-auto border-t border-line">
-          {options.map((a) => (
-            <div
-              key={`${a.type}${a.space}`}
-              className="flex items-center gap-3 border-b border-line px-6 py-2.5"
-            >
-              <span className="size-3 shrink-0 rounded-[3px]" style={{ background: familyColor(a.space) }} />
-              <div className="flex min-w-0 flex-1 flex-col">
-                <span className="truncate text-[15px] font-semibold">
-                  {a.type === 'MORTGAGE' ? 'Mortgage' : 'Sell a house on'} {SPACES[a.space]!.name}
-                </span>
-                <span className="text-xs text-ink-muted">{detail(snap, a)}</span>
+        <section
+          className={`flex w-140 max-w-full shrink-0 animate-rise flex-col overflow-hidden rounded-3xl border border-alert/40 bg-panel shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_0_4px_rgba(251,113,133,0.08),0_28px_60px_rgba(2,6,16,0.65)] ${leave && !reduced ? 'transition-opacity duration-300' : ''} ${leave ? 'opacity-60' : ''}`}
+        >
+          <div className="flex flex-col gap-3.5 px-6 pt-5.5 pb-4">
+            <Eyebrow className="text-[12px] tracking-[0.14em] text-rose-300">
+              You owe {creditorName} {fmtMoney(v.owed)} {REASON[v.reason] ?? ''}
+            </Eyebrow>
+            <h2 className="font-display text-[32px] leading-tight font-bold">
+              Raise {fmtMoney(Math.max(0, v.need))} to pay
+            </h2>
+            <div className="flex flex-col gap-1.5">
+              <div aria-hidden="true" className="relative h-4 overflow-hidden rounded-lg bg-white/6">
+                <span className="absolute inset-y-0 left-0 bg-accent" style={{ width: pct(v.cash) }} />
+                <span
+                  className="absolute inset-y-0 bg-[repeating-linear-gradient(135deg,rgba(94,234,212,0.55)_0_6px,rgba(94,234,212,0.2)_6px_12px]"
+                  style={{ left: pct(v.cash), width: pct(Math.min(v.liquid, total - v.cash)) }}
+                />
+                <span
+                  className="absolute -top-0.5 -bottom-0.5 w-[3px] bg-card shadow-[0_0_8px_rgba(255,255,255,0.7)]"
+                  style={{ left: `calc(${pct(v.owed)} - 3px)` }}
+                />
               </div>
-              <Btn onClick={() => turn.act(a)} className="h-10 text-teal tabular-nums">
-                +{fmtMoney(raiseValue(a))}
-              </Btn>
+              <div className="flex justify-between text-xs text-ink-muted tabular-nums">
+                <strong className="font-bold text-gold">Cash {fmtMoney(v.cash)}</strong>
+                <span>Owed {fmtMoney(v.owed)} │</span>
+                <span>
+                  Everything below <strong className="font-bold text-teal">+{fmtMoney(v.liquid)}</strong>
+                </span>
+              </div>
             </div>
-          ))}
-          {options.length === 0 && (
-            <div className="px-6 py-3 text-sm text-ink-muted">Nothing left to sell or mortgage.</div>
-          )}
-        </div>
-
-        <div className="flex flex-col gap-3.5 px-6 pt-4 pb-5">
-          {!enough && (
-            <div className="rounded-xl border border-alert/30 bg-alert/10 px-3.5 py-3 text-[13px] leading-relaxed">
-              Even selling and mortgaging everything leaves you {fmtMoney(need - liquid)} short. A trade could
-              still save you, once trading opens.
-            </div>
-          )}
-          <div className="flex flex-wrap items-center gap-2.5">
-            {plan.actions.length > 0 && (
-              <Btn
-                kind={enough ? 'primary' : 'secondary'}
-                onClick={() => store.run(me.id, plan.actions)}
-                className="h-13 rounded-2xl px-5 text-base"
-                title={
-                  enough
-                    ? 'Mortgages lone properties first, then sells houses where rent drops least'
-                    : undefined
-                }
-              >
-                {enough
-                  ? `Raise ${fmtMoney(need)} automatically`
-                  : `Raise everything (+${fmtMoney(plan.amount)})`}
-              </Btn>
-            )}
-            <Btn
-              disabled
-              title="Trading arrives with the trade screen (Milestone 8)"
-              className="h-13 rounded-2xl"
-            >
-              Offer a trade
-            </Btn>
-            <span className="ml-auto flex gap-1.5">
-              {confirm ? (
-                <>
-                  <Btn kind="danger" onClick={() => turn.act({ type: 'DECLARE_BANKRUPTCY' })}>
-                    Yes, go bankrupt
-                  </Btn>
-                  <Btn kind="ghost" onClick={() => setConfirm(false)}>
-                    Keep playing
-                  </Btn>
-                </>
-              ) : (
-                <Btn kind="ghost" onClick={() => setConfirm(true)}>
-                  Declare bankruptcy
-                </Btn>
-              )}
-            </span>
           </div>
-        </div>
-      </Panel>
+
+          <div className="flex max-h-[min(17rem,calc(100vh-30rem))] min-h-14 flex-col gap-0.5 overflow-y-auto px-3">
+            {v.options.map(({ a, title, detail: note }) => {
+              const picked = v.recommended.some(
+                (r) => r.type === a.type && 'space' in r && r.space === a.space,
+              )
+              return (
+                <div
+                  key={`${a.type}${a.space}`}
+                  className={`flex shrink-0 items-center gap-3 rounded-[14px] px-3 py-2.5 ${picked && v.enough ? 'bg-teal/6' : ''}`}
+                >
+                  <DeedSwatch color={familyColor(a.space)} />
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    <span className="truncate text-sm font-extrabold">{title}</span>
+                    <span className="text-xs text-ink-muted">{note}</span>
+                  </div>
+                  <TealBtn disabled={!live} onClick={() => turn.act(a)}>
+                    +{fmtMoney(raiseValue(a))}
+                  </TealBtn>
+                </div>
+              )
+            })}
+            {v.options.length === 0 && (
+              <div className="px-3 py-3 text-sm text-ink-muted">Nothing left to sell or mortgage.</div>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-3 px-6 pt-4 pb-5.5">
+            {!v.enough && (
+              <div className="rounded-xl border border-alert/30 bg-alert/10 px-3.5 py-3 text-[13px] leading-relaxed">
+                Even selling and mortgaging everything leaves you {fmtMoney(v.need - v.liquid)} short. A trade
+                could still save you.
+              </div>
+            )}
+            {confirm ? (
+              <div className="flex flex-wrap items-center gap-2.5">
+                <span className="mr-auto text-sm text-ink-muted">
+                  Everything you own goes to {creditorName}. Sure?
+                </span>
+                <Btn
+                  kind="danger"
+                  disabled={!live}
+                  onClick={() => turn.act({ type: 'DECLARE_BANKRUPTCY' })}
+                  className="h-12 rounded-2xl"
+                >
+                  Yes, go bankrupt
+                </Btn>
+                <Btn kind="ghost" onClick={() => setConfirm(false)} className="h-12 rounded-2xl">
+                  Keep playing
+                </Btn>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2.5">
+                {v.planActions.length > 0 && (
+                  <Btn
+                    kind={v.enough ? 'primary' : 'secondary'}
+                    disabled={!live}
+                    onClick={() => store.run(id, v.planActions)}
+                    className="h-14 min-w-0 flex-1 rounded-2xl px-5 text-base"
+                    title={
+                      v.enough
+                        ? 'Mortgages lone properties first, then sells houses where rent drops least'
+                        : undefined
+                    }
+                  >
+                    {v.enough
+                      ? `Raise ${fmtMoney(v.need)} automatically`
+                      : `Raise everything (+${fmtMoney(v.planAmount)})`}
+                  </Btn>
+                )}
+                <Btn
+                  disabled={!live || !onTrade}
+                  onClick={() => onTrade?.()}
+                  className="h-14 rounded-2xl px-4.5 text-[15px]"
+                >
+                  Offer a trade <Kbd>T</Kbd>
+                </Btn>
+                <button
+                  type="button"
+                  disabled={!live}
+                  onClick={() => setConfirm(true)}
+                  className="h-14 rounded-2xl px-3.5 text-sm font-extrabold text-rose-300 underline underline-offset-4 transition hover:text-rose-200 disabled:opacity-40"
+                >
+                  Go bankrupt
+                </button>
+              </div>
+            )}
+          </div>
+        </section>
+      </div>
     </div>
   )
 }
 
-function detail(snap: Snapshot, a: Raise): string {
-  const s = snap.state
+/** The printed bill: perforated top edge, who to pay, line items, what is still short, a stamp. */
+function Bill({
+  v,
+  creditorName,
+  outcome,
+  reduced,
+}: {
+  v: DebtView
+  creditorName: string
+  outcome: Outcome | null
+  reduced: boolean
+}) {
+  const short = Math.max(0, v.need)
+  return (
+    <article
+      aria-label="Bill"
+      className={`relative mt-7.5 w-72.5 shrink-0 -rotate-3 rounded-t-md rounded-b-2xl bg-card font-card-body text-card-ink shadow-[0_24px_50px_rgba(2,6,16,0.6)] ${reduced ? '' : 'animate-banner'}`}
+    >
+      <div
+        aria-hidden="true"
+        className="h-3.5 bg-repeat-x"
+        style={{
+          backgroundImage: 'radial-gradient(circle at 7px 0, #0b1426 5px, rgba(0,0,0,0) 5.5px)',
+          backgroundSize: '14px 14px',
+        }}
+      />
+      <div className="flex flex-col gap-3.5 px-6 pt-2.5 pb-6">
+        <span className="flex items-center justify-between">
+          <span className="font-card text-[13px] font-extrabold tracking-[0.2em] text-card-muted uppercase">
+            {BILL_TITLE[v.reason] ?? 'Bill'}
+          </span>
+          <span className="text-[11px] text-[#7a8293]">Round {v.round}</span>
+        </span>
+        <span className="flex items-center gap-2.5">
+          {v.creditor ? (
+            <TokenAvatar color={v.creditor.color} piece={v.creditor.piece} size={40} />
+          ) : (
+            <span
+              aria-hidden="true"
+              className="flex size-10 items-center justify-center rounded-full bg-coin font-display text-lg font-bold text-[#5a3a00] shadow-[inset_0_-3px_0_var(--color-coin-dark)]"
+            >
+              ₵
+            </span>
+          )}
+          <span className="flex flex-col">
+            <span className="text-xs text-card-muted">Pay to</span>
+            <span className="font-card text-xl font-extrabold">{creditorName}</span>
+          </span>
+        </span>
+        <div className="flex flex-col gap-1.5 border-y border-dashed border-[#d8cfbb] py-3 text-[13px]">
+          {v.lines.map((l, i) => (
+            <span key={i} className="flex justify-between gap-3">
+              <span>{l.label}</span>
+              <span className="font-bold tabular-nums">{fmtMoney(l.amount)}</span>
+            </span>
+          ))}
+          <span className="flex justify-between text-card-muted">
+            <span>Your cash</span>
+            <span className="tabular-nums">{fmtMoney(v.cash)}</span>
+          </span>
+        </div>
+        <span className="flex items-baseline justify-between">
+          {outcome === 'paid' ? (
+            <>
+              <span className="text-[13px] font-bold text-card-money">Settled</span>
+              <span className="font-card text-[34px] font-extrabold text-card-money">{fmtMoney(0)}</span>
+            </>
+          ) : (
+            <>
+              <span className="text-[13px] font-bold text-[#b42318]">Still short</span>
+              <span className="font-card text-[34px] font-extrabold text-[#b42318] tabular-nums">
+                {fmtMoney(short)}
+              </span>
+            </>
+          )}
+        </span>
+      </div>
+      {outcome === null ? (
+        <Stamp
+          key="due"
+          word="DUE"
+          color="#b42318"
+          size={18}
+          rotate={12}
+          bg="transparent"
+          className="absolute top-15.5 right-4.5"
+        />
+      ) : (
+        <Stamp
+          key={outcome}
+          word={outcome === 'paid' ? 'PAID' : 'BANKRUPT'}
+          color={outcome === 'paid' ? '#1d7354' : '#b42318'}
+          size={outcome === 'paid' ? 34 : 26}
+          rotate={outcome === 'paid' ? -10 : -8}
+          bg="rgba(251,248,241,0.88)"
+          className="absolute top-28 left-1/2 -ml-20"
+        />
+      )}
+    </article>
+  )
+}
+
+/** Teal "+₵N" action: the amount this option raises. */
+function TealBtn({
+  children,
+  onClick,
+  disabled,
+}: {
+  children: ReactNode
+  onClick: () => void
+  disabled: boolean
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={() => {
+        sound.play('ui.click')
+        onClick()
+      }}
+      className="h-10 shrink-0 rounded-xl border border-teal/50 bg-teal/10 px-3.5 font-display text-[15px] font-bold text-teal tabular-nums transition-[translate,scale,background-color] duration-200 ease-spring hover:-translate-y-px hover:bg-teal/20 active:scale-95 active:duration-75 disabled:pointer-events-none disabled:opacity-40"
+    >
+      {children}
+    </button>
+  )
+}
+
+function optionTitle(s: GameState, a: Raise): string {
+  const name = SPACES[a.space]!.name
+  if (a.type === 'MORTGAGE') return `Mortgage ${name}`
+  return `${s.houses[a.space] === HOTEL ? 'Sell the hotel on' : 'Sell a house on'} ${name}`
+}
+
+function detail(s: GameState, a: Raise): string {
   const sp = SPACES[a.space]!
   if (a.type === 'MORTGAGE') return `${familyName(a.space)} · earns no rent while mortgaged`
   const level = s.houses[a.space]!

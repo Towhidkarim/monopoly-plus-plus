@@ -105,3 +105,57 @@ export function GavelIcon({ size = 16, color = 'currentColor' }: { size?: number
     </svg>
   )
 }
+
+/** 14px five-point star (SET COMPLETE pill). */
+export function StarIcon({ size = 10, color = 'currentColor' }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 14 14" aria-hidden="true">
+      <path
+        d="M7 1 L8.6 5.2 L13 5.4 L9.6 8.2 L10.8 12.6 L7 10.1 L3.2 12.6 L4.4 8.2 L1 5.4 L5.4 5.2 Z"
+        fill={color}
+      />
+    </svg>
+  )
+}
+
+/** Gold skyline glyph (My city header). */
+export function SkylineIcon({ size = 22, color = '#f5b54a' }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 20 20" aria-hidden="true">
+      <path
+        d="M2 18 V9 H7 V18 M8 18 V3 H13 V18 M14 18 V7 H18 V18"
+        fill="none"
+        stroke={color}
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+/** Hammer-and-wedge build glyph (Build button). */
+export function BuildIcon({ size = 16, color = 'currentColor' }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" aria-hidden="true">
+      <path
+        d="M3 13 L9 7 M7 3 L13 9 M6 4 L10 2 L14 6 L12 10"
+        fill="none"
+        stroke={color}
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+/** Rank medal: a disc on a ribbon, silver by default. */
+export function MedalIcon({ rank }: { rank: number }) {
+  const fill = rank === 1 ? '#f5b54a' : rank === 2 ? '#c9d1dc' : rank === 3 ? '#c98a5a' : '#64748b'
+  return (
+    <svg width="16" height="18" viewBox="0 0 16 18" aria-hidden="true">
+      <circle cx="8" cy="11" r="6" fill={fill} />
+      <path d="M4 1 L6 6 M12 1 L10 6" stroke="#5b8ec2" strokeWidth="2.5" />
+    </svg>
+  )
+}

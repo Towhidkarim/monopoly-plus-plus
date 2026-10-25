@@ -37,7 +37,7 @@ const ownsKey = (t: EventTarget | null, key: string) =>
   (t.closest('input, textarea, select, [contenteditable]') !== null ||
     (key === 'Enter' && t.closest('button') !== null))
 
-/** `?open=city` or `?open=help` opens a panel on load (dev and screenshots). */
+/** `?open=city`, `?open=help` or `?open=trade` opens a panel on load (dev and screenshots). */
 const initialPanel = () => new URLSearchParams(window.location.search).get('open')
 
 export function GameScreen({ store, onQuit }: { store: GameStore; onQuit: () => void }) {
@@ -52,7 +52,9 @@ export function GameScreen({ store, onQuit }: { store: GameStore; onQuit: () => 
   const [botOffers, setBotOffers] = useState(store.settings.botOffers)
   const [cityLife, setCityLife] = useState(store.settings.cityLife)
   const [sky, setSky] = useState<SkyPref>(store.settings.sky)
-  const [trade, setTrade] = useState<(TradeDraft & { me: number }) | null>(null)
+  const [trade, setTrade] = useState<(TradeDraft & { me: number }) | null>(() =>
+    initialPanel() === 'trade' ? { me: store.getSnapshot().viewer ?? 0 } : null,
+  )
   const [cityOpen, setCityOpen] = useState(() => initialPanel() === 'city')
   const [help, setHelp] = useState(() => initialPanel() === 'help')
   const [menu, setMenu] = useState(false)
@@ -223,7 +225,7 @@ export function GameScreen({ store, onQuit }: { store: GameStore; onQuit: () => 
             <CalloutLayer store={store} />
             <AuctionPanel snap={snap} store={store} turn={turn} />
             <BuyMoment snap={snap} store={store} turn={turn} onCity={() => setCityOpen(true)} />
-            <DebtPanel snap={snap} store={store} turn={turn} />
+            <DebtPanel snap={snap} store={store} turn={turn} onTrade={openTrade} />
             <OfferPanel snap={snap} store={store} turn={turn} onCounter={setTrade} />
             <CardPopup snap={snap} store={store} />
             {cityOpen && viewer !== null && (
@@ -233,6 +235,12 @@ export function GameScreen({ store, onQuit }: { store: GameStore; onQuit: () => 
                 seat={viewer}
                 onClose={() => setCityOpen(false)}
                 onFocus={(i) => select(i)}
+                onAsk={
+                  canTrade
+                    ? (partner, space) =>
+                        setTrade({ me: viewer, partner, get: { spaces: [space], cash: 0, jailCards: 0 } })
+                    : null
+                }
               />
             )}
             {menu && (
