@@ -269,26 +269,42 @@ function SetSection({
               const mortgaged = p.mortgaged[i]
               const tilt = f.spaces.length === 2 ? (k === 0 ? -2.5 : 2.5) : (k - 1) * 3.5
               return (
-                <button
+                <div
                   key={i}
-                  type="button"
-                  onClick={() => onFocus(i)}
-                  title={`${SPACES[i]!.name}: show on the board`}
-                  aria-label={`${SPACES[i]!.name}, show on the board`}
-                  className={`block rounded-[14px] text-left transition-[translate,scale] duration-200 ease-spring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent hover:-translate-y-1 active:scale-[0.97] ${k > 0 ? '-ml-2' : ''}`}
-                  style={{ rotate: `${tilt}deg`, zIndex: k }}
+                  className={`flex flex-col items-center gap-1.5 ${k > 0 ? '-ml-2' : ''}`}
+                  style={{ zIndex: k }}
                 >
-                  <div style={{ zoom: 0.7 }}>
-                    <DeedCard
-                      index={i}
-                      variant="compact"
-                      owner={owner}
-                      state={mortgaged ? 'mortgaged' : 'owned'}
+                  <button
+                    type="button"
+                    onClick={() => onFocus(i)}
+                    title={`${SPACES[i]!.name}: show on the board`}
+                    aria-label={`${SPACES[i]!.name}, show on the board`}
+                    className="block rounded-[14px] text-left transition-[translate,scale] duration-200 ease-spring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent hover:-translate-y-1 active:scale-[0.97]"
+                    style={{ rotate: `${tilt}deg` }}
+                  >
+                    <div style={{ zoom: 0.7 }}>
+                      <DeedCard
+                        index={i}
+                        variant="compact"
+                        owner={owner}
+                        state={mortgaged ? 'mortgaged' : 'owned'}
+                        level={p.houses[i]!}
+                        setOwned={mine}
+                      />
+                    </div>
+                  </button>
+                  {buildable && canManage && (
+                    <LotStepper
+                      name={SPACES[i]!.name}
+                      cost={SPACES[i]!.houseCost}
                       level={p.houses[i]!}
-                      setOwned={mine}
+                      canBuild={can({ type: 'BUILD', space: i })}
+                      canSell={can({ type: 'SELL_BUILDING', space: i })}
+                      onBuild={() => act({ type: 'BUILD', space: i })}
+                      onSell={() => act({ type: 'SELL_BUILDING', space: i })}
                     />
-                  </div>
-                </button>
+                  )}
+                </div>
               )
             })}
           </div>
@@ -497,6 +513,66 @@ function RowBtn({
     >
       {children}
     </button>
+  )
+}
+
+/** − / + under one lot: sell or build a single level there (the engine enforces even building). */
+function LotStepper({
+  name,
+  cost,
+  level,
+  canBuild,
+  canSell,
+  onBuild,
+  onSell,
+}: {
+  name: string
+  cost: number
+  level: number
+  canBuild: boolean
+  canSell: boolean
+  onBuild: () => void
+  onSell: () => void
+}) {
+  const what = level >= HOTEL - 1 ? 'a hotel' : 'a house'
+  const btn = `flex size-7 items-center justify-center rounded-lg text-sm font-extrabold ${FX_BRIGHT} disabled:opacity-30`
+  return (
+    <div className="flex items-center gap-1 rounded-[10px] border border-line/70 bg-panel-2/80 p-0.5">
+      <button
+        type="button"
+        disabled={!canSell}
+        onClick={() => {
+          sound.play('ui.click')
+          onSell()
+        }}
+        title={
+          canSell
+            ? `Sell ${level >= HOTEL ? 'the hotel' : 'a house'} on ${name} for +${fmtMoney(cost / 2)}`
+            : `Nothing to sell on ${name} yet (sell evenly)`
+        }
+        aria-label={`Sell one level on ${name}`}
+        className={`${btn} text-ink-muted enabled:hover:bg-white/8 enabled:hover:text-ink`}
+      >
+        −
+      </button>
+      <button
+        type="button"
+        disabled={!canBuild}
+        onClick={() => {
+          sound.play('ui.click')
+          onBuild()
+        }}
+        title={
+          canBuild
+            ? `Build ${what} on ${name} for ${fmtMoney(cost)}`
+            : `Can't build on ${name} now (build evenly, or not enough cash)`
+        }
+        aria-label={`Build ${what} on ${name}, ${fmtMoney(cost)}`}
+        className={`${btn} bg-accent/15 text-gold enabled:hover:bg-accent/25`}
+      >
+        +
+      </button>
+    </div>
   )
 }
 
