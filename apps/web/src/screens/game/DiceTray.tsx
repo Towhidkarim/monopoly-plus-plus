@@ -118,20 +118,20 @@ function Die({
 
   const face = flicker ?? value
   return (
-    <div className="relative size-12">
+    <div className="relative size-11.5" style={{ rotate: index === 0 ? '-8deg' : '6deg' }}>
       <div
         ref={shadow}
-        className="absolute inset-x-1 -bottom-1.5 h-3 rounded-full bg-black/60 opacity-60 blur-[3px]"
+        className="absolute inset-x-1 -bottom-1.5 h-3 rounded-full bg-black/50 opacity-60 blur-[3px]"
       />
       <div
         ref={body}
-        className="relative grid size-12 grid-cols-3 grid-rows-3 gap-0.5 rounded-xl bg-ink p-2 shadow-[inset_0_-3px_0_#94a3b8]"
+        className="relative grid size-11.5 grid-cols-3 grid-rows-3 gap-px rounded-[11px] bg-card p-2 shadow-[inset_0_-5px_0_var(--color-card-edge)]"
         aria-label={`Die showing ${value}`}
       >
         {PIPS[face]!.map(([r, c]) => (
           <span
             key={`${r}${c}`}
-            className="size-2 place-self-center rounded-full bg-table"
+            className="size-2 place-self-center rounded-full bg-card-ink"
             style={{ gridRow: r + 1, gridColumn: c + 1 }}
           />
         ))}
@@ -155,7 +155,7 @@ export function DiceTray({
 }) {
   if (!dice) return null
   return (
-    <div key={roll} className="pointer-events-none flex gap-2.5">
+    <div key={roll} className="pointer-events-none flex shrink-0 gap-4 px-1.5">
       <Die value={dice[0]} index={0} animate={roll > 0} speed={speed} reduced={reduced} />
       <Die value={dice[1]} index={1} animate={roll > 0} speed={speed} reduced={reduced} />
     </div>

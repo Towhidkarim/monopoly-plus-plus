@@ -6,6 +6,19 @@ export interface LogEntry {
   tone: 'normal' | 'good' | 'bad' | 'muted'
   /** Wall-clock time it was logged (for fading toasts). */
   at: number
+  /** Cash moving between two parties, for the toast's payer -> payee flow. Null side = the bank. */
+  money?: {
+    from: string | null
+    to: string | null
+    amount: number
+    reason: 'rent' | 'salary' | 'tax' | 'fine'
+  }
+  /** A space this entry is about (buy toasts show its color band). */
+  space?: number
+  /** Price shown beside a purchase. */
+  price?: number
+  /** Icon for bad events. */
+  icon?: 'lock' | 'alert'
 }
 
 /** Turns an event into a human-readable log line, or null for events not worth a line. */
@@ -26,26 +39,53 @@ export function describe(e: GameEvent, name: (id: string) => string): Omit<LogEn
         : null
     case 'CASH_CHANGED':
       if (e.reason === 'salary' && e.delta > 0)
-        return { text: `${name(e.playerId)} collected ₵${e.delta} salary`, tone: 'good' }
+        return {
+          text: `${name(e.playerId)} collected ₵${e.delta} salary`,
+          tone: 'good',
+          money: { from: null, to: e.playerId, amount: e.delta, reason: 'salary' },
+        }
       if (e.reason === 'rent' && e.delta < 0 && e.counterparty)
-        return { text: `${name(e.playerId)} paid ₵${-e.delta} rent to ${name(e.counterparty)}`, tone: 'bad' }
-      if (e.reason === 'tax') return { text: `${name(e.playerId)} paid ₵${-e.delta} tax`, tone: 'bad' }
+        return {
+          text: `${name(e.playerId)} paid ₵${-e.delta} rent to ${name(e.counterparty)}`,
+          tone: 'bad',
+          money: { from: e.playerId, to: e.counterparty, amount: -e.delta, reason: 'rent' },
+        }
+      if (e.reason === 'tax')
+        return {
+          text: `${name(e.playerId)} paid ₵${-e.delta} tax`,
+          tone: 'bad',
+          money: { from: e.playerId, to: null, amount: -e.delta, reason: 'tax' },
+        }
       if (e.reason === 'jailFine')
-        return { text: `${name(e.playerId)} paid the ₵${-e.delta} fine`, tone: 'bad' }
+        return {
+          text: `${name(e.playerId)} paid the ₵${-e.delta} fine`,
+          tone: 'bad',
+          money: { from: e.playerId, to: null, amount: -e.delta, reason: 'fine' },
+        }
       return null
     case 'CARD_DRAWN': {
       const card = (e.deck === 'chance' ? CHANCE_CARDS : CHEST_CARDS)[e.cardId]
       return { text: `${name(e.playerId)} drew: ${card?.text ?? '?'}`, tone: 'normal' }
     }
     case 'PROPERTY_BOUGHT':
-      return { text: `${name(e.playerId)} bought ${sp(e.space)} for ₵${e.price}`, tone: 'good' }
+      return {
+        text: `${name(e.playerId)} bought ${sp(e.space)} for ₵${e.price}`,
+        tone: 'good',
+        space: e.space,
+        price: e.price,
+      }
     case 'AUCTION_STARTED':
       return { text: `Auction for ${sp(e.space)}`, tone: 'normal' }
     case 'BID_PLACED':
       return { text: `${name(e.playerId)} bid ₵${e.amount}`, tone: 'muted' }
     case 'AUCTION_ENDED':
       return e.winner
-        ? { text: `${name(e.winner)} won ${sp(e.space)} for ₵${e.amount}`, tone: 'good' }
+        ? {
+            text: `${name(e.winner)} won ${sp(e.space)} for ₵${e.amount}`,
+            tone: 'good',
+            space: e.space,
+            price: e.amount,
+          }
         : { text: `Nobody bought ${sp(e.space)}`, tone: 'muted' }
     case 'BUILT':
       return {
@@ -69,11 +109,11 @@ export function describe(e: GameEvent, name: (id: string) => string): Omit<LogEn
     case 'MONOPOLY_COMPLETED':
       return { text: `${name(e.playerId)} completed a color set!`, tone: 'good' }
     case 'JAILED':
-      return { text: `${name(e.playerId)} went to the Lockup`, tone: 'bad' }
+      return { text: `${name(e.playerId)} went to the Lockup`, tone: 'bad', icon: 'lock' }
     case 'RELEASED':
       return { text: `${name(e.playerId)} left the Lockup`, tone: 'normal' }
     case 'DEBT_INCURRED':
-      return { text: `${name(e.playerId)} must raise money to pay ₵${e.amount}`, tone: 'bad' }
+      return { text: `${name(e.playerId)} must raise money to pay ₵${e.amount}`, tone: 'bad', icon: 'alert' }
     case 'BANKRUPT':
       return { text: `${name(e.playerId)} went bankrupt`, tone: 'bad' }
     case 'FINAL_ROUND':

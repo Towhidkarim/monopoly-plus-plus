@@ -1,3 +1,5 @@
+import type { PieceKind } from '@skyline/board'
+
 /** Inline stroke icons (24px grid, currentColor). Decorative unless a label is passed. */
 
 const PATHS = {
@@ -36,6 +38,39 @@ export function Icon({ name, size = 20, label }: { name: IconName; size?: number
       aria-hidden={label ? undefined : true}
     >
       <path d={PATHS[name]} />
+    </svg>
+  )
+}
+
+/** Simple 24px stroke glyphs for the player pieces (same kinds as the board's token shapes). */
+const PIECE_PATHS: Record<PieceKind, string> = {
+  taxi: 'M4 16 L5.5 11 H18.5 L20 16 V19 H4 Z M7 19 V21 M17 19 V21 M9 8 H15 V11 H9 Z',
+  bus: 'M5 4 H19 V17 H5 Z M5 11 H19 M8 17 V20 M16 17 V20',
+  drone: 'M12 10 V14 M8 12 H16 M4 8 H8 M16 8 H20 M6 8 V11 L9 12 M18 8 V11 L15 12',
+  balloon:
+    'M12 3 A6 6 0 0 1 18 9 C18 13 14 16 12 17 C10 16 6 13 6 9 A6 6 0 0 1 12 3 Z M10.5 17 L11 20 H13 L13.5 17',
+  pawn: 'M12 3.5 A3 3 0 0 1 12 9.5 A3 3 0 0 1 12 3.5 Z M10.5 10 L9 18 H15 L13.5 10 M7 20.5 H17',
+}
+
+export function PieceIcon({
+  piece,
+  size = 20,
+  stroke = '#1a1020',
+}: {
+  piece: PieceKind
+  size?: number
+  stroke?: string
+}) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d={PIECE_PATHS[piece]}
+        fill="none"
+        stroke={stroke}
+        strokeWidth={2.2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   )
 }

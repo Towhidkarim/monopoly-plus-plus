@@ -2,13 +2,35 @@ import { SPACES, isOwnable, legalActions, mortgageValue, unmortgageCost, type Ac
 import { hintFor } from '../../game/hints.ts'
 import type { GameStore, Snapshot } from '../../game/store.ts'
 import { TIMINGS } from '../../game/timings.ts'
-import { spaceInfo } from '../../spaceInfo.ts'
+import type { LogEntry } from '../../game/log.ts'
+import { cssHex, spaceInfo } from '../../spaceInfo.ts'
 import { activeRow } from './deed.ts'
 import { DiceTray } from './DiceTray.tsx'
 import { Icon } from './icons.tsx'
 import { TitleDeed } from './TitleDeed.tsx'
-import { Btn, Eyebrow } from './ui.tsx'
+import { Btn, Eyebrow, Kbd, Panel, TokenAvatar } from './ui.tsx'
 import { fmtMoney } from './format.ts'
+
+/** Property names, longest first, so a hint can highlight the one it talks about. */
+const NAME_RE = new RegExp(
+  `(${SPACES.flatMap((s, i) => (isOwnable(i) ? [s.name] : []))
+    .toSorted((x, y) => y.length - x.length)
+    .map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+    .join('|')})`,
+)
+
+/** Hint copy with any property name set in a teal chip. */
+function HintText({ text }: { text: string }) {
+  return text.split(NAME_RE).map((part, i) =>
+    i % 2 === 1 ? (
+      <strong key={i} className="rounded-[5px] bg-teal/15 px-1.5 font-bold text-teal">
+        {part}
+      </strong>
+    ) : (
+      part
+    ),
+  )
+}
 
 /** Left column: last roll, then either the selected tile's deed or a situational hint. */
 export function LeftColumn({
@@ -27,51 +49,65 @@ export function LeftColumn({
   const viewer = snap.viewer
   const hint = viewer !== null && !snap.busy ? hintFor(snap.state, viewer) : null
   const roller = snap.presented.players[snap.presented.current]!
+  const rollerName = soloHuman(store) && store.seatKind(roller.id) === 'human' ? 'You' : roller.name
+  const doubles = snap.dice !== null && snap.dice[0] === snap.dice[1]
+  const warn = hint?.tone === 'warn'
   return (
-    <div className="pointer-events-none absolute top-26 left-4 flex w-72 flex-col gap-3">
+    <div className="pointer-events-none absolute top-32 left-5 flex w-72 flex-col gap-3">
       {snap.dice && (
-        <div className="pointer-events-auto flex items-center gap-3 rounded-2xl border border-line bg-panel/95 px-4 py-3.5">
+        <Panel className="flex items-center gap-3.5 p-3.5">
           <DiceTray
             dice={snap.dice}
             roll={snap.diceRoll}
             speed={store.settings.speed}
             reduced={store.settings.reducedMotion}
           />
-          <div className="flex flex-col">
-            <span className="text-xs text-ink-muted">Last roll</span>
-            <span className="text-[15px] font-semibold">
-              {roller.name} rolled {snap.dice[0] + snap.dice[1]}
-              {snap.dice[0] === snap.dice[1] && <span className="text-gold"> · doubles</span>}
+          <div className="flex min-w-0 flex-1 flex-col">
+            <Eyebrow className="text-ink-muted">Last roll</Eyebrow>
+            <span className="font-display text-xl leading-tight font-bold">
+              {rollerName} rolled {snap.dice[0] + snap.dice[1]}
             </span>
+            {doubles && (
+              <span
+                key={snap.diceRoll}
+                className="mt-1 origin-left self-start animate-tag-pop rounded-full bg-accent px-2.5 py-0.5 font-display text-[11px] font-bold text-accent-ink shadow-[0_0_14px_rgba(245,181,74,0.45)]"
+              >
+                Doubles!
+              </span>
+            )}
           </div>
-        </div>
+        </Panel>
       )}
 
       {selected !== null ? (
         <SelectedSpace index={selected} snap={snap} store={store} onCity={onCity} onClose={onDeselect} />
       ) : (
         hint && (
-          <div
+          <Panel
             key={hint.text}
-            className={`pointer-events-auto flex animate-rise flex-col gap-1.5 rounded-2xl border px-4 py-3.5 ${hint.tone === 'warn' ? 'border-alert/35 bg-alert/10' : 'border-accent/30 bg-accent/5'}`}
+            className={`flex animate-rise flex-col gap-2 px-4 py-3.5 ${warn ? 'border-alert/35' : ''}`}
           >
-            <Eyebrow
-              className={`flex items-center gap-2 ${hint.tone === 'warn' ? 'text-alert' : 'text-accent'}`}
-            >
-              <Icon name={hint.tone === 'warn' ? 'alert' : 'bulb'} size={16} />
+            <Eyebrow className={`flex items-center gap-2 ${warn ? 'text-alert' : 'text-accent'}`}>
+              <span
+                className={`flex size-6 items-center justify-center rounded-full ${warn ? 'bg-alert/15' : 'bg-accent/15'}`}
+              >
+                <Icon name={warn ? 'alert' : 'bulb'} size={13} />
+              </span>
               {hint.title}
             </Eyebrow>
-            <div className="text-sm leading-relaxed">{hint.text}</div>
+            <p className="text-sm leading-[1.45]">
+              <HintText text={hint.text} />
+            </p>
             {hint.city && (
               <button
                 type="button"
                 onClick={onCity}
-                className="self-start text-[13px] font-semibold text-accent hover:underline"
+                className="self-start text-[13px] font-bold text-accent transition-colors hover:text-gold"
               >
-                Open My city
+                Open My city →
               </button>
             )}
-          </div>
+          </Panel>
         )
       )}
     </div>
@@ -126,7 +162,7 @@ function SelectedSpace({
   if (!isOwnable(index)) {
     const info = spaceInfo(index)
     return (
-      <div className="pointer-events-auto relative animate-rise rounded-2xl border border-line bg-panel/95 px-4 py-3.5">
+      <div className="pointer-events-auto relative animate-rise rounded-[20px] border border-line bg-panel/95 px-4 py-3.5 shadow-panel">
         {close}
         <Eyebrow className="text-ink-muted">{info.kind}</Eyebrow>
         <div className="mt-0.5 text-lg font-bold">{info.name}</div>
@@ -141,7 +177,7 @@ function SelectedSpace({
         <TitleDeed index={index} active={activeRow(s, index)} className="w-72" />
         {close}
       </div>
-      <div className="rounded-2xl border border-line bg-panel/95 px-4 py-3 text-sm">
+      <div className="rounded-[20px] border border-line bg-panel/95 px-4 py-3 text-sm shadow-panel">
         {owner ? (
           <>
             Owned by <span className="font-semibold">{mine && soloHuman(store) ? 'you' : owner.name}</span>
@@ -167,9 +203,9 @@ function SelectedSpace({
           <button
             type="button"
             onClick={onCity}
-            className="mt-2 text-[13px] font-semibold text-accent hover:underline"
+            className="mt-2 text-[13px] font-bold text-accent hover:text-gold"
           >
-            Manage the whole set in My city
+            Manage the whole set in My city →
           </button>
         )}
       </div>
@@ -202,65 +238,166 @@ function describeSpace(index: number, snap: Snapshot): string {
   }
 }
 
-/** Right column: the latest few events as fading toasts, with the full log on demand. */
+/** Right column: the latest few events as springy toasts, with the full log on demand. */
 export function ActivityFeed({
   snap,
+  store,
   showLog,
   onToggleLog,
 }: {
   snap: Snapshot
+  store: GameStore
   showLog: boolean
   onToggleLog: () => void
 }) {
   const dot = { normal: 'bg-sky', good: 'bg-teal', bad: 'bg-alert', muted: 'bg-ink-muted' }
   const tone = { normal: 'text-ink', good: 'text-teal', bad: 'text-alert', muted: 'text-ink-muted' }
   return (
-    <div className="pointer-events-none absolute top-26 right-4 flex max-h-[calc(100%-15rem)] w-75 flex-col gap-2">
+    <div className="pointer-events-none absolute top-32 right-5 flex max-h-[calc(100%-16rem)] w-75 flex-col gap-2.5">
       {showLog ? (
-        <div className="pointer-events-auto flex min-h-0 flex-col rounded-2xl border border-line bg-panel/95 backdrop-blur">
+        <Panel className="flex min-h-0 flex-col">
           <div className="flex items-center justify-between px-4 pt-3 pb-2">
             <Eyebrow className="text-ink-muted">Game log</Eyebrow>
             <button
               type="button"
               onClick={onToggleLog}
               aria-label="Close log"
-              className="text-ink-muted hover:text-ink"
+              className="text-ink-muted transition-colors hover:text-ink"
             >
               <Icon name="close" size={16} />
             </button>
           </div>
           <ol
-            className="flex min-h-0 flex-col gap-1 overflow-y-auto px-4 pb-3 text-xs leading-relaxed"
+            className="flex min-h-0 flex-col gap-1.5 overflow-y-auto px-4 pb-3.5 text-xs leading-relaxed"
             aria-live="polite"
           >
             {snap.log.map((e) => (
-              <li key={e.id} className={tone[e.tone]}>
-                {e.text}
+              <li key={e.id} className={`flex gap-2 ${tone[e.tone]}`}>
+                <span className={`mt-1.5 size-1.5 shrink-0 rounded-full ${dot[e.tone]}`} />
+                <span className="min-w-0">{e.text}</span>
               </li>
             ))}
           </ol>
-        </div>
+        </Panel>
       ) : (
         <>
           {snap.log.slice(0, 4).map((e) => (
-            <div
-              key={e.id}
-              className="flex animate-toast items-center gap-2.5 rounded-xl border border-line bg-panel/95 px-3.5 py-2.5 text-[13px] shadow-lg shadow-black/30"
-              style={{ animationDuration: `${TIMINGS.toastLife}ms` }}
-            >
-              <span className={`size-2 shrink-0 rounded-full ${dot[e.tone]}`} />
-              <span className="min-w-0 flex-1">{e.text}</span>
+            <div key={e.id} className="animate-toast" style={{ animationDuration: `${TIMINGS.toastLife}ms` }}>
+              <Toast entry={e} snap={snap} store={store} />
             </div>
           ))}
           <button
             type="button"
             onClick={onToggleLog}
-            className="pointer-events-auto self-end px-0.5 py-1 text-xs font-semibold text-accent hover:underline"
+            className="pointer-events-auto flex items-center gap-1.5 self-end px-0.5 py-1 text-[13px] font-bold text-accent transition-colors hover:text-gold"
           >
-            Full log (L)
+            Full log <Kbd>L</Kbd>
           </button>
         </>
       )}
+    </div>
+  )
+}
+
+/** One activity row. Money moves show who paid whom; bad news gets a rose edge. */
+function Toast({ entry: e, snap, store }: { entry: LogEntry; snap: Snapshot; store: GameStore }) {
+  const players = snap.presented.players
+  const viewerId = snap.viewer !== null ? players[snap.viewer]?.id : undefined
+  const nameOf = (id: string | null) =>
+    id === null ? 'the bank' : (players.find((p) => p.id === id)?.name ?? '?')
+  const avatar = (id: string | null) => {
+    const seat = id === null ? -1 : players.findIndex((p) => p.id === id)
+    const info = seat >= 0 ? store.setup.seats[seat] : undefined
+    return info ? (
+      <TokenAvatar color={cssHex(info.color)} piece={info.piece} size={24} />
+    ) : (
+      <span
+        aria-hidden="true"
+        className="flex size-6 shrink-0 items-center justify-center rounded-full bg-coin text-[12px] font-extrabold text-accent-ink shadow-[inset_0_-2px_0_var(--color-coin-dark)]"
+      >
+        ₵
+      </span>
+    )
+  }
+
+  const m = e.money
+  const bad = e.icon !== undefined || (m !== undefined && viewerId !== undefined && m.from === viewerId)
+  const base = `pointer-events-none flex items-center gap-2.5 rounded-2xl border bg-panel px-3.5 py-3 text-[13px] shadow-panel ${bad ? 'border-alert/35' : 'border-line'} ${store.settings.reducedMotion ? 'animate-fade' : 'animate-toast-in'}`
+
+  if (m) {
+    const iPay = viewerId !== undefined && m.from === viewerId
+    const iGet = viewerId !== undefined && m.to === viewerId
+    const label =
+      m.reason === 'salary'
+        ? 'Launch salary'
+        : m.reason === 'tax'
+          ? 'Tax to the bank'
+          : m.reason === 'fine'
+            ? 'Lockup fine'
+            : iGet
+              ? `Rent from ${nameOf(m.from)}`
+              : iPay
+                ? `Rent to ${nameOf(m.to)}`
+                : `${nameOf(m.from)} paid rent to ${nameOf(m.to)}`
+    return (
+      <div className={base}>
+        <span className="flex items-center gap-[3px]">
+          {avatar(m.from)}
+          <svg width="18" height="10" viewBox="0 0 18 10" aria-hidden="true">
+            <path
+              d="M1 5 H15 M11 1 L16 5 L11 9"
+              fill="none"
+              stroke="#ffcf70"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeDasharray="3 2"
+            />
+          </svg>
+          {avatar(m.to)}
+        </span>
+        <span className="min-w-0 flex-1">{label}</span>
+        <span
+          className={`font-display font-bold tabular-nums ${iPay ? 'text-alert' : 'text-gold'}`}
+          style={{ textShadow: iPay ? undefined : '0 0 12px rgba(255,207,112,0.45)' }}
+        >
+          {iPay ? '−' : iGet ? '+' : ''}
+          {fmtMoney(m.amount)}
+        </span>
+      </div>
+    )
+  }
+
+  if (e.space !== undefined) {
+    const info = spaceInfo(e.space)
+    return (
+      <div className={base}>
+        <span className="h-7 w-[22px] shrink-0 overflow-hidden rounded bg-card">
+          <span className="block h-[9px]" style={{ background: info.color ?? 'var(--color-ink-muted)' }} />
+        </span>
+        <span className="min-w-0 flex-1">
+          {e.price !== undefined ? e.text.replace(` for ₵${e.price}`, '') : e.text}
+        </span>
+        {e.price !== undefined && <span className="text-xs text-ink-muted">{fmtMoney(e.price)}</span>}
+      </div>
+    )
+  }
+
+  if (e.icon) {
+    return (
+      <div className={base}>
+        <span className="flex size-6 shrink-0 items-center justify-center rounded-lg bg-alert/15 text-alert">
+          <Icon name={e.icon} size={13} />
+        </span>
+        <span className="min-w-0 flex-1">{e.text}</span>
+      </div>
+    )
+  }
+
+  const dot = { normal: 'bg-sky', good: 'bg-teal', bad: 'bg-alert', muted: 'bg-ink-muted' }
+  return (
+    <div className={base}>
+      <span className={`size-2 shrink-0 rounded-full ${dot[e.tone]}`} />
+      <span className="min-w-0 flex-1">{e.text}</span>
     </div>
   )
 }

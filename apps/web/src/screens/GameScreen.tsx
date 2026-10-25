@@ -184,7 +184,12 @@ export function GameScreen({ store, onQuit }: { store: GameStore; onQuit: () => 
             onDeselect={() => select(null)}
           />
           {!cityOpen && (
-            <ActivityFeed snap={snap} showLog={showLog} onToggleLog={() => setShowLog((v) => !v)} />
+            <ActivityFeed
+              snap={snap}
+              store={store}
+              showLog={showLog}
+              onToggleLog={() => setShowLog((v) => !v)}
+            />
           )}
           <ActionDock
             snap={snap}

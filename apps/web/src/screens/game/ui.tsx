@@ -1,16 +1,18 @@
 import { useLayoutEffect, useRef, type ReactNode } from 'react'
+import type { PieceKind } from '@skyline/board'
 import { TIMINGS } from '../../game/timings.ts'
 import { sound } from '../../audio/engine.ts'
 import { fmtMoney } from './format.ts'
+import { PieceIcon } from './icons.tsx'
 
 /** Small shared building blocks for the game screen. */
 
 type BtnKind = 'primary' | 'secondary' | 'danger' | 'ghost'
 
 const BTN_STYLES: Record<BtnKind, string> = {
-  primary: 'bg-accent text-table shadow-lg shadow-accent/25 hover:brightness-110',
-  secondary: 'border border-line bg-panel-2 text-ink hover:bg-white/10',
-  danger: 'bg-alert/90 text-table hover:bg-alert',
+  primary: 'bg-accent font-display text-accent-ink shadow-gold hover:brightness-105',
+  secondary: 'border border-line bg-transparent text-ink hover:bg-white/5',
+  danger: 'bg-alert text-accent-ink shadow-[inset_0_-4px_0_rgba(0,0,0,0.18)] hover:brightness-105',
   ghost: 'text-ink-muted hover:bg-white/5 hover:text-ink',
 }
 
@@ -29,6 +31,7 @@ export function Btn({
   title?: string | undefined
   className?: string
 }) {
+  // Press squashes (transform only) and springs back; hover lifts a pixel.
   return (
     <button
       type="button"
@@ -38,31 +41,59 @@ export function Btn({
       }}
       disabled={disabled}
       title={title}
-      className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition duration-100 active:scale-95 disabled:pointer-events-none disabled:opacity-40 ${BTN_STYLES[kind]} ${className}`}
+      className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-extrabold transition-[translate,scale,filter,background-color,color] duration-200 ease-spring hover:-translate-y-px active:scale-95 active:duration-75 disabled:pointer-events-none disabled:opacity-40 ${BTN_STYLES[kind]} ${className}`}
     >
       {children}
     </button>
   )
 }
 
-/** Keyboard hint chip inside a button. */
-export function Kbd({ children, onAccent = false }: { children: ReactNode; onAccent?: boolean }) {
+/** Keyboard hint: a cream keycap. */
+export function Kbd({ children }: { children: ReactNode; onAccent?: boolean }) {
   return (
-    <kbd
-      className={`rounded-md px-1.5 py-0.5 font-sans text-[10px] font-bold tracking-wide ${onAccent ? 'bg-table/15' : 'bg-white/10'}`}
-    >
+    <kbd className="rounded-md bg-card px-1.5 py-0.5 font-sans text-[11px] font-extrabold text-card-ink shadow-keycap">
       {children}
     </kbd>
   )
 }
 
+/** Lamplight panel: ink-blue glass with a warm edge, a top highlight and a soft drop shadow. */
 export function Panel({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
     <div
-      className={`pointer-events-auto rounded-2xl border border-line bg-panel/95 shadow-2xl shadow-black/40 backdrop-blur ${className}`}
+      className={`pointer-events-auto rounded-[20px] border border-line bg-panel/95 shadow-panel backdrop-blur ${className}`}
     >
       {children}
     </div>
+  )
+}
+
+/** A player's color disc with their piece glyph; `halo` adds a ring (used for the active player). */
+export function TokenAvatar({
+  color,
+  piece,
+  size = 34,
+  halo,
+  className = '',
+}: {
+  color: string
+  piece: PieceKind
+  size?: number
+  halo?: string | undefined
+  className?: string
+}) {
+  return (
+    <span
+      className={`flex shrink-0 items-center justify-center rounded-full ${className}`}
+      style={{
+        width: size,
+        height: size,
+        background: color,
+        boxShadow: `inset 0 -3px 0 rgba(0,0,0,0.18)${halo ? `, 0 0 0 2px ${halo}` : ''}`,
+      }}
+    >
+      <PieceIcon piece={piece} size={Math.round(size * 0.59)} />
+    </span>
   )
 }
 
@@ -106,7 +137,9 @@ export function TickingMoney({ value, className = '' }: { value: number; classNa
 
 /** Small uppercase label. */
 export function Eyebrow({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <div className={`text-xs font-bold tracking-widest uppercase ${className}`}>{children}</div>
+  return (
+    <div className={`text-[11px] font-extrabold tracking-[0.12em] uppercase ${className}`}>{children}</div>
+  )
 }
 
 /** Owned-of-total progress bar for a color set. */

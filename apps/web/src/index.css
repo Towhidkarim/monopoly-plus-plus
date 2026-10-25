@@ -1,26 +1,62 @@
 @import 'tailwindcss';
+@import '@fontsource-variable/sora';
+@import '@fontsource-variable/manrope';
+@import '@fontsource-variable/bricolage-grotesque';
+@import '@fontsource-variable/dm-sans';
 
-/* Design tokens (palette from docs/ART_GUIDE.md). Use as Tailwind utilities: bg-panel, text-accent, ... */
+/* Design tokens (D32: Lamplight panels + card-stock faces). Use as Tailwind utilities: bg-panel, text-accent, ... */
 @theme {
+  /* Bricolage is listed second in every stack: it is the only family with the ₵ glyph (U+20B5),
+     and the browser takes just that glyph from it. */
+  --font-sans: 'Manrope Variable', 'Bricolage Grotesque Variable', system-ui, sans-serif;
+  --font-display: 'Sora Variable', 'Bricolage Grotesque Variable', system-ui, sans-serif;
+  --font-card: 'Bricolage Grotesque Variable', system-ui, sans-serif;
+  --font-card-body: 'DM Sans Variable', 'Bricolage Grotesque Variable', system-ui, sans-serif;
+
   --color-table: #0b1426;
-  --color-panel: #111c33;
-  --color-panel-2: #16233f;
-  --color-line: #1e2a3b;
-  --color-ink: #e2e8f0;
-  --color-ink-muted: #94a3b8;
-  --color-accent: #22d3ee;
+  --color-panel: #121c33;
+  --color-panel-2: #16213d;
+  --color-line: rgba(255, 214, 150, 0.16);
+  --color-ink: #f4ede2;
+  --color-ink-muted: #a8b1c4;
+  /* Lamp gold is the accent. Text sitting on it uses accent-ink. */
+  --color-accent: #f5b54a;
+  --color-accent-ink: #1c1205;
   --color-sky: #60a5fa;
-  --color-teal: #14b8a6;
+  --color-teal: #5eead4;
   --color-indigo: #6366f1;
   --color-alert: #fb7185;
-  --color-gold: #fbbf24;
+  --color-gold: #ffcf70;
+  /* Card stock (cream faces) and felt. */
+  --color-card: #fbf8f1;
+  --color-card-edge: #e4dccb;
+  --color-card-ink: #1f2a3d;
+  --color-card-muted: #5a6373;
+  --color-card-money: #1d7354;
+  --color-coin: #f2c14e;
+  --color-coin-dark: #c8962a;
+  --color-felt: #173a35;
+
+  --shadow-panel: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 12px 28px rgba(2, 6, 16, 0.45);
+  --shadow-panel-lg: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 20px 40px rgba(2, 6, 16, 0.6);
+  --shadow-keycap: 0 2px 0 #c9c1ae;
+  --shadow-gold: inset 0 -4px 0 rgba(0, 0, 0, 0.18), 0 6px 18px rgba(245, 181, 74, 0.3);
+  --shadow-gold-lg: inset 0 -4px 0 rgba(0, 0, 0, 0.18), 0 10px 28px rgba(245, 181, 74, 0.35);
+  --shadow-card: 0 16px 34px rgba(2, 6, 16, 0.55), 0 3px 0 #e4dccb;
+
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
   --animate-pop: pop-in 260ms cubic-bezier(0.2, 0.9, 0.3, 1.3);
   --animate-rise: rise-in 220ms ease-out;
-  /* Rise in, hold, fade out. Duration is overridden from TIMINGS.toastLife. */
+  /* Hold, then fade out. Duration is overridden from TIMINGS.toastLife. */
   --animate-toast: toast-life 6000ms ease-out forwards;
+  --animate-toast-in: toast-in 460ms cubic-bezier(0.34, 1.4, 0.5, 1) backwards;
   --animate-slide-in: slide-in 240ms cubic-bezier(0.2, 0.9, 0.3, 1);
   --animate-stamp: stamp-in 420ms cubic-bezier(0.2, 0.9, 0.3, 1.2) forwards;
+  --animate-banner: banner-drop 640ms cubic-bezier(0.34, 1.3, 0.5, 1) backwards;
+  --animate-fade: fade-in 180ms ease-out backwards;
+  --animate-breathe: breathe 2.6s ease-in-out infinite;
+  --animate-tag-pop: tag-pop 420ms cubic-bezier(0.34, 1.8, 0.5, 1) backwards;
 
   @keyframes stamp-in {
     0% {
@@ -37,20 +73,72 @@
     }
   }
 
+  /* Opacity only: the entrance is toast-in, on the row inside. */
   @keyframes toast-life {
-    0% {
-      transform: translateY(8px);
-      opacity: 0;
-    }
-    4% {
-      transform: translateY(0);
-      opacity: 1;
-    }
+    0%,
     88% {
       opacity: 1;
     }
     100% {
       opacity: 0;
+    }
+  }
+  @keyframes toast-in {
+    0% {
+      transform: translateX(56px);
+      opacity: 0;
+    }
+    55% {
+      transform: translateX(-5px);
+      opacity: 1;
+    }
+    100% {
+      transform: none;
+      opacity: 1;
+    }
+  }
+  @keyframes banner-drop {
+    0% {
+      transform: translateY(-30px) rotate(-3.5deg);
+      opacity: 0;
+    }
+    45% {
+      transform: translateY(5px) rotate(1.6deg);
+      opacity: 1;
+    }
+    72% {
+      transform: translateY(-1px) rotate(-0.5deg);
+    }
+    100% {
+      transform: none;
+      opacity: 1;
+    }
+  }
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes breathe {
+    0%,
+    100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.02);
+    }
+  }
+  @keyframes tag-pop {
+    0% {
+      transform: scale(0.4) rotate(-10deg);
+      opacity: 0;
+    }
+    100% {
+      transform: none;
+      opacity: 1;
     }
   }
   @keyframes slide-in {
@@ -90,7 +178,7 @@
   html,
   body,
   #root {
-    @apply h-full overflow-hidden bg-table text-ink antialiased;
+    @apply h-full overflow-hidden bg-table font-sans text-ink antialiased;
   }
 
   :root {
@@ -103,5 +191,6 @@
   *::before,
   *::after {
     animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
   }
 }

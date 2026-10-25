@@ -1,14 +1,20 @@
 import { useSyncExternalStore, type ReactNode } from 'react'
-import { GROUP_COUNT, GROUPS, SPACES } from '@skyline/engine'
+import { GROUP_COUNT, GROUPS, SPACES, isOwnable } from '@skyline/engine'
 import { sound } from '../../audio/engine.ts'
 import type { GameStore, Snapshot } from '../../game/store.ts'
-import { cssHex, groupColor } from '../../spaceInfo.ts'
+import { cssHex, groupColor, groupName } from '../../spaceInfo.ts'
 import { Icon } from './icons.tsx'
-import { TickingMoney } from './ui.tsx'
+import { TickingMoney, TokenAvatar } from './ui.tsx'
 
 const PRESET_LABEL = { standard: 'Standard', turbo: 'Turbo', classic: 'Classic' } as const
 
-/** Top bar: title and round, a card per player, and speed/help/menu. */
+/** Stations and utilities: the "other" bar after the eight color sets. */
+const OTHER_SPACES = SPACES.flatMap((s, i) => (s.group < 0 && isOwnable(i) ? [i] : []))
+
+/** Cash below this reads as a warning (rose cash, "Low cash" tag). */
+const LOW_CASH = 150
+
+/** Top bar: wordmark and round, a chip per player, and speed/sound/help/menu. */
 export function Hud({
   snap,
   store,
@@ -31,13 +37,33 @@ export function Hud({
   const muted = sound.settings.muted
   return (
     <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start gap-4 bg-linear-to-b from-table via-table/80 to-transparent px-5 pt-4 pb-8">
-      <div className="pointer-events-auto flex w-52 shrink-0 flex-col gap-1">
-        <div className="text-2xl font-bold tracking-tight text-accent">Skyline</div>
-        <div className="flex gap-1.5 text-xs text-ink-muted">
-          <span className="rounded-full bg-panel-2 px-2 py-0.5">{PRESET_LABEL[store.setup.preset]}</span>
-          <span className="rounded-full bg-panel-2 px-2 py-0.5 tabular-nums">
+      <div className="pointer-events-auto flex shrink-0 flex-col gap-2 min-[1100px]:w-50">
+        <div className="flex items-center gap-2 font-display text-2xl font-bold">
+          <svg width="26" height="22" viewBox="0 0 26 22" aria-hidden="true">
+            <path
+              d="M1 21 V13 H6 V21 M8 21 V5 H14 V21 M16 21 V9 H21 V21 M23 21 V15 H25"
+              fill="none"
+              stroke="#f5b54a"
+              strokeWidth="2"
+              strokeLinejoin="round"
+            />
+            <circle cx="11" cy="9" r="1" fill="#ffcf70" />
+            <circle cx="11" cy="13" r="1" fill="#ffcf70" />
+            <circle cx="18.5" cy="13" r="1" fill="#ffcf70" />
+          </svg>
+          <span className="max-[1100px]:hidden">Skyline</span>
+          <span className="rounded-full border border-line bg-panel px-2 py-0.5 font-sans text-xs font-bold tabular-nums min-[1100px]:hidden">
+            R{p.round}
+            {limit > 0 && <span className="text-ink-muted">/{limit}</span>}
+          </span>
+        </div>
+        <div className="flex gap-1.5 max-[1100px]:hidden">
+          <span className="rounded-full border border-line bg-panel px-2.5 py-0.5 text-xs font-bold">
+            {PRESET_LABEL[store.setup.preset]}
+          </span>
+          <span className="rounded-full border border-line bg-panel px-2.5 py-0.5 text-xs font-bold tabular-nums">
             Round {p.round}
-            {limit > 0 && ` / ${limit}`}
+            {limit > 0 && <span className="text-ink-muted"> / {limit}</span>}
           </span>
         </div>
       </div>
@@ -47,6 +73,7 @@ export function Hud({
           const info = store.setup.seats[seat]!
           const color = cssHex(info.color)
           const active = p.current === seat && !p.over
+          const low = !pl.bankrupt && pl.cash < LOW_CASH
           const tag = pl.bankrupt
             ? 'BANKRUPT'
             : snap.thinking === pl.id
@@ -57,75 +84,81 @@ export function Hud({
                   : 'PLAYING'
                 : pl.inJail
                   ? 'IN LOCKUP'
-                  : ''
+                  : low
+                    ? 'LOW CASH'
+                    : ''
+          const botTag = info.kind === 'bot' ? `${store.botName(seat) ?? ''} BOT`.trim() : ''
+          const tagInk = pl.bankrupt || pl.inJail || (low && !active) ? '#fda4af' : active ? '#f5b54a' : ''
           return (
             <div
               key={pl.id}
               data-seat-card={pl.id}
-              className={`pointer-events-auto flex w-48 min-w-0 flex-col gap-1.5 rounded-2xl border px-3 py-2.5 transition-[background-color,box-shadow,opacity] duration-300 ${
+              className={`pointer-events-auto relative flex w-53.5 min-w-0 shrink flex-col gap-1.5 rounded-2xl border-[1.5px] px-3 py-2.5 transition-[background-color,box-shadow,opacity,translate] duration-300 ease-spring ${
                 pl.bankrupt
                   ? 'border-line bg-panel opacity-40'
                   : active
-                    ? 'bg-panel-2'
-                    : 'border-line bg-panel'
+                    ? '-translate-y-0.5 border-accent bg-panel-2'
+                    : `bg-panel ${low ? 'border-alert/45' : 'border-line'}`
               }`}
-              style={
-                active
-                  ? { borderColor: color, boxShadow: `0 0 0 3px ${color}22, 0 8px 24px #0006` }
-                  : undefined
-              }
+              style={{
+                boxShadow: active
+                  ? 'inset 0 1px 0 rgba(255,255,255,0.08), 0 0 0 4px rgba(245,181,74,0.14), 0 10px 24px rgba(2,6,16,0.5)'
+                  : 'inset 0 1px 0 rgba(255,255,255,0.06)',
+              }}
             >
-              <div className="flex items-center gap-2">
-                <span
-                  className="flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-bold text-table"
-                  style={{ background: color }}
-                >
-                  {pl.name.trim()[0]?.toUpperCase()}
-                </span>
-                <span className="truncate text-sm font-semibold">{pl.name}</span>
-                <TickingMoney
-                  value={pl.cash}
-                  className={`ml-auto text-[15px] font-bold ${pl.cash < 150 && !pl.bankrupt ? 'text-alert' : 'text-ink'}`}
-                />
-              </div>
-              <div className="flex h-3 items-center gap-1">
-                <Holdings seat={seat} owner={p.owner} mortgaged={p.mortgaged} />
-                {pl.jailCards > 0 && (
+              <div className="@container min-w-0">
+                <div className="grid grid-cols-[auto_1fr_auto] items-center gap-x-2.5 @max-[165px]:grid-cols-[auto_1fr] @max-[165px]:gap-y-1">
+                  <TokenAvatar
+                    color={color}
+                    piece={info.piece}
+                    halo={active ? 'rgba(245,181,74,0.6)' : 'rgba(255,255,255,0.1)'}
+                  />
                   <span
-                    className="shrink-0 text-[10px] font-bold whitespace-nowrap text-gold"
-                    title="Get out of the Lockup free"
+                    className="flex min-w-0 flex-col @max-[165px]:col-span-2 @max-[165px]:row-start-2"
+                    title={`${pl.name}${tag || botTag ? `, ${(tag || botTag).toLowerCase()}` : ''}`}
                   >
-                    +{pl.jailCards} card
+                    <span className="truncate font-display text-sm leading-tight font-bold @max-[165px]:text-xs">
+                      {pl.name}
+                    </span>
+                    {/* A status wins the slot; otherwise a bot shows its personality. */}
+                    <span
+                      className={`flex min-w-0 gap-1.5 text-[9px] leading-tight font-extrabold tracking-widest whitespace-nowrap uppercase @max-[165px]:sr-only ${tag === 'THINKING' ? 'animate-pulse' : ''}`}
+                      style={{ color: tagInk || (tag === 'THINKING' ? '#f5b54a' : 'var(--color-ink-muted)') }}
+                      title={
+                        info.kind === 'bot'
+                          ? `Bot with the ${store.botName(seat) ?? 'Balanced'} personality`
+                          : undefined
+                      }
+                    >
+                      <span className="truncate">{tag || botTag || ' '}</span>
+                      {pl.jailCards > 0 && (
+                        <span className="shrink-0 text-gold" title="Get out of the Lockup free">
+                          +{pl.jailCards} card
+                        </span>
+                      )}
+                    </span>
                   </span>
-                )}
-                {/* A status wins the slot; otherwise a bot shows its personality. */}
-                <span
-                  className={`ml-auto shrink-0 text-[10px] font-bold tracking-wider ${tag === 'THINKING' ? 'animate-pulse' : ''}`}
-                  style={{
-                    color: tag
-                      ? pl.bankrupt || pl.inJail
-                        ? 'var(--color-alert)'
-                        : color
-                      : 'var(--color-ink-muted)',
-                  }}
-                  title={
-                    info.kind === 'bot'
-                      ? `Bot with the ${store.botName(seat) ?? 'Balanced'} personality`
-                      : undefined
-                  }
-                >
-                  {tag ||
-                    (info.kind === 'bot' ? `${store.botName(seat) ?? ''} BOT`.trim().toUpperCase() : '')}
-                </span>
+                  <TickingMoney
+                    value={pl.cash}
+                    className={`shrink-0 font-display text-[17px] font-bold whitespace-nowrap @max-[165px]:col-start-2 @max-[165px]:row-start-1 @max-[165px]:justify-self-end @max-[165px]:text-[15px] ${low ? 'text-alert' : 'text-gold'}`}
+                  />
+                </div>
               </div>
+              <SetBars seat={seat} owner={p.owner} mortgaged={p.mortgaged} />
+              {active && (
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-x-4 -bottom-px h-[3px] rounded-[3px] bg-accent shadow-[0_0_12px_rgba(245,181,74,0.7)]"
+                />
+              )}
             </div>
           )
         })}
       </div>
 
-      <div className="pointer-events-auto flex w-52 shrink-0 justify-end gap-1.5">
+      <div className="pointer-events-auto flex shrink-0 justify-end gap-2 max-[1100px]:gap-1.5 min-[1100px]:w-50">
         <HudButton onClick={onSpeed} label="Game speed" title="Animation speed (click to change)">
-          <span className="text-[13px] font-semibold">{speedLabel}</span>
+          <span className="font-display text-[13px] font-bold">{speedLabel}</span>
         </HudButton>
         <HudButton
           onClick={() => sound.setSettings({ muted: !muted })}
@@ -162,44 +195,40 @@ function HudButton({
       aria-label={label}
       title={title}
       onClick={onClick}
-      className="flex h-10 min-w-10 items-center justify-center rounded-xl border border-line bg-panel px-2.5 text-ink transition hover:bg-panel-2 active:scale-95"
+      className="flex size-11 max-[1100px]:size-9 items-center justify-center rounded-[14px] border border-line bg-panel text-ink shadow-[inset_0_1px_0_rgba(255,255,255,0.07)] transition-[translate,scale,background-color] duration-200 ease-spring hover:-translate-y-px hover:bg-panel-2 active:scale-90 active:duration-75"
     >
       {children}
     </button>
   )
 }
 
-/** One chip per owned space, grouped by color; mortgaged ones are faded. */
-function Holdings({ seat, owner, mortgaged }: { seat: number; owner: number[]; mortgaged: boolean[] }) {
-  const owned = owner.flatMap((o, i) => (o === seat ? [i] : []))
-  const groups = Array.from({ length: GROUP_COUNT }, (_, g) => owned.filter((i) => SPACES[i]!.group === g))
-  const others = owned.filter((i) => SPACES[i]!.group < 0)
+/**
+ * Ownership as thin bars, one per color set (then one for stations and utilities): full when the
+ * set is complete, half when partly owned, faint when none. Mortgaged holdings dim the bar.
+ */
+function SetBars({ seat, owner, mortgaged }: { seat: number; owner: number[]; mortgaged: boolean[] }) {
+  const bar = (spaces: readonly number[], color: string, name: string) => {
+    const mine = spaces.filter((i) => owner[i] === seat)
+    const full = mine.length === spaces.length
+    const mort = mine.filter((i) => mortgaged[i]).length
+    const opacity = mine.length === 0 ? 0.14 : (full ? 1 : 0.5) * (mort > 0 ? 0.6 : 1)
+    return (
+      <span
+        key={name}
+        className="h-[5px] flex-1 rounded-[3px] transition-opacity duration-300"
+        style={{ background: color, opacity }}
+        title={
+          mine.length === 0
+            ? undefined
+            : `${name}: ${mine.map((i) => SPACES[i]!.name + (mortgaged[i] ? ' (mortgaged)' : '')).join(', ')}`
+        }
+      />
+    )
+  }
   return (
-    <div className="flex min-w-0 gap-1 overflow-hidden">
-      {groups.map((spaces, g) =>
-        spaces.length === 0 ? null : (
-          <span
-            key={g}
-            className={`flex gap-px rounded-[3px] ${spaces.length === GROUPS[g]!.length ? 'ring-1 ring-ink/70 ring-offset-1 ring-offset-panel' : ''}`}
-            title={spaces.map((i) => SPACES[i]!.name).join(', ')}
-          >
-            {spaces.map((i) => (
-              <span
-                key={i}
-                className={`h-3 w-2 rounded-xs ${mortgaged[i] ? 'opacity-30' : ''}`}
-                style={{ background: groupColor(g) }}
-              />
-            ))}
-          </span>
-        ),
-      )}
-      {others.map((i) => (
-        <span
-          key={i}
-          title={SPACES[i]!.name}
-          className={`h-3 w-2 shrink-0 rounded-xs bg-ink-muted ${mortgaged[i] ? 'opacity-30' : ''}`}
-        />
-      ))}
+    <div className="flex gap-[3px]">
+      {Array.from({ length: GROUP_COUNT }, (_, g) => bar(GROUPS[g]!, groupColor(g), groupName(g)))}
+      {bar(OTHER_SPACES, '#94a3b8', 'Stations and utilities')}
     </div>
   )
 }
