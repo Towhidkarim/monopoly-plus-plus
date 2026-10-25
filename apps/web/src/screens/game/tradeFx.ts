@@ -1,9 +1,9 @@
-import { useSyncExternalStore } from 'react'
+import { useEffect, useRef, useSyncExternalStore, type RefObject } from 'react'
 import { flyToChip } from './finale.ts'
 
 /** Motion helpers for the trade table and the incoming-offer panel. */
 
-/** Where the trade table switches from stacked mats and small cards to the full felt layout. */
+/** Where the trade table switches from compact cards and narrow hands to the full felt layout. */
 const WIDE = '(min-width: 1180px)'
 
 const subscribeWide = (cb: () => void) => {
@@ -20,12 +20,68 @@ export const useWide = (): boolean =>
     () => true,
   )
 
+/** How long a result stamp (Deal!, Declined, Paid) is held on screen before the ending plays. */
+export const HOLD_MS = {
+  deal: 1400,
+  declined: 1100,
+  paid: 1100,
+  bankrupt: 1400,
+  reducedDeal: 700,
+  reduced: 600,
+}
+
+/**
+ * Holds a result moment: after `ms` (or at once when the player clicks inside `root`, or anywhere
+ * when there is no `root`, or presses Escape) `onEnd` runs, once. Plain timers, so it ends right
+ * even when a throttled tab runs no animation frames. Escape is taken here, so it does not also
+ * close the panel that is showing the result.
+ */
+export function useResultHold(
+  active: boolean,
+  ms: number,
+  onEnd: () => void,
+  root?: RefObject<HTMLElement | null>,
+): void {
+  const endRef = useRef(onEnd)
+  useEffect(() => {
+    endRef.current = onEnd
+  })
+  useEffect(() => {
+    if (!active) return
+    let over = false
+    const end = () => {
+      if (over) return
+      over = true
+      endRef.current()
+    }
+    const timer = window.setTimeout(end, ms)
+    const onPointer = (e: PointerEvent) => {
+      const el = root?.current
+      if (!el || (e.target instanceof Node && el.contains(e.target))) end()
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      e.stopImmediatePropagation()
+      e.preventDefault()
+      end()
+    }
+    document.addEventListener('pointerdown', onPointer, true)
+    window.addEventListener('keydown', onKey, true)
+    return () => {
+      over = true
+      window.clearTimeout(timer)
+      document.removeEventListener('pointerdown', onPointer, true)
+      window.removeEventListener('keydown', onKey, true)
+    }
+  }, [active, ms, root])
+}
+
 /** Scale of the compact cards in a hand (the mockup scales its 140px cards to 112px). */
 export const HAND_SCALE = 0.8
 
-/** A tiny, stable tilt per card so a pile on the felt looks dealt by hand (never exactly 0). */
+/** A tiny, stable tilt per card so a pile on the felt looks dealt by hand (never exactly 0, at most 2deg). */
 export function tiltOf(space: number): number {
-  return [-4, 3, -2.5, 4, -3, 2.5, -1.5, 3.5][space % 8]!
+  return [-1.6, 1.2, -0.9, 1.8, -1.3, 0.8, -1.8, 1.4][space % 8]!
 }
 
 /**

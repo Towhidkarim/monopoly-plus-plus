@@ -516,7 +516,8 @@ export function DeedCard({
 
 /**
  * The hero window's picture: the lot's building (fades in when ready) or, for stations and
- * utilities, an emblem. Empty while loading, so the window never changes size.
+ * utilities, an emblem. While the portrait loads a soft skyline stands in, so the window is never
+ * an empty box and never changes size.
  */
 function Hero({
   portrait,
@@ -549,7 +550,36 @@ function Hero({
       className="size-full animate-fade object-contain object-bottom"
       style={small ? { transform: 'scale(1.1)' } : undefined}
     />
-  ) : null
+  ) : (
+    <LotFallback color={color} />
+  )
+}
+
+/** Three quiet towers on a ground line, in the card's ink at low strength (the portrait's stand-in). */
+function LotFallback({ color }: { color: string }) {
+  return (
+    <svg
+      viewBox="0 0 120 70"
+      preserveAspectRatio="xMidYMax meet"
+      aria-hidden="true"
+      className="size-full animate-fade"
+    >
+      <ellipse cx="60" cy="63" rx="46" ry="5" fill={color} opacity="0.14" />
+      <path d="M22 62 V34 L34 27 L46 34 V62 Z" fill={color} opacity="0.2" />
+      <path d="M48 62 V16 H72 V62 Z" fill={color} opacity="0.3" />
+      <path d="M74 62 V38 L86 31 L98 38 V62 Z" fill={color} opacity="0.2" />
+      <g fill="#ffffff" opacity="0.55">
+        <rect x="53" y="22" width="5" height="5" rx="1" />
+        <rect x="62" y="22" width="5" height="5" rx="1" />
+        <rect x="53" y="33" width="5" height="5" rx="1" />
+        <rect x="62" y="33" width="5" height="5" rx="1" />
+        <rect x="53" y="44" width="5" height="5" rx="1" />
+        <rect x="62" y="44" width="5" height="5" rx="1" />
+        <rect x="29" y="42" width="5" height="5" rx="1" />
+        <rect x="79" y="46" width="5" height="5" rx="1" />
+      </g>
+    </svg>
+  )
 }
 
 /** The old name; the card grew into DeedCard. */

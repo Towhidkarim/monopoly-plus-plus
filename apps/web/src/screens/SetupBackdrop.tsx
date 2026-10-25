@@ -79,7 +79,6 @@ export function SetupBackdrop({ citySeed, panelWidth }: { citySeed: number; pane
         <div ref={hostRef} className="absolute inset-0 [&>canvas]:absolute [&>canvas]:inset-0" />
       </div>
       <div className="absolute inset-0 bg-gradient-to-b from-table/70 via-table/55 to-table/85 lg:bg-none" />
-      <div className="absolute inset-0 hidden bg-table/25 lg:block" />
     </div>
   )
 }

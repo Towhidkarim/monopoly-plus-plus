@@ -21,10 +21,9 @@ export interface LogEntry {
   icon?: 'lock' | 'alert'
 }
 
-/** Turns an event into a human-readable log line, or null for events not worth a line. */
 const sp = (i: number) => SPACES[i]!.name
 
-export function describe(e: GameEvent, name: (id: string) => string): Omit<LogEntry, 'id' | 'at'> | null {
+function describeRaw(e: GameEvent, name: (id: string) => string): Omit<LogEntry, 'id' | 'at'> | null {
   switch (e.type) {
     case 'TURN_STARTED':
       return { text: `Round ${e.round}: ${name(e.playerId)} to play`, tone: 'muted' }
@@ -123,4 +122,18 @@ export function describe(e: GameEvent, name: (id: string) => string): Omit<LogEn
     default:
       return null
   }
+}
+
+/**
+ * The player's name is "You" in solo games. It stays capitalized as the first word of a line (or
+ * of a sentence after a colon), and is lowercase inside one: "Nova got Mill Avenue from you".
+ */
+export function lowerYou(text: string): string {
+  return text.replace(/(?<=\S )(?<![:.!?] )You\b/g, 'you')
+}
+
+/** Turns an event into a human-readable log line, or null for events not worth a line. */
+export function describe(e: GameEvent, name: (id: string) => string): Omit<LogEntry, 'id' | 'at'> | null {
+  const line = describeRaw(e, name)
+  return line && { ...line, text: lowerYou(line.text) }
 }

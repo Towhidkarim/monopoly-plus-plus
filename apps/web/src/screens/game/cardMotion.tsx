@@ -243,6 +243,13 @@ export function Stamp({
 }) {
   const reduced = useReducedMotion()
   const ref = useRef<HTMLDivElement>(null)
+  // The slam-in is dropped once it should be over, so a stamp is never stuck invisible at the first
+  // frame of its animation (a throttled tab runs no frames): a timer sets the resting state.
+  const [landed, setLanded] = useState(false)
+  useEffect(() => {
+    const t = window.setTimeout(() => setLanded(true), (reduced ? 180 : CARD_MS.stamp) + 120)
+    return () => window.clearTimeout(t)
+  }, [reduced])
   useEffect(() => {
     const parent = ref.current?.parentElement
     if (!shake || reduced || !parent) return
@@ -264,23 +271,22 @@ export function Stamp({
       ref={ref}
       aria-hidden="true"
       className={`pointer-events-none font-display font-bold whitespace-nowrap ${className}`}
-      style={
-        {
-          color,
-          background: bg,
-          fontSize: size,
-          lineHeight: 1.1,
-          letterSpacing: '0.12em',
-          padding: `${size * 0.18}px ${size * 0.5}px`,
-          border: `${Math.max(2, size * 0.11)}px solid ${color}`,
-          borderRadius: size * 0.23,
-          '--rot': `${rotate}deg`,
-          rotate: reduced ? `${rotate}deg` : undefined,
-          animation: reduced
+      style={{
+        color,
+        background: bg,
+        fontSize: size,
+        lineHeight: 1.1,
+        letterSpacing: '0.12em',
+        padding: `${size * 0.18}px ${size * 0.5}px`,
+        border: `${Math.max(2, size * 0.11)}px solid ${color}`,
+        borderRadius: size * 0.23,
+        rotate: `${rotate}deg`,
+        animation: landed
+          ? undefined
+          : reduced
             ? 'fade-in 180ms ease-out backwards'
-            : `card-stamp ${CARD_MS.stamp}ms cubic-bezier(0.2, 0.9, 0.3, 1.2) forwards`,
-        } as CSSProperties
-      }
+            : `card-stamp ${CARD_MS.stamp}ms cubic-bezier(0.2, 0.9, 0.3, 1.2) backwards`,
+      }}
     >
       {word}
     </div>

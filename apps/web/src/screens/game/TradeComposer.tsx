@@ -33,7 +33,7 @@ import {
   SwapArrows,
   type FlyRects,
 } from './TradeParts.tsx'
-import { HAND_SCALE, flyDeal, useWide } from './tradeFx.ts'
+import { HAND_SCALE, HOLD_MS, flyDeal, useResultHold, useWide } from './tradeFx.ts'
 import { Btn, Eyebrow, Money, Panel, TokenAvatar } from './ui.tsx'
 
 /** How the trade table opens: fresh, or prefilled as a counter to an offer. */
@@ -45,16 +45,12 @@ export interface TradeDraft {
   replaces?: number
 }
 
-/** How long a refusal's stamp stays before the table reopens. */
-const STAMP_MS = 1500
-/** How long "Deal!" holds before the cards fly to their new owners. */
-const DEAL_HOLD_MS = 800
-
 /**
  * The trade table: your hand on the left, the partner's on the right, the deal on green felt in
  * the middle. Click cards to slide them onto their mat. A bot partner reacts live (deal meter and
- * a line in its personality); sending shows its answer as a stamp, and a done deal sends each
- * card and coin stack off to its new owner's chip.
+ * a line in its personality); sending shows its answer as a stamp that holds long enough to read
+ * (click or Esc skips it), and a done deal then sends each card and coin stack off to its new
+ * owner's chip.
  */
 export function TradeComposer({
   snap,
@@ -82,6 +78,9 @@ export function TradeComposer({
   /** The state when the offer went out, so set notes do not change once the deal has gone through. */
   const [atSend, setAtSend] = useState<GameState | null>(null)
   const [lastWord, setLastWord] = useState<string | null>(null)
+  /** The deal's stamp has been held; its cards are now flying to their new owners. */
+  const [flying, setFlying] = useState(false)
+  const rootRef = useRef<HTMLElement>(null)
   const fly = useRef(new Map<string, DOMRect>())
   /** Every card and coin stack on the mats, by `give:` or `get:` key, for the deal's flight. */
   const mats = useRef(new Map<string, HTMLElement>())
@@ -95,35 +94,39 @@ export function TradeComposer({
   })
 
   const outcome = sent === null ? undefined : snap.tradeOutcomes[sent]
-  // After the stamp: a deal sends the cards off to their new owners and closes; a refusal goes
-  // back to the table with the bot's last word.
+  const accepted = outcome === 'accepted'
+  // The stamp holds, then: a deal sends the cards off to their new owners and closes; a refusal
+  // goes back to the table with the bot's last word. Click or Esc skips the hold.
+  const holdMs = accepted
+    ? reduced
+      ? HOLD_MS.reducedDeal
+      : HOLD_MS.deal
+    : reduced
+      ? HOLD_MS.reduced
+      : HOLD_MS.declined
+  useResultHold(
+    outcome !== undefined && !flying,
+    holdMs,
+    () => {
+      if (accepted) {
+        setFlying(true)
+        return
+      }
+      setSent(null)
+      setAtSend(null)
+      setLastWord(reaction(store.botName(partner), 'declined'))
+    },
+    rootRef,
+  )
   useEffect(() => {
-    if (!outcome) return
-    if (outcome !== 'accepted') {
-      const t = setTimeout(() => {
-        setSent(null)
-        setAtSend(null)
-        setLastWord(reaction(store.botName(partner), 'declined'))
-      }, STAMP_MS)
-      return () => clearTimeout(t)
-    }
-    let cancel = () => {}
-    const t = setTimeout(
-      () => {
-        const players = store.getSnapshot().state.players
-        const pieces = [...mats.current].map(([key, el]) => ({
-          el,
-          to: (key.startsWith('give') ? players[partner]! : players[me]!).id,
-        }))
-        cancel = flyDeal(pieces, reduced, () => closeRef.current())
-      },
-      reduced ? 500 : DEAL_HOLD_MS,
-    )
-    return () => {
-      clearTimeout(t)
-      cancel()
-    }
-  }, [outcome, reduced, partner, me, store, mats])
+    if (!flying) return
+    const players = store.getSnapshot().state.players
+    const pieces = [...mats.current].map(([key, el]) => ({
+      el,
+      to: (key.startsWith('give') ? players[partner]! : players[me]!).id,
+    }))
+    return flyDeal(pieces, reduced, () => closeRef.current())
+  }, [flying, reduced, partner, me, store, mats])
 
   if (partner < 0) return null
   const meP = s.players[me]!
@@ -245,11 +248,19 @@ export function TradeComposer({
 
   return (
     <section
+      ref={rootRef}
       aria-label={`Trade with ${them.name}`}
       className="pointer-events-auto absolute inset-x-0 top-24 bottom-0 z-30 flex items-center justify-center bg-table/65 p-3 backdrop-blur-sm min-[1180px]:p-4"
     >
-      <Panel className="relative flex max-h-full w-full max-w-340 animate-pop flex-col overflow-hidden rounded-[28px]!">
-        {outcome && <ResultStamp outcome={outcome} size={wide ? 60 : 44} />}
+      <Panel className="relative flex h-full max-h-200 w-full max-w-340 animate-pop flex-col overflow-hidden rounded-[28px]!">
+        {outcome && (
+          <ResultStamp
+            outcome={outcome}
+            size={wide ? 60 : 48}
+            {...(accepted ? {} : { outAfter: holdMs - 260 })}
+            out={flying}
+          />
+        )}
 
         <header className="flex flex-wrap items-center gap-x-4 gap-y-2.5 border-b border-line px-5 py-3.5 min-[1180px]:px-6 min-[1180px]:py-4">
           <div className="flex flex-col gap-0.5">
@@ -308,7 +319,7 @@ export function TradeComposer({
         </header>
 
         {/* One scroll area for the whole table, so a card can fly from a hand to a mat unclipped. */}
-        <div className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto min-[800px]:grid-cols-[274px_minmax(0,1fr)_274px] min-[1180px]:grid-cols-[300px_minmax(0,1fr)_300px]">
+        <div className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto min-[700px]:grid-cols-[140px_minmax(0,1fr)_140px] min-[1180px]:grid-cols-[276px_minmax(0,1fr)_276px]">
           <Hand
             s={s}
             seats={seats}
@@ -321,9 +332,9 @@ export function TradeComposer({
             locked={settled}
           />
 
-          <div className="p-4 min-[1180px]:sticky min-[1180px]:top-0 min-[1180px]:self-start min-[1180px]:p-4.5">
-            <Felt className="p-4 min-[1180px]:p-5">
-              <div className="grid grid-cols-1 items-stretch min-[1180px]:grid-cols-[minmax(0,1fr)_54px_minmax(0,1fr)]">
+          <div className="p-3 min-[700px]:sticky min-[700px]:top-0 min-[700px]:self-start min-[1180px]:p-4.5">
+            <Felt className="p-3 min-[1180px]:p-5">
+              <div className="grid grid-cols-1 items-stretch min-[700px]:grid-cols-[minmax(0,1fr)_36px_minmax(0,1fr)] min-[1180px]:grid-cols-[minmax(0,1fr)_54px_minmax(0,1fr)]">
                 <Mat
                   tone="give"
                   footer={
@@ -343,7 +354,7 @@ export function TradeComposer({
                   {give.spaces.length === 0 && <CardSlot k={matK}>Click your cards to add them</CardSlot>}
                   {give.cash > 0 && <CoinStack value={give.cash} reg={reg('give', 'cash')} />}
                 </Mat>
-                <SwapArrows stacked={!wide} />
+                <SwapArrows />
                 <Mat
                   tone="get"
                   footer={
@@ -390,7 +401,7 @@ export function TradeComposer({
           {/* The notes block keeps its width when empty, so the footer does not jump. */}
           <div className="flex min-h-9 w-60 flex-col justify-center">
             {empty ? (
-              <span className="text-xs text-ink-muted">Set effects and fees show here.</span>
+              <span className="text-xs text-ink-muted">Add cards or cash to build an offer.</span>
             ) : (
               <DealNotes
                 s={atSend ?? s}
@@ -477,15 +488,17 @@ function Hand({
   return (
     <section
       aria-label={title}
-      className="flex min-w-0 flex-col gap-3 px-5 py-4 max-[799px]:border-t max-[799px]:border-line"
+      className="flex min-w-0 flex-col gap-3 px-3 py-4 max-[699px]:border-t max-[699px]:border-line min-[1180px]:px-5"
     >
-      <div className="flex items-center gap-2.5">
+      <div className="flex items-center gap-2.5 min-[700px]:max-[1179px]:flex-col min-[700px]:max-[1179px]:items-start min-[700px]:max-[1179px]:gap-1.5">
         {avatar}
         <div className="flex min-w-0 flex-col">
           <span className="truncate font-display text-base font-bold">{title}</span>
-          <span className="text-[11px] font-bold text-ink-muted">
-            <Money value={p.cash} /> cash
-            {tag && <span className="ml-2 tracking-[0.1em] uppercase">{tag}</span>}
+          <span className="flex flex-wrap items-baseline gap-x-2 text-[11px] font-bold text-ink-muted">
+            <span>
+              <Money value={p.cash} /> cash
+            </span>
+            {tag && <span className="tracking-[0.1em] uppercase">{tag}</span>}
           </span>
         </div>
       </div>
@@ -495,7 +508,7 @@ function Hand({
         {groups.map(({ g, list }) => (
           <div key={g} className="flex flex-col gap-2">
             <SetHeader s={s} seat={seat} group={g} />
-            <div className="grid grid-cols-[repeat(2,minmax(0,1fr))] gap-2.5">
+            <div className="grid grid-cols-1 gap-2.5 max-[699px]:grid-cols-[repeat(auto-fill,minmax(112px,1fr))] min-[1180px]:grid-cols-[repeat(2,minmax(0,1fr))]">
               {list.map((x) => (
                 <HandCard
                   key={x.space}

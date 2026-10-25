@@ -262,20 +262,21 @@ export function Mat({
   return (
     <section
       aria-label={label ?? t.label}
-      className={`flex min-w-0 flex-col gap-3 rounded-[18px] border-2 border-dashed p-3.5 ${className}`}
+      className={`flex min-w-0 flex-col gap-3 rounded-[18px] border-2 border-dashed p-3 min-[1180px]:p-3.5 ${className}`}
       style={{ borderColor: t.border }}
     >
       <span className="text-xs font-extrabold tracking-[0.12em] uppercase" style={{ color: t.ink }}>
         {label ?? t.label}
       </span>
-      <div className="flex flex-wrap items-start gap-2.5">{children}</div>
+      {/* Padding keeps a tilted card inside the dashed zone and clear of the label. */}
+      <div className="flex flex-wrap items-start gap-2.5 px-0.5 py-1">{children}</div>
       {footer && <div className="mt-auto">{footer}</div>}
     </section>
   )
 }
 
 /** The arrows between the mats (turned to point down when the mats are stacked). */
-export function SwapArrows({ stacked }: { stacked: boolean }) {
+export function SwapArrows() {
   return (
     <div className="flex items-center justify-center">
       <svg
@@ -283,7 +284,7 @@ export function SwapArrows({ stacked }: { stacked: boolean }) {
         height="60"
         viewBox="0 0 34 60"
         aria-hidden="true"
-        className={stacked ? 'my-1 size-8 rotate-90' : ''}
+        className="max-[699px]:my-1 max-[699px]:size-8 max-[699px]:rotate-90 min-[700px]:max-[1179px]:w-7"
       >
         <path
           d="M4 18 H28 M22 10 L30 18 L22 26 M30 42 H6 M12 34 L4 42 L12 50"
@@ -367,48 +368,51 @@ export function CashEditor({
     onChange(Math.max(0, Math.min(Math.floor(max / 10) * 10, Math.round(v / 10) * 10)))
   const [text, setText] = useState<string | null>(null)
   return (
-    <div className="flex flex-wrap items-center gap-1.5">
-      <label className="flex h-10 min-w-24 flex-1 items-center gap-1.5 rounded-xl bg-black/25 px-3 focus-within:ring-2 focus-within:ring-accent/70">
-        <span className="text-ink-muted">₵</span>
-        <input
-          aria-label={label}
-          inputMode="numeric"
-          value={text ?? String(value)}
-          disabled={locked}
-          placeholder="0"
-          onChange={(e) => setText(e.target.value.replace(/[^0-9]/g, ''))}
-          onBlur={() => {
-            if (text !== null) set(Number(text || 0))
-            setText(null)
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') e.currentTarget.blur()
-          }}
-          className="w-full min-w-0 bg-transparent font-display text-[15px] outline-none"
-        />
-      </label>
-      {[10, 50, 100].map((step) => (
+    // One row: amount, +10, +50, +100, Clear. Only a mat too narrow for that lets Clear wrap.
+    <div className="@container">
+      <div className="flex flex-wrap items-center gap-1 @min-[14rem]:flex-nowrap">
+        <label className="flex h-10 min-w-14 flex-1 items-center gap-1 rounded-xl bg-black/25 px-2 focus-within:ring-2 focus-within:ring-accent/70">
+          <span className="text-ink-muted">₵</span>
+          <input
+            aria-label={label}
+            inputMode="numeric"
+            value={text ?? String(value)}
+            disabled={locked}
+            placeholder="0"
+            onChange={(e) => setText(e.target.value.replace(/[^0-9]/g, ''))}
+            onBlur={() => {
+              if (text !== null) set(Number(text || 0))
+              setText(null)
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') e.currentTarget.blur()
+            }}
+            className="w-full min-w-0 bg-transparent font-display text-[15px] outline-none"
+          />
+        </label>
+        {[10, 50, 100].map((step) => (
+          <button
+            key={step}
+            type="button"
+            disabled={locked || value + step > max}
+            onClick={() => {
+              sound.play('money.coin')
+              set(value + step)
+            }}
+            className="h-10 shrink-0 rounded-xl bg-coin px-2 text-sm font-extrabold text-[#3a2400] shadow-[inset_0_-3px_0_var(--color-coin-dark)] transition-[translate,scale,filter] duration-200 ease-spring hover:-translate-y-px hover:brightness-105 active:scale-90 active:duration-75 disabled:opacity-30 disabled:hover:translate-y-0"
+          >
+            +{step}
+          </button>
+        ))}
         <button
-          key={step}
           type="button"
-          disabled={locked || value + step > max}
-          onClick={() => {
-            sound.play('money.coin')
-            set(value + step)
-          }}
-          className="h-10 rounded-xl bg-coin px-2.5 text-sm font-extrabold text-[#3a2400] shadow-[inset_0_-3px_0_var(--color-coin-dark)] transition-[translate,scale,filter] duration-200 ease-spring hover:-translate-y-px hover:brightness-105 active:scale-90 active:duration-75 disabled:opacity-30 disabled:hover:translate-y-0"
+          disabled={locked || value === 0}
+          onClick={() => set(0)}
+          className="h-10 shrink-0 rounded-xl px-1.5 text-xs font-bold text-ink-muted underline decoration-white/25 underline-offset-4 transition hover:bg-white/10 hover:text-ink active:scale-95 disabled:pointer-events-none disabled:no-underline disabled:opacity-30"
         >
-          +{step}
+          Clear
         </button>
-      ))}
-      <button
-        type="button"
-        disabled={locked || value === 0}
-        onClick={() => set(0)}
-        className="h-10 rounded-xl px-2.5 text-xs font-bold text-ink-muted transition hover:bg-white/10 hover:text-ink active:scale-95 disabled:opacity-30"
-      >
-        Clear
-      </button>
+      </div>
     </div>
   )
 }
@@ -530,11 +534,31 @@ const STAMP_WORD: Record<TradeOutcome, [string, string]> = {
   withdrawn: ['Withdrawn', '#be123c'],
 }
 
-/** The big result stamp over the table. */
-export function ResultStamp({ outcome, size = 56 }: { outcome: TradeOutcome; size?: number }) {
+/**
+ * The big result stamp over the table. `outAfter` fades it out after that many ms (a refusal that
+ * is about to reopen the table); `out` fades it out now (the cards are leaving).
+ */
+export function ResultStamp({
+  outcome,
+  size = 56,
+  out = false,
+  outAfter,
+}: {
+  outcome: TradeOutcome
+  size?: number
+  out?: boolean
+  outAfter?: number
+}) {
   const [word, color] = STAMP_WORD[outcome]
   return (
-    <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+    <div
+      className={`pointer-events-none absolute inset-0 z-10 flex items-center justify-center transition-opacity duration-200 ${out ? 'opacity-0' : ''}`}
+      style={
+        outAfter !== undefined
+          ? { animation: `result-out 260ms ease-in ${Math.max(0, outAfter)}ms forwards` }
+          : undefined
+      }
+    >
       <Stamp word={word.toUpperCase()} color={color} size={size} rotate={-8} bg="rgba(251,248,241,0.94)" />
       <output className="sr-only">{word}</output>
     </div>

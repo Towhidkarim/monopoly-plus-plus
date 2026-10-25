@@ -8,12 +8,10 @@ import { useReducedMotion } from './cardEnv.tsx'
 import { Icon } from './icons.tsx'
 import type { TradeDraft } from './TradeComposer.tsx'
 import { BundleOnMat, DealNotes, Felt, Mat, ResultStamp, SpeechBubble } from './TradeParts.tsx'
-import { HAND_SCALE, flyDeal } from './tradeFx.ts'
+import { HAND_SCALE, HOLD_MS, flyDeal, useResultHold } from './tradeFx.ts'
 import type { TurnView } from './turn.ts'
 import { Btn, Eyebrow, Kbd, Panel, TokenAvatar } from './ui.tsx'
 
-/** How long "Deal!" holds before the cards fly off. */
-const DEAL_HOLD_MS = 700
 const FADE_MS = 220
 
 /** An offer on screen, with the state it was shown against (the deal changes the live state). */
@@ -26,8 +24,9 @@ interface Kept {
 /**
  * An offer waiting on a human, laid out like the trade table: who offers, what they say, what
  * you get and give on felt mats, what it does to sets, and Accept, Decline or Counter. Play
- * waits for it. When it is answered the panel stays for the ending: "Deal!" and the cards flying
- * to their new owners on Accept, a fade on Decline.
+ * waits for it. When it is answered the panel stays for the ending: its stamp holds long enough
+ * to read (click or Esc skips that), then the cards fly to their new owners on Accept, or the
+ * panel fades on Decline.
  */
 export function OfferPanel({
   snap,
@@ -99,9 +98,20 @@ function OfferCard({
     doneRef.current = onDone
   })
 
-  // The ending. Every path reaches `done`, even if no animation frame ever runs.
+  // The ending: the stamp holds, then the cards fly (or not) and the panel fades. Every path
+  // reaches `done` through timers, even if no animation frame ever runs.
+  const [released, setReleased] = useState(false)
+  const holdMs =
+    leaving === 'accepted'
+      ? reduced
+        ? HOLD_MS.reducedDeal
+        : HOLD_MS.deal
+      : reduced
+        ? HOLD_MS.reduced
+        : HOLD_MS.declined
+  useResultHold(leaving !== undefined && !released, holdMs, () => setReleased(true), rootRef)
   useEffect(() => {
-    if (!leaving) return
+    if (!leaving || !released) return
     const root = rootRef.current
     let cancelFly = () => {}
     let cancelFade = () => {}
@@ -126,22 +136,16 @@ function OfferCard({
       fadeOut()
       return cancelFade
     }
-    const t = window.setTimeout(
-      () => {
-        const list = [...pieces.current].map(([key, el]) => ({
-          el,
-          to: key.startsWith('in') ? toId : fromId,
-        }))
-        cancelFly = flyDeal(list, reduced, fadeOut)
-      },
-      reduced ? 400 : DEAL_HOLD_MS,
-    )
+    const list = [...pieces.current].map(([key, el]) => ({
+      el,
+      to: key.startsWith('in') ? toId : fromId,
+    }))
+    cancelFly = flyDeal(list, reduced, fadeOut)
     return () => {
-      window.clearTimeout(t)
       cancelFly()
       cancelFade()
     }
-  }, [leaving, reduced, toId, fromId, pieces, rootRef, doneRef])
+  }, [leaving, released, reduced, toId, fromId, pieces, rootRef, doneRef])
 
   const sender = seats[offer.from]!
   return (
@@ -151,7 +155,14 @@ function OfferCard({
       className="pointer-events-auto absolute inset-x-0 top-24 bottom-0 flex items-center justify-center bg-table/60 p-3"
     >
       <Panel className="relative flex max-h-full w-140 max-w-full animate-rise flex-col overflow-hidden rounded-3xl!">
-        {leaving && <ResultStamp outcome={leaving} size={48} />}
+        {leaving && (
+          <ResultStamp
+            outcome={leaving}
+            size={52}
+            out={released}
+            {...(leaving === 'accepted' ? {} : { outAfter: holdMs - 260 })}
+          />
+        )}
         <div className="flex items-start gap-3.5 px-5.5 pt-5 pb-3.5">
           <TokenAvatar color={cssHex(sender.color)} piece={sender.piece} size={46} />
           <div className="flex min-w-0 flex-1 flex-col gap-2">

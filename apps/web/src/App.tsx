@@ -53,6 +53,8 @@ function demoStore(): GameStore | null {
   return store
 }
 
+const freshSeed = () => Math.floor(Math.random() * 1_000_000)
+
 export function App() {
   const hash = useHash()
   const [store, setStore] = useState<GameStore | null>(demoStore)
@@ -66,6 +68,11 @@ export function App() {
     store?.dispose()
     setStore(new GameStore(setup, saved?.actions))
   }
+  // Same players and mode, a fresh dice seed and a new city (UI only: picks seeds, not rules).
+  const restart = () => {
+    if (!store) return
+    start({ ...store.setup, seed: freshSeed(), citySeed: freshSeed() })
+  }
   const quit = () => {
     store?.dispose()
     clearSavedGame()
@@ -73,7 +80,7 @@ export function App() {
   }
 
   return store ? (
-    <GameScreen key={store.setup.seed} store={store} onQuit={quit} />
+    <GameScreen key={store.setup.seed} store={store} onQuit={quit} onRestart={restart} />
   ) : (
     <SetupScreen onStart={start} />
   )

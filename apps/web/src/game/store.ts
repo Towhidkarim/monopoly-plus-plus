@@ -475,7 +475,7 @@ export class GameStore {
           kind: 'callout',
           tone: 'info',
           title: `Deal: ${this.nameOf(deal.from)} and ${this.nameOf(deal.to)} traded`,
-          detail: `${this.nameOf(deal.from)} gets ${deal.summary}`,
+          detail: `${this.nameOf(deal.from)} ${this.nameOf(deal.from) === 'You' ? 'get' : 'gets'} ${deal.summary}`,
           seat: this.seatIndex(deal.from),
         })
       }

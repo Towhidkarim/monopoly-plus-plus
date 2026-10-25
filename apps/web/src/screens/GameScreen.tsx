@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
-import { SPACES, isOwnable, rentFor } from '@skyline/engine'
+import { SPACES } from '@skyline/engine'
 import type { BoardHandle } from '@skyline/board'
 import { BoardCanvas } from '../BoardCanvas.tsx'
 import { connectSound } from '../audio/connect.ts'
@@ -8,8 +8,7 @@ import { savePrefs } from '../game/prefs.ts'
 import { buildableGroups } from '@skyline/bots'
 import { cityOf } from '../game/setup.ts'
 import { skyLevel, type SkyPref } from '../game/sky.ts'
-import type { GameStore, Snapshot } from '../game/store.ts'
-import { spaceInfo } from '../spaceInfo.ts'
+import type { GameStore } from '../game/store.ts'
 import { ActionDock } from './game/ActionDock.tsx'
 import { AuctionPanel } from './game/AuctionPanel.tsx'
 import { bidAction, raiseOptions } from './game/auctionBids.ts'
@@ -17,6 +16,7 @@ import { BuyMoment } from './game/BuyMoment.tsx'
 import { DebtPanel } from './game/DebtPanel.tsx'
 import { BoardHandleContext } from './game/cardEnv.tsx'
 import { CalloutLayer, FxLayer } from './game/Fx.tsx'
+import { GameTooltip } from './game/GameTooltip.tsx'
 import { Hud } from './game/Hud.tsx'
 import { MyCity } from './game/MyCity.tsx'
 import { OfferPanel } from './game/OfferPanel.tsx'
@@ -26,7 +26,6 @@ import { CardPopup, GameMenu, GameOver, HelpOverlay } from './game/Overlays.tsx'
 import { ActivityFeed, LeftColumn } from './game/SidePanels.tsx'
 import { TurnBanner } from './game/TurnBanner.tsx'
 import { turnView, type TurnView } from './game/turn.ts'
-import { Money } from './game/ui.tsx'
 
 /**
  * Text fields keep every key. A focused button keeps Enter (keyboard activation) but not Space:
@@ -40,7 +39,15 @@ const ownsKey = (t: EventTarget | null, key: string) =>
 /** `?open=city`, `?open=help` or `?open=trade` opens a panel on load (dev and screenshots). */
 const initialPanel = () => new URLSearchParams(window.location.search).get('open')
 
-export function GameScreen({ store, onQuit }: { store: GameStore; onQuit: () => void }) {
+export function GameScreen({
+  store,
+  onQuit,
+  onRestart,
+}: {
+  store: GameStore
+  onQuit: () => void
+  onRestart: () => void
+}) {
   const snap = useSyncExternalStore(store.subscribe, store.getSnapshot)
   const [handle, setHandle] = useState<BoardHandle | null>(null)
   const [selected, setSelected] = useState<number | null>(null)
@@ -175,7 +182,7 @@ export function GameScreen({ store, onQuit }: { store: GameStore; onQuit: () => 
         <BoardCanvas
           onReady={setHandle}
           citySeed={cityOf(store.setup)}
-          renderTooltip={(i) => <GameTooltip index={i} snap={snap} />}
+          renderTooltip={(i) => <GameTooltip index={i} snap={snap} store={store} />}
         >
           <div className="pointer-events-none absolute inset-0">
             <Hud
@@ -186,7 +193,7 @@ export function GameScreen({ store, onQuit }: { store: GameStore; onQuit: () => 
               onHelp={() => setHelp(true)}
               onMenu={() => setMenu((v) => !v)}
             />
-            <TurnBanner snap={snap} store={store} turn={turn} />
+            <TurnBanner snap={snap} store={store} turn={turn} cityOpen={cityOpen} />
             {/* Focus mode: during a decision the side panels slide away so nothing overlaps it. */}
             <div
               className={`absolute inset-0 transition-[opacity,translate] duration-300 ease-out ${focus ? '-translate-x-4 opacity-0' : ''}`}
@@ -299,7 +306,7 @@ export function GameScreen({ store, onQuit }: { store: GameStore; onQuit: () => 
             )}
             {help && <HelpOverlay onClose={() => setHelp(false)} />}
           </div>
-          <GameOver snap={snap} store={store} onQuit={onQuit} />
+          <GameOver snap={snap} store={store} onRestart={onRestart} onQuit={onQuit} />
         </BoardCanvas>
         <FxLayer store={store} />
       </div>
@@ -330,46 +337,4 @@ function momentKey(turn: TurnView, key: string, store: GameStore): (() => void) 
   const type = key === 'b' ? 'BUY' : key === 'a' ? 'DECLINE_BUY' : null
   const action = type && turn.legal.find((a) => a.type === type)
   return action ? () => turn.act(action) : undefined
-}
-
-function GameTooltip({ index, snap }: { index: number; snap: Snapshot }) {
-  const info = spaceInfo(index)
-  const owner = snap.presented.owner[index]!
-  const rent = isOwnable(index) && owner >= 0 ? rentFor(snap.state, index, 7) : 0
-  return (
-    <div className="-translate-x-1/2 -translate-y-[calc(100%+18px)]">
-      <div className="min-w-48 overflow-hidden rounded-xl border border-line bg-panel/95 shadow-xl shadow-black/40 backdrop-blur">
-        {info.color && <div className="h-1" style={{ background: info.color }} />}
-        <div className="px-3.5 py-2.5">
-          <div className="text-sm font-semibold text-ink">{info.name}</div>
-          {isOwnable(index) ? (
-            <div className="text-xs text-ink-muted">
-              {owner >= 0 ? (
-                <>
-                  {snap.presented.players[owner]!.name}
-                  {snap.presented.mortgaged[index] ? (
-                    ' · mortgaged'
-                  ) : SPACES[index]!.kind === 'utility' ? (
-                    ' · dice × 4/10'
-                  ) : (
-                    <>
-                      {' '}
-                      · rent <Money value={rent} />
-                    </>
-                  )}
-                </>
-              ) : (
-                <>
-                  For sale · <Money value={SPACES[index]!.price} />
-                </>
-              )}
-              <div className="mt-0.5 text-[11px]">Click for the full card</div>
-            </div>
-          ) : (
-            <div className="text-xs text-ink-muted">{info.kind}</div>
-          )}
-        </div>
-      </div>
-    </div>
-  )
 }

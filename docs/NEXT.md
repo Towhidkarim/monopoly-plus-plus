@@ -17,25 +17,15 @@ The developer's standing brief: improve anything you spot along the way; the gam
 | `3f3e701` | Step 1: theme tokens, fonts, primitives, top bar, turn ribbon, dice tray, hint, toasts, action dock |
 | `7cc7f8b` | Step 2: deeds with real lot portraits (`lotPortrait` on the board handle), event cards, card motion |
 | `249f31c` | Step 3: buy moment and auction, focus mode for decisions (D34) |
-
-### Committed in `ba31316` but NOT yet visually reviewed
-
-Built by Sonnet agents; `pnpm check` passes:
-
-- **Step 4, trade table and incoming offers:** `TradeComposer.tsx`, `TradeParts.tsx`, `OfferPanel.tsx`, new `tradeFx.ts`, a `coin-drop` keyframe in `index.css`, and `?open=trade` support in `GameScreen.tsx`.
-- **Step 5, raise-money bill and My city:** `DebtPanel.tsx`, `MyCity.tsx`, plus small additions in `ui.tsx` (`DeedSwatch`), `icons.tsx`, `TitleDeed.tsx` (slot pop) and `GameScreen.tsx` (`onTrade`, `onAsk`).
+| `ba31316` | Steps 4-5: trade table, incoming offers, raise-money bill, My city |
+| (this commit) | Review fixes for 4-5 (result holds, narrow trade, drawer clears the dock, compact top bar) and step 6: setup, game over, menu, help, board tooltip |
 
 ### Next steps
 
-1. Run `pnpm check`.
-2. Review steps 4 and 5 in Orca. Look for crisp cards, fit at about 950×800 (the developer's window) and at 1440×900, and the motion end states.
-   - Trade: `?demo=play&seed=7&open=trade`.
-   - Incoming offer: see the console snippet below.
-   - Debt and My city: `?scene=debt` and `?scene=build&open=city`. With seed 7 the fast-forward never reaches those moments (it ends in game over), so try other seeds.
-3. Fix what's needed and commit the fixes.
-4. **Step 6:** setup screen, game over (mayor certificate and podium), menu, rulebook help, board tooltip, callouts. Fix the copy: remove the dev links (#playground, Sound board), and use the same wording for "New game" everywhere. Specs: `Setup.dc.html`, `Results.dc.html`, `Menu.dc.html`, `Moments.dc.html`.
-5. **Step 7:** smaller windows with no overlap, then a keyboard and accessibility pass.
-6. After Milestone 8: try 3D dice thrown onto the board on `#playground` first: Pixi cubes, a tumble solved backward to the engine's result, bounce clacks, hit-stop, the total pops, then the dice fly into the tray.
+1. **Step 7:** smaller windows with no overlap (check 950×800 and 1440×900 on every screen), then a keyboard and accessibility pass.
+2. After Milestone 8: try 3D dice thrown onto the board on `#playground` first: Pixi cubes, a tumble solved backward to the engine's result, bounce clacks, hit-stop, the total pops, then the dice fly into the tray.
+
+Test URLs: trade `?demo=play&seed=7&open=trade`; debt `?demo=play&seed=17&scene=debt`; My city `?demo=play&seed=17&scene=build&open=city`; game over `?demo=play&seed=7&scene=build` (seed 7 runs to the end). For narrow checks, render the URL in a 950×800 iframe inside your own tab.
 
 Small polish noted: the balloon piece icon reads like a lightbulb.
 

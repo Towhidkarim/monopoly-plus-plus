@@ -222,17 +222,18 @@
     transform: translateY(-3px);
   }
 }
+/* The stamp's own tilt is the `rotate` property, so at rest it has no transform and no fill. */
 @keyframes card-stamp {
   0% {
-    transform: scale(2.6) rotate(calc(var(--rot, -9deg) - 7deg));
+    transform: scale(2.6) rotate(-7deg);
     opacity: 0;
   }
   55% {
-    transform: scale(0.9) rotate(var(--rot, -9deg));
+    transform: scale(0.9);
     opacity: 1;
   }
   100% {
-    transform: scale(1) rotate(var(--rot, -9deg));
+    transform: none;
     opacity: 1;
   }
 }
@@ -253,5 +254,12 @@
   100% {
     transform: none;
     opacity: 1;
+  }
+}
+
+/* A result stamp leaving (opacity only). */
+@keyframes result-out {
+  to {
+    opacity: 0;
   }
 }

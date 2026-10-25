@@ -1,13 +1,25 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { HOTEL, SPACES, rentFor, type Action, type CashReason, type GameState } from '@skyline/engine'
+import {
+  CHANCE_CARDS,
+  CHEST_CARDS,
+  HOTEL,
+  SPACES,
+  rentFor,
+  type Action,
+  type CashReason,
+  type Deck,
+  type GameState,
+} from '@skyline/engine'
 import { liquidationValue, raisePlan, raiseValue } from '@skyline/bots'
 import { sound } from '../../audio/engine.ts'
 import type { GameStore, Snapshot } from '../../game/store.ts'
 import { cssHex } from '../../spaceInfo.ts'
 import { useReducedMotion } from './cardEnv.tsx'
 import { Stamp } from './cardMotion.tsx'
+import { flavorOf } from './cardInfo.ts'
 import { familyColor, familyName } from './deed.ts'
 import { fmtMoney } from './format.ts'
+import { HOLD_MS, useResultHold } from './tradeFx.ts'
 import type { TurnView } from './turn.ts'
 import { Btn, DeedSwatch, Eyebrow, Kbd, TokenAvatar } from './ui.tsx'
 import type { PieceKind } from '@skyline/board'
@@ -23,12 +35,11 @@ const REASON: Partial<Record<CashReason, string>> = {
 const BILL_TITLE: Partial<Record<CashReason, string>> = {
   rent: 'Rent due',
   tax: 'Tax due',
-  card: 'Card',
-  jailFine: 'Fine',
+  card: 'Card due',
+  jailFine: 'Fine due',
 }
 
-/** The bill sits on screen this long with its PAID or BANKRUPT stamp, then slides away. */
-const STAMP_HOLD = { paid: 1000, bankrupt: 1400 }
+/** After its PAID or BANKRUPT stamp has been held (see HOLD_MS) the bill slides away. */
 const SLIDE_MS = 380
 
 /** Everything the bill and the options need, frozen so the bill can still show after the debt is gone. */
@@ -56,17 +67,31 @@ function houseWords(level: number): string {
   return level > 0 ? ` · ${level} ${level === 1 ? 'house' : 'houses'}` : ''
 }
 
-function lineLabel(s: GameState, seat: number, reason: CashReason): string {
+/** The card that was drawn last, as far as this client has seen (it is gone from the screen by the time the bill shows). */
+interface DrawnCard {
+  deck: Deck
+  cardId: number
+}
+
+/** What a card bill is for: the card's title, or at least which deck it came from. */
+function cardLabel(s: GameState, seat: number, card: DrawnCard | null): string {
+  const found = card && (card.deck === 'chance' ? CHANCE_CARDS : CHEST_CARDS)[card.cardId]
+  if (found) return flavorOf(found)
+  const kind = SPACES[s.players[seat]!.position]!.kind
+  return kind === 'chest' ? 'City Fund card' : 'Opportunity card'
+}
+
+function lineLabel(s: GameState, seat: number, reason: CashReason, card: DrawnCard | null): string {
   const pos = s.players[seat]!.position
   const name = SPACES[pos]!.name
   if (reason === 'rent') return `${name}${SPACES[pos]!.kind === 'property' ? houseWords(s.houses[pos]!) : ''}`
   if (reason === 'tax') return name
-  if (reason === 'card') return 'Card'
+  if (reason === 'card') return cardLabel(s, seat, card)
   if (reason === 'jailFine') return 'Lockup fine'
   return 'Payment'
 }
 
-function buildView(snap: Snapshot, store: GameStore, turn: TurnView): DebtView {
+function buildView(snap: Snapshot, store: GameStore, turn: TurnView, card: DrawnCard | null): DebtView {
   const s = snap.state
   const seat = turn.actorSeat
   const me = s.players[seat]!
@@ -90,7 +115,7 @@ function buildView(snap: Snapshot, store: GameStore, turn: TurnView): DebtView {
     creditor: seatInfo
       ? { name: s.players[first.creditor]!.name, color: cssHex(seatInfo.color), piece: seatInfo.piece }
       : null,
-    lines: mine.map((d) => ({ label: lineLabel(s, seat, d.reason), amount: d.amount })),
+    lines: mine.map((d) => ({ label: lineLabel(s, seat, d.reason, card), amount: d.amount })),
     options: turn.legal
       .filter((a): a is Raise => a.type === 'SELL_BUILDING' || a.type === 'MORTGAGE')
       .map((a) => ({ a, title: optionTitle(s, a), detail: detail(s, a) })),
@@ -120,7 +145,11 @@ export function DebtPanel({
   const s = snap.state
   // Stay open while an action animates (turn.moment goes null then), until the debt is really gone.
   const owing = turn.human && s.debts[0]?.debtor === turn.actorSeat
-  const view = owing ? buildView(snap, store, turn) : null
+  // The drawn card is remembered (adjusting state while rendering, no effect), for a card bill.
+  const [drawn, setDrawn] = useState<DrawnCard | null>(null)
+  if (snap.card && (snap.card.deck !== drawn?.deck || snap.card.cardId !== drawn.cardId))
+    setDrawn({ deck: snap.card.deck, cardId: snap.card.cardId })
+  const view = owing ? buildView(snap, store, turn, drawn) : null
   // The last live view is kept so the bill can still show once the debt is gone. Adjusting state
   // while rendering (keyed on the view's content) avoids an effect and a ref read in render.
   const [last, setLast] = useState<DebtView | null>(null)
@@ -133,26 +162,21 @@ export function DebtPanel({
   const [out, setOut] = useState(false)
   const reduced = useReducedMotion()
 
-  // The debt is gone: the bill shows its stamp, slides away, then unmounts. Timers set the final
-  // state, so it ends right even when no animation frame runs (hidden tab).
+  // The debt is gone: the bill shows its stamp, holds it long enough to read (a click or Esc skips
+  // the hold), slides away, then unmounts. Timers set the final state, so it ends right even when
+  // no animation frame runs (hidden tab).
   const gone = view === null && last !== null
   const bankrupt = gone && s.players[last.seat]!.bankrupt
+  const hold = bankrupt ? HOLD_MS.bankrupt : reduced ? HOLD_MS.reduced : HOLD_MS.paid
+  useResultHold(gone && !out, hold, () => setOut(true))
   useEffect(() => {
-    if (!gone) return
-    const hold = STAMP_HOLD[bankrupt ? 'bankrupt' : 'paid']
-    const t1 = window.setTimeout(() => setOut(true), hold)
-    const t2 = window.setTimeout(
-      () => {
-        setLast(null)
-        setOut(false)
-      },
-      hold + SLIDE_MS + 60,
-    )
-    return () => {
-      clearTimeout(t1)
-      clearTimeout(t2)
-    }
-  }, [gone, bankrupt])
+    if (!out) return
+    const t = window.setTimeout(() => {
+      setLast(null)
+      setOut(false)
+    }, SLIDE_MS + 60)
+    return () => clearTimeout(t)
+  }, [out])
 
   const shown = view ?? last
   if (!shown) return null
@@ -197,7 +221,7 @@ function Sheet({
   return (
     <div
       aria-label={`Raise money to pay ${creditorName}`}
-      className={`absolute inset-x-0 top-24 bottom-0 overflow-y-auto bg-table/55 px-4 pt-8 pb-6 ${leave ? 'pointer-events-none' : 'pointer-events-auto'} ${reduced ? '' : 'transition-opacity duration-300 ease-out'} ${out ? 'opacity-0' : ''}`}
+      className={`absolute inset-x-0 top-24 bottom-0 overflow-y-auto bg-table/55 px-4 pt-6 pb-6 ${leave ? 'pointer-events-none' : 'pointer-events-auto'} ${reduced ? '' : 'transition-opacity duration-300 ease-out'} ${out ? 'opacity-0' : ''}`}
     >
       <div
         className={`mx-auto flex w-fit max-w-full items-start gap-9 ${reduced ? '' : 'transition-[translate] duration-400 ease-in'} ${out ? '-translate-y-10' : ''}`}
@@ -205,7 +229,7 @@ function Sheet({
         <Bill v={v} creditorName={creditorName} outcome={leave?.outcome ?? null} reduced={reduced} />
 
         <section
-          className={`flex w-140 max-w-full shrink-0 animate-rise flex-col overflow-hidden rounded-3xl border border-alert/40 bg-panel shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_0_4px_rgba(251,113,133,0.08),0_28px_60px_rgba(2,6,16,0.65)] ${leave && !reduced ? 'transition-opacity duration-300' : ''} ${leave ? 'opacity-60' : ''}`}
+          className={`flex max-h-[calc(100vh-9rem)] w-140 max-w-full shrink-0 animate-rise flex-col overflow-hidden rounded-3xl border border-alert/40 bg-panel shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_0_4px_rgba(251,113,133,0.08),0_28px_60px_rgba(2,6,16,0.65)] ${leave && !reduced ? 'transition-opacity duration-300' : ''} ${leave ? 'opacity-60' : ''}`}
         >
           <div className="flex flex-col gap-3.5 px-6 pt-5.5 pb-4">
             <Eyebrow className="text-[12px] tracking-[0.14em] text-rose-300">
@@ -228,7 +252,10 @@ function Sheet({
               </div>
               <div className="flex justify-between text-xs text-ink-muted tabular-nums">
                 <strong className="font-bold text-gold">Cash {fmtMoney(v.cash)}</strong>
-                <span>Owed {fmtMoney(v.owed)} │</span>
+                <span className="flex items-center gap-1.5">
+                  <span aria-hidden="true" className="h-3 w-[3px] rounded-full bg-card" />
+                  Owed {fmtMoney(v.owed)}
+                </span>
                 <span>
                   Everything below <strong className="font-bold text-teal">+{fmtMoney(v.liquid)}</strong>
                 </span>
@@ -236,7 +263,7 @@ function Sheet({
             </div>
           </div>
 
-          <div className="flex max-h-[min(17rem,calc(100vh-30rem))] min-h-14 flex-col gap-0.5 overflow-y-auto px-3">
+          <div className="flex min-h-14 flex-1 flex-col gap-0.5 overflow-y-auto px-3">
             {v.options.map(({ a, title, detail: note }) => {
               const picked = v.recommended.some(
                 (r) => r.type === a.type && 'space' in r && r.space === a.space,

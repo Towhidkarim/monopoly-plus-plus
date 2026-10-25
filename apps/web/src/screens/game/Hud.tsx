@@ -93,7 +93,7 @@ export function Hud({
             <div
               key={pl.id}
               data-seat-card={pl.id}
-              className={`pointer-events-auto relative flex w-53.5 min-w-0 shrink flex-col gap-1.5 rounded-2xl border-[1.5px] px-3 py-2.5 transition-[background-color,box-shadow,opacity,translate] duration-300 ease-spring ${
+              className={`pointer-events-auto relative flex w-60 min-w-0 shrink flex-col gap-1.5 rounded-2xl border-[1.5px] px-3 py-2.5 transition-[background-color,box-shadow,opacity,translate] duration-300 ease-spring ${
                 pl.bankrupt
                   ? 'border-line bg-panel opacity-40'
                   : active
@@ -107,22 +107,23 @@ export function Hud({
               }}
             >
               <div className="@container min-w-0">
-                <div className="grid grid-cols-[auto_1fr_auto] items-center gap-x-2.5 @max-[165px]:grid-cols-[auto_1fr] @max-[165px]:gap-y-1">
-                  <TokenAvatar
-                    color={color}
-                    piece={info.piece}
-                    halo={active ? 'rgba(245,181,74,0.6)' : 'rgba(255,255,255,0.1)'}
-                  />
+                <div className="grid grid-cols-[auto_1fr_auto] items-center gap-x-2.5 @max-[150px]:grid-cols-[auto_1fr]">
+                  <span className="@max-[150px]:row-span-2">
+                    <TokenAvatar
+                      color={color}
+                      piece={info.piece}
+                      halo={active ? 'rgba(245,181,74,0.6)' : 'rgba(255,255,255,0.1)'}
+                    />
+                  </span>
                   <span
-                    className="flex min-w-0 flex-col @max-[165px]:col-span-2 @max-[165px]:row-start-2"
-                    title={`${pl.name}${tag || botTag ? `, ${(tag || botTag).toLowerCase()}` : ''}`}
+                    className="flex min-w-0 flex-col @max-[150px]:col-start-2 @max-[150px]:row-start-1"
+                    title={`${pl.name}${tag || botTag ? `, ${(tag || botTag).toLowerCase()}` : ''}${pl.jailCards > 0 ? `, ${pl.jailCards} Lockup ${pl.jailCards === 1 ? 'card' : 'cards'}` : ''}`}
                   >
-                    <span className="truncate font-display text-sm leading-tight font-bold @max-[165px]:text-xs">
-                      {pl.name}
-                    </span>
-                    {/* A status wins the slot; otherwise a bot shows its personality. */}
+                    <span className="truncate font-display text-sm leading-tight font-bold">{pl.name}</span>
+                    {/* A status wins the slot; otherwise a bot shows its personality. A chip too narrow for the
+                        whole line drops it (the container query) rather than cutting words short. */}
                     <span
-                      className={`flex min-w-0 gap-1.5 text-[9px] leading-tight font-extrabold tracking-widest whitespace-nowrap uppercase @max-[165px]:sr-only ${tag === 'THINKING' ? 'animate-pulse' : ''}`}
+                      className={`flex min-w-0 gap-1.5 text-[9px] leading-tight font-extrabold tracking-widest whitespace-nowrap uppercase @max-[215px]:sr-only ${tag === 'THINKING' ? 'animate-pulse' : ''}`}
                       style={{ color: tagInk || (tag === 'THINKING' ? '#f5b54a' : 'var(--color-ink-muted)') }}
                       title={
                         info.kind === 'bot'
@@ -140,7 +141,7 @@ export function Hud({
                   </span>
                   <TickingMoney
                     value={pl.cash}
-                    className={`shrink-0 font-display text-[17px] font-bold whitespace-nowrap @max-[165px]:col-start-2 @max-[165px]:row-start-1 @max-[165px]:justify-self-end @max-[165px]:text-[15px] ${low ? 'text-alert' : 'text-gold'}`}
+                    className={`shrink-0 font-display text-[17px] font-bold whitespace-nowrap @max-[215px]:text-[15px] @max-[150px]:col-start-2 @max-[150px]:row-start-2 @max-[150px]:leading-none ${low ? 'text-alert' : 'text-gold'}`}
                   />
                 </div>
               </div>
