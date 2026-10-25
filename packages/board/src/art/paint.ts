@@ -1,4 +1,4 @@
-import type { Graphics } from 'pixi.js'
+import { FillGradient, type Graphics } from 'pixi.js'
 import { TILE, project, projectPoly, zScale, type Pos } from '../geometry/project.ts'
 import { disc, rect, type Box } from '../view/draw.ts'
 import type { ArtStyle } from './style.ts'
@@ -29,6 +29,69 @@ export interface Paint {
    * the buildings drawn after it (in front of it) in the same layer.
    */
   mark?: () => void
+}
+
+/**
+ * Richer look (DECISIONS.md D31, draft): soft shading down the walls, framed windows that glow at
+ * night, warm light pooling on the ground, rounder trees. `?rich=0` draws the flat kit to compare.
+ */
+export const ART = { rich: true }
+
+/**
+ * Gradients are textures, and a fill's `color` does not tint them, so each color and strength gets
+ * its own, cached (a city uses a few dozen).
+ */
+const grads = new Map<string, FillGradient>()
+const rgba = (c: number, a: number) => `rgba(${(c >> 16) & 0xff},${(c >> 8) & 0xff},${c & 0xff},${a})`
+
+/** `color` transparent at the top of a shape's box, `alpha` at its bottom. */
+function fadeDown(color: number, alpha: number): FillGradient {
+  const key = `d${color}:${alpha.toFixed(2)}`
+  let g = grads.get(key)
+  if (!g) {
+    g = new FillGradient({
+      start: { x: 0, y: 0 },
+      end: { x: 0, y: 1 },
+      colorStops: [
+        { offset: 0, color: rgba(color, 0) },
+        { offset: 1, color: rgba(color, alpha) },
+      ],
+    })
+    grads.set(key, g)
+  }
+  return g
+}
+
+/** `color` at `alpha` in the center of a shape's box, fading out to its edge. */
+function fadeOut(color: number, alpha: number): FillGradient {
+  const key = `o${color}:${alpha.toFixed(2)}`
+  let g = grads.get(key)
+  if (!g) {
+    g = new FillGradient({
+      type: 'radial',
+      center: { x: 0.5, y: 0.5 },
+      innerRadius: 0,
+      outerCenter: { x: 0.5, y: 0.5 },
+      outerRadius: 0.5,
+      colorStops: [
+        { offset: 0, color: rgba(color, alpha) },
+        { offset: 0.4, color: rgba(color, alpha * 0.5) },
+        { offset: 1, color: rgba(color, 0) },
+      ],
+    })
+    grads.set(key, g)
+  }
+  return g
+}
+
+/** Fills a screen polygon with `color` fading out from the center of its bounding box. */
+export function soft(g: Graphics, poly: number[], color: number, alpha: number): void {
+  g.poly(poly).fill(fadeOut(color, alpha))
+}
+
+/** Fills a screen polygon with `color` fading in from the top of its bounding box to the bottom. */
+export function fadeIn(g: Graphics, poly: number[], color: number, alpha: number): void {
+  g.poly(poly).fill(fadeDown(color, alpha))
 }
 
 /** A small blinking beacon at a point (only drawn when the caller has a beacons layer). */
@@ -198,9 +261,34 @@ export function box(p: Paint, b: Box, color: number): void {
       ],
       f.right,
     )
+    const leftFace: Pos[] = [
+      { col: col0, row: row1, z: z1 },
+      { col: col1, row: row1, z: z1 },
+      { col: col1, row: row1, z: z0 },
+      { col: col0, row: row1, z: z0 },
+    ]
+    const rightFace: Pos[] = [
+      { col: col1, row: row0, z: z1 },
+      { col: col1, row: row1, z: z1 },
+      { col: col1, row: row1, z: z0 },
+      { col: col1, row: row0, z: z0 },
+    ]
+    const big = z1 - z0 > 0.05 && col1 - col0 > 0.05 && row1 - row0 > 0.05
+    if (ART.rich && big) {
+      // Light falls off down the walls, and the base sits in a soft occlusion band.
+      const h = z1 - z0
+      const band = (pts: Pos[]) => pts.map((q) => (q.z === z1 ? { ...q, z: z0 + Math.min(h, 0.09) } : q))
+      for (const [face, k] of [
+        [leftFace, 0.2],
+        [rightFace, 0.16],
+      ] as const) {
+        fadeIn(p.g, projectPoly(face, p.t), p.style.shadow, k)
+        fadeIn(p.g, projectPoly(band(face), p.t), p.style.shadow, 0.22)
+      }
+    }
     // Ambient occlusion: walls darken where they meet the ground.
     const ao = Math.min(0.035, (z1 - z0) * 0.25)
-    if (ao > 0.006) {
+    if (!(ART.rich && big) && ao > 0.006) {
       const dark = (c: number) => mix(c, p.style.shadow, 0.35)
       poly(
         [
@@ -267,6 +355,12 @@ export function lamp(p: Paint, col: number, row: number, z: number): void {
   )
   const lights = p.lights
   if (!lights) return
+  if (ART.rich) {
+    soft(lights, disc(col, row, 0.34, z + 0.002, p.t, 24), NIGHT.lamp, 0.55)
+    soft(lights, disc(col, row, 0.07, z + 0.215, p.t, 12), 0xfff4d6, 0.9)
+    lights.poly(disc(col, row, 0.022, z + 0.215, p.t, 10)).fill(0xfff4d6)
+    return
+  }
   // A soft pool of light on the ground and a bright head.
   for (const [r, a] of [
     [0.26, 0.1],
@@ -303,6 +397,8 @@ export function shadow(
   row1: number,
   z: number,
   h: number,
+  /** Buildings spill warm light onto the sidewalk at night; trees and props do not. */
+  spill = true,
 ) {
   const dx = Math.min(0.9, h * 0.45 + 0.04)
   const dy = Math.min(0.25, h * 0.08 + 0.02)
@@ -315,6 +411,22 @@ export function shadow(
     { col: col0, row: row1, z },
   ]
   p.g.poly(projectPoly(pts, p.t)).fill({ color: p.style.shadow, alpha: p.style.shadowAlpha })
+  if (!ART.rich || h < 0.1) return
+  // Soft occlusion pool hugging the footprint.
+  const m = 0.07
+  soft(p.g, rect(col0 - m, row0 - m, col1 + m, row1 + m, z, p.t), p.style.shadow, 0.32)
+  // Warm light spilling from the ground floor onto the sidewalk in front of the two visible faces.
+  const lights = p.lights
+  if (!lights || !spill) return
+  const k = hash3(col0, row0, h)
+  if (k > 0.8) return
+  const cm = (col0 + col1) / 2
+  const rm = (row0 + row1) / 2
+  const w = (col1 - col0) * 0.62
+  const d = (row1 - row0) * 0.62
+  const a = 0.45 + k * 0.35
+  soft(lights, rect(cm - w, row1 - 0.06, cm + w, row1 + 0.32, z + 0.002, p.t), NIGHT.warm, a)
+  soft(lights, rect(col1 - 0.06, rm - d, col1 + 0.32, rm + d, z + 0.002, p.t), NIGHT.warm, a * 0.8)
 }
 
 /**
@@ -467,6 +579,16 @@ export function cone(p: Paint, col: number, row: number, r: number, z0: number, 
   half(Math.PI / 4, (3 * Math.PI) / 4, f.left)
 }
 
+/** A slightly squashed screen-space circle (tree canopies). */
+function circle(x: number, y: number, rad: number): number[] {
+  const pts: number[] = []
+  for (let i = 0; i < 16; i++) {
+    const a = (i / 16) * Math.PI * 2
+    pts.push(x + Math.cos(a) * rad, y + Math.sin(a) * rad * 0.94)
+  }
+  return pts
+}
+
 /**
  * Round low-poly canopy (a 7-sided blob) floating at height z: a shade crescent, the body, and a
  * sunlit cap toward the top-left. Drawn in screen space around the projected center.
@@ -483,6 +605,13 @@ export function blob(p: Paint, col: number, row: number, z: number, r: number, c
     p.g.poly(pts).fill(fill)
   }
   const f = faces(color, p.style)
+  if (ART.rich) {
+    // A round canopy: shaded body, then a soft sunlit cap and a soft shade toward the bottom.
+    p.g.poly(circle(c.x, c.y, px)).fill(color)
+    fadeIn(p.g, circle(c.x, c.y, px), f.right, 0.75)
+    soft(p.g, circle(c.x - px * 0.3, c.y - px * 0.34, px * 0.75), light(color, 0.32), 0.85)
+    return
+  }
   ngon(c.x + px * 0.12, c.y + px * 0.1, px, f.right)
   ngon(c.x, c.y, px * 0.94, color)
   ngon(c.x - px * 0.28, c.y - px * 0.3, px * 0.5, light(color, 0.18))
@@ -490,7 +619,7 @@ export function blob(p: Paint, col: number, row: number, z: number, r: number, c
 
 /** A tree: trunk plus a round canopy or a pine cone, sized by `s` (about 0.1 to 0.25). */
 export function tree(p: Paint, col: number, row: number, z: number, s: number, color: number, pine = false) {
-  shadow(p, col - s * 0.5, row - s * 0.5, col + s * 0.5, row + s * 0.5, z, s * 1.2)
+  shadow(p, col - s * 0.5, row - s * 0.5, col + s * 0.5, row + s * 0.5, z, s * 1.2, false)
   box(
     p,
     { col0: col - 0.015, row0: row - 0.015, col1: col + 0.015, row1: row + 0.015, z0: z, z1: z + s * 0.7 },
@@ -520,10 +649,15 @@ export function windows(
   const day = faces(p.style.window, p.style)
   const pick = (c: number) => (rng() < p.style.litShare ? p.style.windowLit : c)
   // Whole floors of an office tend to be lit together; a building is warm or cool.
-  const cool = !opts.ribbon ? false : hash3(col0, row0, z0) < 0.5
+  const cool = !opts.ribbon ? false : hash3(col0, row0, z0) < (ART.rich ? 0.2 : 0.5)
   const quad = (pts: Pos[], c: number) => {
     const poly = projectPoly(pts, p.t)
-    p.g.poly(poly).fill(c)
+    if (ART.rich && !opts.ribbon) {
+      // A recessed frame around punched windows, and a pale reflection fading down the glass.
+      p.g.poly(grow(poly, 1.22)).fill(mix(c, p.style.shadow, 0.5))
+      p.g.poly(poly).fill(c)
+      fadeIn(p.g, poly, 0xffffff, 0.28)
+    } else p.g.poly(poly).fill(c)
     const lights = p.lights
     if (!lights) return
     const at = pts[0]!
@@ -534,6 +668,13 @@ export function windows(
     if (!flicker && (!floorLit || k > LIT_AT_NIGHT)) return
     const target = flicker ? p.lightsAlt! : lights
     const color = cool ? NIGHT.cool : k < LIT_AT_NIGHT * 0.25 ? NIGHT.soft : NIGHT.warm
+    if (ART.rich) {
+      // A smooth glow around the pane, the warm pane, and a brighter lower half (lamps inside).
+      soft(target, grow(poly, opts.ribbon ? 2.2 : 3.6), color, opts.ribbon ? 0.4 : 0.55)
+      target.poly(poly).fill(mix(color, 0xd9822b, cool ? 0 : 0.28))
+      fadeIn(target, poly, cool ? 0xf4f8ff : NIGHT.soft, 0.55)
+      return
+    }
     // A soft halo first (the pane grown around its center), then the pane: cheap static "bloom".
     target.poly(grow(poly, 2.1)).fill({ color, alpha: 0.13 })
     target.poly(poly).fill(color)

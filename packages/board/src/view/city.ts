@@ -2,13 +2,33 @@ import { Container, Graphics } from 'pixi.js'
 import { DEPTH, BOARD } from '../geometry/ring.ts'
 import { house, inset, park, pick, type Lot } from '../art/buildings.ts'
 import { drawDistrict } from '../art/district.ts'
-import { NIGHT, box, faces, flat, light, lightsAt, nightTint, tree, type Paint } from '../art/paint.ts'
+import {
+  ART,
+  NIGHT,
+  box,
+  faces,
+  flat,
+  light,
+  lightsAt,
+  mix,
+  nightTint,
+  tree,
+  type Paint,
+} from '../art/paint.ts'
 import { BOARD_STYLE } from '../art/style.ts'
 import { drawTrack } from '../art/train.ts'
 import { palette } from '../palette.ts'
 import { cosmeticRng, isoBox, rect } from './draw.ts'
 import { Ambient } from './ambient.ts'
-import { GROUND_Z, PLINTH_Z, planCity, type BeltItem, type CityPlan, type Station } from './cityPlan.ts'
+import {
+  BALLAST,
+  GROUND_Z,
+  PLINTH_Z,
+  planCity,
+  type BeltItem,
+  type CityPlan,
+  type Station,
+} from './cityPlan.ts'
 
 const SLAB_Z = -0.1
 /** Real ms between window switches at night. */
@@ -195,7 +215,9 @@ export class CityView {
       }
       return paint
     }
-    flat(base, DEPTH, DEPTH, BOARD - DEPTH, BOARD - DEPTH, GROUND_Z, style.ground)
+    // Richer look (D31): the city stands on a lawn instead of bare pale ground.
+    const ground = ART.rich ? mix(style.park, style.ground, 0.35) : style.ground
+    flat(base, DEPTH, DEPTH, BOARD - DEPTH, BOARD - DEPTH, GROUND_Z, ground)
     drawTrack(base, plan.loop)
     // Raised plinth under the district.
     const pl = plan.plinth
@@ -211,6 +233,7 @@ export class CityView {
     )
     drawDistrict(base, plan.district.area, plan.district.seed, { ...plan.district.options, layer })
 
+    if (ART.rich) stripTrees(layer, plan)
     for (const item of plan.belt) drawBelt(layer(depth(item.lot)), item)
     for (const s of plan.stations) drawStation(layer(depth(s.hall)), s)
     this.life.setView(t)
@@ -222,6 +245,33 @@ export class CityView {
 }
 
 const depth = (l: Lot) => (l.col0 + l.col1 + l.row0 + l.row1) / 2
+
+/**
+ * Richer look (D31): loose rows of trees on the lawn between the plinth and the rail loop, along
+ * the middle of the free strip (plinth edge to the ballast) on all four sides.
+ */
+function stripTrees(layer: (key: number) => Paint, plan: CityPlan): void {
+  const rng = cosmeticRng(plan.seed * 31 + 5)
+  const pl = plan.plinth
+  const { lo, hi } = plan.loopBounds
+  const sides = [
+    { at: (lo + BALLAST + pl.row0) / 2, alongCol: true },
+    { at: (pl.row1 + hi - BALLAST) / 2, alongCol: true },
+    { at: (lo + BALLAST + pl.col0) / 2, alongCol: false },
+    { at: (pl.col1 + hi - BALLAST) / 2, alongCol: false },
+  ]
+  for (const side of sides)
+    for (let a = pl.col0 + 0.15; a < pl.col1 - 0.1; a += 0.22) {
+      if (rng() < 0.3) continue
+      const along = a + (rng() - 0.5) * 0.06
+      const across = side.at + (rng() - 0.5) * 0.05
+      const col = side.alongCol ? along : across
+      const row = side.alongCol ? across : along
+      const size = 0.08 + rng() * 0.04
+      const color = pick(rng, BOARD_STYLE.trees)
+      tree(layer(col + row), col, row, GROUND_Z, size, color, rng() < 0.3)
+    }
+}
 
 function drawBelt(p: Paint, item: BeltItem): void {
   const s = p.style

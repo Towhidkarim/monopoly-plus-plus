@@ -1,6 +1,8 @@
 import { projectPoly } from '../geometry/project.ts'
 import { rect, type Box } from '../view/draw.ts'
+import type { Pos } from '../geometry/project.ts'
 import {
+  ART,
   NIGHT,
   beacon,
   bench,
@@ -15,6 +17,7 @@ import {
   shadow,
   stripe,
   tree,
+  soft,
   wash,
   windows,
   type Paint,
@@ -91,6 +94,151 @@ function waterTower(p: Paint, col: number, row: number, z: number) {
   }
   cylinder(p, col, row, 0.055, z + legs, z + legs + 0.11, 0x9a7b5c)
   cone(p, col, row, 0.062, z + legs + 0.11, z + legs + 0.17, 0x6b5442)
+}
+
+// ---- richer facade details (DECISIONS.md D31) --------------------------------------
+
+/** A quad on the +row face (`face` 'row') or the +col face, from a0 to a1 along it, z0 to z1. */
+function faceQuad(
+  b: Box,
+  face: 'row' | 'col',
+  a0: number,
+  a1: number,
+  z0: number,
+  z1: number,
+  out = 0,
+): Pos[] {
+  return face === 'row'
+    ? [
+        { col: a0, row: b.row1 + out, z: z1 },
+        { col: a1, row: b.row1 + out, z: z1 },
+        { col: a1, row: b.row1 + out, z: z0 },
+        { col: a0, row: b.row1 + out, z: z0 },
+      ]
+    : [
+        { col: b.col1 + out, row: a0, z: z1 },
+        { col: b.col1 + out, row: a1, z: z1 },
+        { col: b.col1 + out, row: a1, z: z0 },
+        { col: b.col1 + out, row: a0, z: z0 },
+      ]
+}
+
+/**
+ * Ground-floor shops on both visible faces: striped awnings sloping out over the sidewalk, and
+ * shop windows that glow warm at night.
+ */
+function shopfront(p: Paint, b: Box, rng: () => number): void {
+  if (!ART.rich) return
+  const accent = pick(rng, p.style.accents)
+  const zt = b.z0 + 0.085
+  const zb = b.z0 + 0.06
+  const out = 0.05
+  for (const face of ['row', 'col'] as const) {
+    const a0 = face === 'row' ? b.col0 : b.row0
+    const a1 = face === 'row' ? b.col1 : b.row1
+    const n = Math.max(1, Math.round((a1 - a0) / 0.2))
+    const step = (a1 - a0) / n
+    const lights = p.lights
+    for (let i = 0; i < n; i++) {
+      const s0 = a0 + i * step + 0.02
+      const s1 = a0 + (i + 1) * step - 0.02
+      if (lights) {
+        const shop = projectPoly(faceQuad(b, face, s0, s1, b.z0 + 0.008, b.z0 + 0.05, 0.002), p.t)
+        soft(
+          lights,
+          projectPoly(faceQuad(b, face, s0 - 0.05, s1 + 0.05, b.z0 - 0.03, b.z0 + 0.09, 0.003), p.t),
+          NIGHT.warm,
+          0.5,
+        )
+        lights.poly(shop).fill(NIGHT.soft)
+      }
+      if (rng() < 0.3) continue
+      const c = i % 2 === 0 ? accent : mix(accent, 0xffffff, 0.25)
+      const f = face === 'row' ? light(c, 0.05) : mix(c, p.style.shadow, 0.3)
+      const slope: Pos[] =
+        face === 'row'
+          ? [
+              { col: s0, row: b.row1, z: zt },
+              { col: s1, row: b.row1, z: zt },
+              { col: s1, row: b.row1 + out, z: zb },
+              { col: s0, row: b.row1 + out, z: zb },
+            ]
+          : [
+              { col: b.col1, row: s0, z: zt },
+              { col: b.col1, row: s1, z: zt },
+              { col: b.col1 + out, row: s1, z: zb },
+              { col: b.col1 + out, row: s0, z: zb },
+            ]
+      p.g.poly(projectPoly(slope, p.t)).fill(f)
+      // Valance: the awning's hanging front edge.
+      p.g
+        .poly(projectPoly(faceQuad(b, face, s0, s1, zb - 0.014, zb, out), p.t))
+        .fill(mix(f, p.style.shadow, 0.2))
+    }
+  }
+}
+
+/** Balcony slabs with railings along the visible faces, on every floor above the ground floor. */
+function balconies(p: Paint, b: Box, floors: number, from: number): void {
+  if (!ART.rich) return
+  const fh = (b.z1 - b.z0 - from) / floors
+  const slab = mix(0xe2e8f0, p.style.shadow, 0.15)
+  for (let f = 1; f < floors; f++) {
+    const z = b.z0 + from + f * fh
+    for (const face of ['row', 'col'] as const) {
+      const a0 = (face === 'row' ? b.col0 : b.row0) + 0.04
+      const a1 = (face === 'row' ? b.col1 : b.row1) - 0.04
+      const d = 0.035
+      const floor: Pos[] =
+        face === 'row'
+          ? [
+              { col: a0, row: b.row1, z },
+              { col: a1, row: b.row1, z },
+              { col: a1, row: b.row1 + d, z },
+              { col: a0, row: b.row1 + d, z },
+            ]
+          : [
+              { col: b.col1, row: a0, z },
+              { col: b.col1, row: a1, z },
+              { col: b.col1 + d, row: a1, z },
+              { col: b.col1 + d, row: a0, z },
+            ]
+      p.g.poly(projectPoly(floor, p.t)).fill(light(slab, 0.2))
+      p.g
+        .poly(projectPoly(faceQuad(b, face, a0, a1, z - 0.008, z, d), p.t))
+        .fill(mix(slab, p.style.shadow, 0.25))
+      // Railing: a thin translucent panel and its top rail.
+      p.g
+        .poly(projectPoly(faceQuad(b, face, a0, a1, z, z + 0.032, d), p.t))
+        .fill({ color: 0x1e293b, alpha: 0.35 })
+      p.g
+        .poly(projectPoly(faceQuad(b, face, a0, a1, z + 0.028, z + 0.034, d), p.t))
+        .fill(mix(slab, p.style.shadow, 0.1))
+    }
+  }
+}
+
+/** Thin floor bands across a plaster facade, and a canopy over the entrance. */
+function floorBands(p: Paint, b: Box, floors: number, from: number, wall: number): void {
+  if (!ART.rich) return
+  const fh = (b.z1 - b.z0 - from) / floors
+  for (let f = 1; f < floors; f++) {
+    const z = b.z0 + from + f * fh
+    stripe(p, b, z - 0.006, z + 0.004, light(wall, 0.22))
+  }
+  const cm = (b.col0 + b.col1) / 2
+  box(
+    p,
+    {
+      col0: cm - 0.07,
+      row0: b.row1,
+      col1: cm + 0.07,
+      row1: b.row1 + 0.05,
+      z0: b.z0 + 0.075,
+      z1: b.z0 + 0.09,
+    },
+    light(wall, 0.3),
+  )
 }
 
 // ---- houses -----------------------------------------------------------------
@@ -185,6 +333,8 @@ export function walkup(p: Paint, lot: Lot, rng: () => number, o: { floors?: numb
   windows(p, b, floors, rng, { spacing: 0.13, from: 0.04 })
   // Ground-floor shopfront band (sides only, so it never paints over the walls) and cornice.
   stripe(p, b, lot.z, lot.z + 0.05, mix(wall, 0x1e293b, 0.35))
+  if (rng() < 0.5) balconies(p, b, floors, 0.04)
+  shopfront(p, b, rng)
   box(
     p,
     {
@@ -232,6 +382,7 @@ export function office(p: Paint, lot: Lot, rng: () => number, o: { floors?: numb
   windows(p, low, lowF, rng, { ribbon: glassy || rng() < 0.4, from: FLOOR * 0.4 })
   stripe(p, low, main.z, main.z + FLOOR * 0.4, mix(s.window, s.shadow, 0.25))
   if (glassy) mullions(p, low, 0.1, light(wall, 0.6))
+  else floorBands(p, low, lowF, FLOOR * 0.4, wall)
   let top = low
   if (setback) {
     const up = inset(main, Math.min(main.col1 - main.col0, main.row1 - main.row0) * 0.15)
@@ -337,7 +488,7 @@ export function landmark(p: Paint, lot: Lot, rng: () => number): number {
 export function plaza(p: Paint, lot: Lot, rng: () => number): number {
   const s = p.style
   const z = lot.z + 0.003
-  p.g.poly(rectOf(p, lot, z)).fill(light(s.sidewalk, 0.15))
+  p.g.poly(rectOf(p, lot, z)).fill(ART.rich ? mix(s.sidewalk, s.road, 0.22) : light(s.sidewalk, 0.15))
   // Paving grid.
   const step = 0.12
   for (let c = lot.col0 + step; c < lot.col1 - 0.02; c += step)

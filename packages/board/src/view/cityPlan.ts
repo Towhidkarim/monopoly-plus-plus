@@ -14,8 +14,8 @@ import { cosmeticRng } from './draw.ts'
 
 /** Ground level inside the ring; the ring tiles stand 0.1 above it. */
 export const GROUND_Z = -0.1
-/** Top of the plinth that carries the district. */
-export const PLINTH_Z = 0.12
+/** Top of the plinth that carries the district: a curb-high step, so the city sits on the ground. */
+export const PLINTH_Z = GROUND_Z + 0.03
 
 const INNER = { lo: DEPTH, hi: BOARD - DEPTH }
 export const CENTER = BOARD / 2

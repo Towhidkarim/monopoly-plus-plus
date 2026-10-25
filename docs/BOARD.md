@@ -5,7 +5,7 @@ Target look: `docs/reference/board-layout-ref.png` (layout and mood only; colors
 ## 1. Overall shape
 
 - Diamond isometric board on a dark table. GO is the **bottom corner**; spaces run clockwise on screen.
-- Outer ring: 40 spaces. Inner area: a raised city plaza with skyscrapers, two crossing roads, a rail loop around the plaza with trains, a small park, and the two card decks (Chance and Chest) as card stacks on either side.
+- Outer ring: 40 spaces. Inner area: a city plaza with skyscrapers (on a curb-high step since D31, no longer raised), two crossing roads, a rail loop around the plaza with trains, a small park, and the two card decks (Chance and Chest) as card stacks on either side.
 - Thin board slab with visible side walls (extruded edge), soft shadow on the table.
 
 ## 2. Board units and ring geometry

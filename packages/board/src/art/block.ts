@@ -1,6 +1,6 @@
 import { cosmeticRng } from '../view/draw.ts'
 import { glassTower, house, landmark, office, park, pick, plaza, walkup, type Lot } from './buildings.ts'
-import { box, flat, lamp, mix, tree, type Paint } from './paint.ts'
+import { ART, box, flat, lamp, mix, tree, type Paint } from './paint.ts'
 
 /**
  * One city block, laid out like a real one: a sidewalk around the edge, buildings fronting the
@@ -39,6 +39,11 @@ export function drawBlock(p: Paint, area: Lot, seed: number, o: BlockOptions): v
   const rng = cosmeticRng(seed)
   flat(p, area.col0, area.row0, area.col1, area.row1, area.z, s.sidewalk)
   const inner = shrink(area, CURB)
+  // Richer look (D31): stone paving downtown, lawns inside the quieter blocks.
+  if (ART.rich && o.kind === 'downtown')
+    flat(p, inner.col0, inner.row0, inner.col1, inner.row1, inner.z + 0.001, mix(s.sidewalk, s.road, 0.28))
+  if (ART.rich && o.kind !== 'downtown' && o.kind !== 'park')
+    flat(p, inner.col0, inner.row0, inner.col1, inner.row1, inner.z + 0.001, mix(s.park, s.shadow, 0.12))
 
   if (o.kind === 'park') {
     park(p, inner, rng, { fountain: rng() < 0.5 })

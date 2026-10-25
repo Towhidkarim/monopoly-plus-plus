@@ -227,3 +227,10 @@ Targets are verified by the bot simulation harness, not guessed. Rules are small
 
 **Decision:** The React shell is styled with Tailwind v4 utilities (`@tailwindcss/vite`), not hand-written CSS classes. Design tokens (palette) live in one `@theme` block in `apps/web/src/index.css` and are used as utilities (`bg-panel`, `text-accent`). Custom CSS only for things utilities cannot express.
 **Why:** Fast iteration on the shell, consistent tokens, and only the classes used get shipped (small CSS). Pixi colors come from the same palette values via a shared TS palette module once the board exists.
+
+## D31. City richness stays 2D and code-drawn (2026-10-25)
+
+**Context:** The developer loved the city in an AI-generated reference (`docs/reference/UI_REFS.md`, Ref 3): soft light on wall faces, warm light spilling out of windows, varied roofs and props, smooth windows. Two routes were weighed: push the code-drawn Pixi kit, or pre-render modular CC0 buildings in Blender into sprite sheets.
+**Decision:** Stay 2D and code-drawn; no Blender or pre-rendered sprites for now. Get the most out of the existing kit: gradients and fake occlusion on faces, light spill and bloom at night, richer silhouettes and props. The tall downtown stays (BOARD.md section 5), with the same richness on towers. Order: a city richness draft on `#art` for review first, then the Milestone 8 cards, UX and UI color theming.
+**Why:** Keeps the seeded city, buildings that grow with play, the iso/top-down morph and a light download; no binary asset pipeline.
+- **No more raised downtown:** the plinth drops from 0.22 to a curb-high 0.03 step (`PLINTH_Z`). The tall, plain grey wall with the ring road running along its edge read as a cake on a table; the reference city sits on the ground.

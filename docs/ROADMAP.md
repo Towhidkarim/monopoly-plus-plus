@@ -125,6 +125,8 @@ Acceptance: ambient adds less than a defined frame-time budget (record it); togg
 
 ## Milestone 8: Cards, auctions, trades, polish UI
 
+References for the card and UI look: `docs/reference/UI_REFS.md`.
+
 Status 2026-10-24: the structured trade screen (offers both ways, bot verdicts, counter-offers, bot offers to humans) was pulled forward and is done (DECISIONS.md D24). The rest of this milestone, including the card-styled look of the trade screen, is still to do.
 
 - Flat overlay cards: title deeds, Chance/Chest draw with launch from the deck stack, flip, reveal, return.
