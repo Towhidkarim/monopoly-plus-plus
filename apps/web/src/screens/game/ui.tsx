@@ -1,8 +1,9 @@
-import { useLayoutEffect, useRef, type ReactNode } from 'react'
+import { useLayoutEffect, useRef, type HTMLAttributes, type ReactNode } from 'react'
 import type { PieceKind } from '@skyline/board'
 import { TIMINGS } from '../../game/timings.ts'
 import { sound } from '../../audio/engine.ts'
 import { fmtMoney } from './format.ts'
+import { useReducedMotion } from './cardEnv.tsx'
 import { PieceIcon } from './icons.tsx'
 
 /** Small shared building blocks for the game screen. */
@@ -33,6 +34,7 @@ export function Btn({
   disabled,
   title,
   className = '',
+  autofocus,
 }: {
   children: ReactNode
   onClick?: () => void
@@ -40,6 +42,8 @@ export function Btn({
   disabled?: boolean
   title?: string | undefined
   className?: string
+  /** The control a dialog focuses when it opens (see useDialogFocus). */
+  autofocus?: boolean
 }) {
   // Press squashes (transform only) and springs back; hover lifts a pixel.
   return (
@@ -51,6 +55,7 @@ export function Btn({
       }}
       disabled={disabled}
       title={title}
+      data-autofocus={autofocus || undefined}
       className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-extrabold disabled:opacity-40 ${BTN_STYLES[kind]} ${className}`}
     >
       {children}
@@ -68,9 +73,14 @@ export function Kbd({ children }: { children: ReactNode; onAccent?: boolean }) {
 }
 
 /** Lamplight panel: ink-blue glass with a warm edge, a top highlight and a soft drop shadow. */
-export function Panel({ children, className = '' }: { children: ReactNode; className?: string }) {
+export function Panel({
+  children,
+  className = '',
+  ...rest
+}: { children: ReactNode; className?: string } & HTMLAttributes<HTMLDivElement>) {
   return (
     <div
+      {...rest}
       className={`pointer-events-auto rounded-[20px] border border-line bg-panel/95 shadow-panel backdrop-blur ${className}`}
     >
       {children}
@@ -121,12 +131,13 @@ export function Money({ value, className = '' }: { value: number; className?: st
 export function TickingMoney({ value, className = '' }: { value: number; className?: string }) {
   const ref = useRef<HTMLSpanElement>(null)
   const shown = useRef<number | null>(null)
+  const reduced = useReducedMotion()
   useLayoutEffect(() => {
     const el = ref.current
     if (!el) return
     const from = shown.current ?? value
     shown.current = value
-    if (from === value) {
+    if (from === value || reduced) {
       el.textContent = fmtMoney(value)
       return
     }
@@ -144,7 +155,7 @@ export function TickingMoney({ value, className = '' }: { value: number; classNa
       cancelAnimationFrame(raf)
       el.textContent = fmtMoney(value)
     }
-  }, [value])
+  }, [value, reduced])
   return <span ref={ref} className={`tabular-nums ${className}`} />
 }
 

@@ -18,16 +18,20 @@ The developer's standing brief: improve anything you spot along the way; the gam
 | `7cc7f8b` | Step 2: deeds with real lot portraits (`lotPortrait` on the board handle), event cards, card motion |
 | `249f31c` | Step 3: buy moment and auction, focus mode for decisions (D34) |
 | `ba31316` | Steps 4-5: trade table, incoming offers, raise-money bill, My city |
-| (this commit) | Review fixes for 4-5 (result holds, narrow trade, drawer clears the dock, compact top bar) and step 6: setup, game over, menu, help, board tooltip |
+| `dd8e44c` | Review fixes for 4-5 and step 6: setup, game over, menu, help, board tooltip |
+| `7d70ff4` | Custom game cursor (D35), hover and press states, board hover/drag fixes |
+| (latest) | Step 7: fit at 950×800 to 1440×900, dialog focus (D36), keyboard play, live region, reduced motion, themed scrollbars, new balloon icon |
 
 ### Next steps
 
-1. **Step 7:** smaller windows with no overlap (check 950×800 and 1440×900 on every screen), then a keyboard and accessibility pass.
-2. After Milestone 8: try 3D dice thrown onto the board on `#playground` first: Pixi cubes, a tumble solved backward to the engine's result, bounce clacks, hit-stop, the total pops, then the dice fly into the tray.
+Milestone 8 is built. Left: the developer's hands-on play review.
+
+1. **3D dice trial on `#playground`:** Pixi cubes thrown onto the board, a tumble solved backward to the engine's result, bounce clacks, hit-stop, the total pops, then the dice fly into the tray. Then into the game.
+2. Then Milestone 9, online multiplayer (see ROADMAP).
 
 Test URLs: trade `?demo=play&seed=7&open=trade`; debt `?demo=play&seed=17&scene=debt`; My city `?demo=play&seed=17&scene=build&open=city`; game over `?demo=play&seed=7&scene=build` (seed 7 runs to the end). For narrow checks, render the URL in a 950×800 iframe inside your own tab.
 
-Small polish noted: the balloon piece icon reads like a lightbulb.
+Commits: plain messages, no Co-Authored-By or other attribution.
 
 Incoming offer for testing: in the dev console, with a game where you own something, run:
 

@@ -3,7 +3,10 @@ import { cssHex } from '../../spaceInfo.ts'
 import type { TurnView } from './turn.ts'
 import { TokenAvatar } from './ui.tsx'
 
-/** Cream ribbon under the HUD; swings in with a spring whenever the turn changes hands. */
+/**
+ * Cream ribbon under the HUD; swings in with a spring whenever the turn changes hands. Not a live
+ * region: the Announcer speaks turn changes, so screen readers hear them once.
+ */
 export function TurnBanner({
   snap,
   store,
@@ -26,7 +29,7 @@ export function TurnBanner({
     <div
       className={`pointer-events-none absolute inset-x-0 top-28 flex justify-center px-4 transition-opacity duration-300 ease-out ${cityOpen ? 'opacity-0' : ''}`}
     >
-      <output
+      <div
         key={`${seat}-${snap.presented.round}`}
         className={`flex min-w-0 origin-top max-w-140 items-stretch overflow-hidden rounded-2xl bg-card text-card-ink shadow-card ${store.settings.reducedMotion ? 'animate-fade' : 'animate-banner'}`}
       >
@@ -40,7 +43,7 @@ export function TurnBanner({
             </span>
           </span>
         </span>
-      </output>
+      </div>
     </div>
   )
 }

@@ -15,6 +15,7 @@ import { sound } from '../../audio/engine.ts'
 import type { GameStore, Snapshot } from '../../game/store.ts'
 import { cssHex } from '../../spaceInfo.ts'
 import { useReducedMotion } from './cardEnv.tsx'
+import { useDialogFocus } from './useDialogFocus.ts'
 import { Stamp } from './cardMotion.tsx'
 import { flavorOf } from './cardInfo.ts'
 import { familyColor, familyName } from './deed.ts'
@@ -212,6 +213,7 @@ function Sheet({
   onTrade: (() => void) | null
 }) {
   const [confirm, setConfirm] = useState(false)
+  const dialog = useDialogFocus({ active: live })
   const creditorName = v.creditor?.name ?? 'the bank'
   const total = Math.max(v.owed, v.cash + v.liquid)
   const pct = (x: number) => `${Math.max(0, Math.min(100, (x / total) * 100))}%`
@@ -220,7 +222,8 @@ function Sheet({
 
   return (
     <div
-      aria-label={`Raise money to pay ${creditorName}`}
+      {...dialog.props}
+      {...(leave ? { inert: true } : {})}
       className={`absolute inset-x-0 top-24 bottom-0 overflow-y-auto bg-table/55 px-4 pt-6 pb-6 ${leave ? 'pointer-events-none' : 'pointer-events-auto'} ${reduced ? '' : 'transition-opacity duration-300 ease-out'} ${out ? 'opacity-0' : ''}`}
     >
       <div
@@ -232,12 +235,10 @@ function Sheet({
           className={`flex max-h-[calc(100vh-9rem)] w-140 max-w-full shrink-0 animate-rise flex-col overflow-hidden rounded-3xl border border-alert/40 bg-panel shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_0_4px_rgba(251,113,133,0.08),0_28px_60px_rgba(2,6,16,0.65)] ${leave && !reduced ? 'transition-opacity duration-300' : ''} ${leave ? 'opacity-60' : ''}`}
         >
           <div className="flex flex-col gap-3.5 px-6 pt-5.5 pb-4">
-            <Eyebrow
-              className={`h-14 rounded-2xl px-3.5 text-sm font-extrabold text-rose-300 underline underline-offset-4 transition-colors duration-200 hover:text-rose-200 enabled:hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-40`}
-            >
+            <Eyebrow className="text-xs text-rose-300">
               You owe {creditorName} {fmtMoney(v.owed)} {REASON[v.reason] ?? ''}
             </Eyebrow>
-            <h2 className="font-display text-[32px] leading-tight font-bold">
+            <h2 id={dialog.titleId} className="font-display text-[32px] leading-tight font-bold">
               Raise {fmtMoney(Math.max(0, v.need))} to pay
             </h2>
             <div className="flex flex-col gap-1.5">
@@ -319,6 +320,7 @@ function Sheet({
               <div className="flex items-center gap-2.5">
                 {v.planActions.length > 0 && (
                   <Btn
+                    autofocus
                     kind={v.enough ? 'primary' : 'secondary'}
                     disabled={!live}
                     onClick={() => store.run(id, v.planActions)}
@@ -389,7 +391,7 @@ function Bill({
           <span className="font-card text-[13px] font-extrabold tracking-[0.2em] text-card-muted uppercase">
             {BILL_TITLE[v.reason] ?? 'Bill'}
           </span>
-          <span className="text-[11px] text-[#7a8293]">Round {v.round}</span>
+          <span className="text-[11px] text-[#5f6778]">Round {v.round}</span>
         </span>
         <span className="flex items-center gap-2.5">
           {v.creditor ? (

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { Fx, GameStore } from '../../game/store.ts'
 import { cssHex } from '../../spaceInfo.ts'
 import { TIMINGS, coinCount } from '../../game/timings.ts'
+import { osReducedMotion } from './cardEnv.tsx'
 
 /**
  * Money feedback over the HUD: "+₵200" pops under a player card and coins flying from payer
@@ -14,7 +15,7 @@ export function FxLayer({ store }: { store: GameStore }) {
     () =>
       store.onFx((fx) => {
         const layer = ref.current
-        if (!layer || store.settings.reducedMotion) return
+        if (!layer || store.settings.reducedMotion || osReducedMotion()) return
         const speed = store.settings.speed
         if (fx.kind === 'pop') pop(layer, fx.playerId, fx.delta, speed)
         else if (fx.kind === 'transfer') {
@@ -147,10 +148,7 @@ export function CalloutLayer({ store }: { store: GameStore }) {
   const accent =
     shown.seat !== undefined && shown.seat >= 0 ? cssHex(store.setup.seats[shown.seat]!.color) : undefined
   return (
-    <div
-      className="pointer-events-none absolute inset-x-0 top-[34%] flex justify-center px-4"
-      aria-live="polite"
-    >
+    <div className="pointer-events-none absolute inset-x-0 top-[34%] flex justify-center px-4">
       <div
         key={shown.id}
         className={`flex animate-pop items-center gap-3.5 rounded-2xl border bg-panel/95 px-5 py-3.5 shadow-2xl shadow-black/50 backdrop-blur ${border}`}

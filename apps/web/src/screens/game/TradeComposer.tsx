@@ -16,6 +16,7 @@ import {
 } from '../../game/trade.ts'
 import { cssHex, groupName } from '../../spaceInfo.ts'
 import { useReducedMotion } from './cardEnv.tsx'
+import { useDialogFocus } from './useDialogFocus.ts'
 import { Icon } from './icons.tsx'
 import {
   CardSlot,
@@ -81,6 +82,7 @@ export function TradeComposer({
   /** The deal's stamp has been held; its cards are now flying to their new owners. */
   const [flying, setFlying] = useState(false)
   const rootRef = useRef<HTMLElement>(null)
+  const dialog = useDialogFocus({ also: rootRef })
   const fly = useRef(new Map<string, DOMRect>())
   /** Every card and coin stack on the mats, by `give:` or `get:` key, for the deal's flight. */
   const mats = useRef(new Map<string, HTMLElement>())
@@ -248,8 +250,7 @@ export function TradeComposer({
 
   return (
     <section
-      ref={rootRef}
-      aria-label={`Trade with ${them.name}`}
+      {...dialog.props}
       className="pointer-events-auto absolute inset-x-0 top-24 bottom-0 z-30 flex items-center justify-center bg-table/65 p-3 backdrop-blur-sm min-[1180px]:p-4"
     >
       <Panel className="relative flex h-full max-h-200 w-full max-w-340 animate-pop flex-col overflow-hidden rounded-[28px]!">
@@ -267,7 +268,9 @@ export function TradeComposer({
             <Eyebrow className="text-accent">
               {draft.replaces !== undefined ? 'Counter-offer' : 'Trade'}
             </Eyebrow>
-            <div className="font-display text-[22px] leading-tight font-bold">Trade with</div>
+            <h2 id={dialog.titleId} className="font-display text-[22px] leading-tight font-bold">
+              Trade with
+            </h2>
           </div>
           <div className="flex flex-wrap gap-2">
             {others.map((seat) => {
@@ -311,7 +314,8 @@ export function TradeComposer({
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label="Close trade"
+            title="Close (Esc)"
             className={`flex size-10 items-center justify-center rounded-xl border border-line text-ink ${FX} enabled:hover:bg-white/8`}
           >
             <Icon name="close" size={16} />
@@ -485,6 +489,12 @@ function Hand({
   const groups = [...GROUPS.keys(), -1]
     .map((g) => ({ g, list: spaces.filter((x) => SPACES[x.space]!.group === g) }))
     .filter((x) => x.list.length > 0)
+  /** "Crown 1 of 2" for a set (the header's text, for the fanned layout where headers are folded away). */
+  const setNote = (g: number): string | undefined => {
+    if (g < 0) return 'Stations and utilities'
+    const all = GROUPS[g]!
+    return `${groupName(g)}, you hold ${all.filter((i) => s.owner[i] === seat).length} of ${all.length}`
+  }
   return (
     <section
       aria-label={title}
@@ -504,11 +514,15 @@ function Hand({
       </div>
       {bubble}
       {groups.length === 0 && <span className="text-sm text-ink-muted">No properties</span>}
-      <div className="flex flex-col gap-3.5">
+      {/* Mid widths: the whole hand is one fan, each card tucked under the next so its name and set
+          band stay readable (hover or focus lifts one). The set headers fold into each card's tooltip. */}
+      <div className="flex flex-col gap-3.5 min-[700px]:max-[1179px]:gap-0 min-[700px]:max-[1179px]:pt-[70px] min-[700px]:max-[1179px]:[&_button]:-mt-[70px]">
         {groups.map(({ g, list }) => (
-          <div key={g} className="flex flex-col gap-2">
-            <SetHeader s={s} seat={seat} group={g} />
-            <div className="grid grid-cols-1 gap-2.5 max-[699px]:grid-cols-[repeat(auto-fill,minmax(112px,1fr))] min-[1180px]:grid-cols-[repeat(2,minmax(0,1fr))]">
+          <div key={g} className="flex flex-col gap-2 min-[700px]:max-[1179px]:contents">
+            <div className="min-[700px]:max-[1179px]:hidden">
+              <SetHeader s={s} seat={seat} group={g} />
+            </div>
+            <div className="grid grid-cols-1 gap-2.5 max-[699px]:grid-cols-[repeat(auto-fill,minmax(112px,1fr))] min-[700px]:max-[1179px]:contents min-[1180px]:grid-cols-[repeat(2,minmax(0,1fr))]">
               {list.map((x) => (
                 <HandCard
                   key={x.space}
@@ -518,6 +532,7 @@ function Hand({
                   k={HAND_SCALE}
                   onTable={inDeal.includes(x.space)}
                   blocked={x.blocked}
+                  setNote={setNote(g)}
                   fly={fly}
                   {...(locked ? {} : { onPick: (rect: DOMRect) => onCard(x.space, rect) })}
                 />

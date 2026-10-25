@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { SPACES, isOwnable, legalActions, mortgageValue, unmortgageCost, type Action } from '@skyline/engine'
 import { hintFor } from '../../game/hints.ts'
 import type { GameStore, Snapshot } from '../../game/store.ts'
@@ -55,7 +56,10 @@ export function LeftColumn({
   return (
     <div className="pointer-events-none absolute top-32 left-5 flex w-72 flex-col gap-3">
       {snap.dice && (
-        <Panel className="flex items-center gap-3.5 p-3.5">
+        // With a deed open, a short window gives the deed the room.
+        <Panel
+          className={`flex items-center gap-3.5 p-3.5 ${selected !== null ? '[@media(max-height:899px)]:hidden' : ''}`}
+        >
           <DiceTray
             dice={snap.dice}
             roll={snap.diceRoll}
@@ -159,7 +163,7 @@ function SelectedSpace({
     <button
       type="button"
       onClick={onClose}
-      aria-label="Close"
+      aria-label="Close tile details"
       className={`absolute top-2 right-2 flex size-8 items-center justify-center rounded-lg bg-table/40 text-ink ${FX} enabled:hover:bg-table/70`}
     >
       <Icon name="close" size={16} />
@@ -179,7 +183,7 @@ function SelectedSpace({
   }
 
   return (
-    <div className="pointer-events-auto relative flex animate-rise flex-col gap-2">
+    <FitHeight className="pointer-events-auto relative flex animate-rise flex-col gap-2">
       <div className="relative">
         <DeedCard
           index={index}
@@ -225,9 +229,49 @@ function SelectedSpace({
           </button>
         )}
       </div>
+    </FitHeight>
+  )
+}
+
+/**
+ * Shrinks its content (CSS `zoom`, which scales layout and stays crisp) just enough to fit between
+ * its top and the bottom of the window, clear of the action dock on narrow windows. Never grows.
+ */
+function FitHeight({ children, className }: { children: ReactNode; className: string }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [k, setK] = useState(1)
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const fit = () => {
+      // offsetHeight is the natural (unzoomed) height; the top does not move with zoom.
+      const reserve = window.innerWidth < DOCK_CLEAR_AT ? 132 : 24
+      const room = window.innerHeight - el.getBoundingClientRect().top - reserve
+      setK(Math.max(0.55, Math.min(1, room / el.offsetHeight)))
+    }
+    fit()
+    const ro = new ResizeObserver(fit)
+    ro.observe(el)
+    if (el.parentElement) ro.observe(el.parentElement)
+    window.addEventListener('resize', fit)
+    return () => {
+      ro.disconnect()
+      window.removeEventListener('resize', fit)
+    }
+  }, [])
+  return (
+    <div
+      ref={ref}
+      className={className} // The width shrinks with the zoom so the content is laid out at the column's own width.
+      style={k < 1 ? { zoom: k, width: `${k * 100}%` } : undefined}
+    >
+      {children}
     </div>
   )
 }
+
+/** Window width from which the centered action dock no longer reaches the left column. */
+const DOCK_CLEAR_AT = 1190
 
 const soloHuman = (store: GameStore) => store.setup.seats.filter((x) => x.kind === 'human').length === 1
 
@@ -283,10 +327,7 @@ export function ActivityFeed({
               <Icon name="close" size={16} />
             </button>
           </div>
-          <ol
-            className="flex min-h-0 flex-col gap-1.5 overflow-y-auto px-4 pb-3.5 text-xs leading-relaxed"
-            aria-live="polite"
-          >
+          <ol className="flex min-h-0 flex-col gap-1.5 overflow-y-auto px-4 pb-3.5 text-xs leading-relaxed">
             {snap.log.map((e) => (
               <li key={e.id} className={`flex gap-2 ${tone[e.tone]}`}>
                 <span className={`mt-1.5 size-1.5 shrink-0 rounded-full ${dot[e.tone]}`} />

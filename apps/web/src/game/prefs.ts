@@ -34,6 +34,15 @@ export function loadPrefs(): Partial<Prefs> {
   return { reducedMotion, cityLife: !reducedMotion, ...saved }
 }
 
+/**
+ * The one reduced-motion signal for CSS: `data-reduced-motion` on <html> is 'true' when the
+ * setting or the operating system asks for less motion (index.css keys off it).
+ */
+export function syncReducedMotion(setting: boolean): void {
+  const os = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
+  document.documentElement.dataset.reducedMotion = setting || os ? 'true' : 'false'
+}
+
 export function savePrefs(p: Prefs): void {
   try {
     localStorage.setItem(KEY, JSON.stringify(p))

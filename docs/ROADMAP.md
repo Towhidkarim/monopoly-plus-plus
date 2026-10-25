@@ -141,6 +141,8 @@ After Milestone 8: 3D dice thrown onto the board (Pixi cubes, tumble solved back
 
 Status 2026-10-24: the structured trade screen (offers both ways, bot verdicts, counter-offers, bot offers to humans) was pulled forward and is done (DECISIONS.md D24). The rest of this milestone, including the card-styled look of the trade screen, is still to do.
 
+Status 2026-10-26: all 7 build steps done and reviewed (steps 1-7, D32-D36): lamplight theme and fonts, card-stock deeds with lot portraits, buy moment and auction, felt trade table and offers, raise-money bill, My city drawer, setup, game over, menu and rulebook, custom cursor, fit at 950×800 to 1440×900, dialog focus, keyboard play, one live region, reduced motion everywhere. Pending: the developer's hands-on play review (real Tab traversal and screen reader not verified).
+
 - Flat overlay cards: title deeds, Chance/Chest draw with launch from the deck stack, flip, reveal, return.
 - Auction UI with bid animations and timers (`TIMEOUT` actions); structured trade UI (offer sets, cash, accept/reject, counter).
 - Property management panel (build, sell, mortgage) usable any time, with even-build feedback.

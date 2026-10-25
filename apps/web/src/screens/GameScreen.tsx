@@ -4,7 +4,7 @@ import type { BoardHandle } from '@skyline/board'
 import { BoardCanvas } from '../BoardCanvas.tsx'
 import { connectSound } from '../audio/connect.ts'
 import { sound } from '../audio/engine.ts'
-import { savePrefs } from '../game/prefs.ts'
+import { loadPrefs, savePrefs, syncReducedMotion } from '../game/prefs.ts'
 import { buildableGroups } from '@skyline/bots'
 import { cityOf } from '../game/setup.ts'
 import { applyCursorPref, type CursorPref } from '../cursors.ts'
@@ -16,6 +16,7 @@ import { bidAction, raiseOptions } from './game/auctionBids.ts'
 import { BuyMoment } from './game/BuyMoment.tsx'
 import { DebtPanel } from './game/DebtPanel.tsx'
 import { BoardHandleContext } from './game/cardEnv.tsx'
+import { Announcer } from './game/Announcer.tsx'
 import { CalloutLayer, FxLayer } from './game/Fx.tsx'
 import { GameTooltip } from './game/GameTooltip.tsx'
 import { Hud } from './game/Hud.tsx'
@@ -30,12 +31,15 @@ import { turnView, type TurnView } from './game/turn.ts'
 
 /**
  * Text fields keep every key. A focused button keeps Enter (keyboard activation) but not Space:
- * Space is always the main action, so clicking My city and then pressing Space still rolls.
+ * Space is the main action, so clicking My city and then pressing Space still rolls. Inside a
+ * dialog a focused button keeps Space too, so Tab to "Put it up for auction" and Space does that,
+ * not the primary action.
  */
 const ownsKey = (t: EventTarget | null, key: string) =>
   t instanceof HTMLElement &&
   (t.closest('input, textarea, select, [contenteditable]') !== null ||
-    (key === 'Enter' && t.closest('button') !== null))
+    ((key === 'Enter' || (key === ' ' && t.closest('[role="dialog"]') !== null)) &&
+      t.closest('button') !== null))
 
 /** `?open=city`, `?open=help` or `?open=trade` opens a panel on load (dev and screenshots). */
 const initialPanel = () => new URLSearchParams(window.location.search).get('open')
@@ -82,6 +86,12 @@ export function GameScreen({
       store.attach(null)
     }
   }, [handle, store])
+
+  // The one reduced-motion signal for CSS (see index.css): the in-game setting or the OS preference.
+  useEffect(() => {
+    syncReducedMotion(reducedMotion)
+    return () => syncReducedMotion(loadPrefs().reducedMotion ?? false)
+  }, [reducedMotion])
 
   // The board eases the fade itself; resume and reload snap straight to the right sky.
   const round = snap.presented.round
@@ -143,10 +153,12 @@ export function GameScreen({
       fn()
     }
     if (key === 'escape') {
+      // One layer per press, top-most first (help and the menu sit above the rest).
       return press(() => {
-        if (trade) setTrade(null)
-        else if (help) setHelp(false)
+        if (help) setHelp(false)
         else if (menu) setMenu(false)
+        else if (trade) setTrade(null)
+        else if (snap.card?.waiting) return
         else if (cityOpen) setCityOpen(false)
         else if (showLog) setShowLog(false)
         else select(null)
@@ -188,6 +200,18 @@ export function GameScreen({
           renderTooltip={(i) => <GameTooltip index={i} snap={snap} store={store} />}
         >
           <div className="pointer-events-none absolute inset-0">
+            {/* A button (not a #link: the hash is the router). Hidden until it has keyboard focus. */}
+            <button
+              type="button"
+              onClick={() =>
+                document
+                  .querySelector<HTMLElement>('nav[aria-label="Actions"] button:not(:disabled)')
+                  ?.focus()
+              }
+              className="pointer-events-auto sr-only z-50 rounded-xl bg-accent px-4 py-2 text-sm font-extrabold text-accent-ink focus:not-sr-only focus:absolute focus:top-2 focus:left-1/2 focus:-translate-x-1/2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-card"
+            >
+              Skip to actions
+            </button>
             <Hud
               snap={snap}
               store={store}
@@ -196,6 +220,7 @@ export function GameScreen({
               onHelp={() => setHelp(true)}
               onMenu={() => setMenu((v) => !v)}
             />
+            <Announcer snap={snap} store={store} turn={turn} />
             <TurnBanner snap={snap} store={store} turn={turn} cityOpen={cityOpen} />
             {/* Focus mode: during a decision the side panels slide away so nothing overlaps it. */}
             <div

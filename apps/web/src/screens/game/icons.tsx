@@ -47,8 +47,9 @@ const PIECE_PATHS: Record<PieceKind, string> = {
   taxi: 'M4 16 L5.5 11 H18.5 L20 16 V19 H4 Z M7 19 V21 M17 19 V21 M9 8 H15 V11 H9 Z',
   bus: 'M5 4 H19 V17 H5 Z M5 11 H19 M8 17 V20 M16 17 V20',
   drone: 'M12 10 V14 M8 12 H16 M4 8 H8 M16 8 H20 M6 8 V11 L9 12 M18 8 V11 L15 12',
+  // Wide envelope with two gore seams and a centre seam, two short ropes, and a hanging basket.
   balloon:
-    'M12 3 A6 6 0 0 1 18 9 C18 13 14 16 12 17 C10 16 6 13 6 9 A6 6 0 0 1 12 3 Z M10.5 17 L11 20 H13 L13.5 17',
+    'M12 2.5 C17.5 2.5 21 6 21 9.5 C21 12.6 18.6 14.4 16 14.8 H8 C5.4 14.4 3 12.6 3 9.5 C3 6 6.5 2.5 12 2.5 Z M12 2.5 V14.8 M8.6 3.7 C7.4 6.8 7.4 11.5 8.2 14.8 M15.4 3.7 C16.6 6.8 16.6 11.5 15.8 14.8 M9 14.8 L10 18 M15 14.8 L14 18 M9.6 18 H14.4 V21.5 H9.6 Z',
   pawn: 'M12 3.5 A3 3 0 0 1 12 9.5 A3 3 0 0 1 12 3.5 Z M10.5 10 L9 18 H15 L13.5 10 M7 20.5 H17',
 }
 

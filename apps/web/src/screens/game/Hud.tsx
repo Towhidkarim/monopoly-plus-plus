@@ -3,6 +3,7 @@ import { GROUP_COUNT, GROUPS, SPACES, isOwnable } from '@skyline/engine'
 import { sound } from '../../audio/engine.ts'
 import type { GameStore, Snapshot } from '../../game/store.ts'
 import { cssHex, groupColor, groupName } from '../../spaceInfo.ts'
+import { fmtMoney } from './format.ts'
 import { Icon } from './icons.tsx'
 import { TickingMoney, TokenAvatar, FX } from './ui.tsx'
 
@@ -93,6 +94,17 @@ export function Hud({
             <div
               key={pl.id}
               data-seat-card={pl.id}
+              // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- a fieldset would bring form semantics and layout quirks
+              role="group"
+              aria-label={[
+                pl.name,
+                info.kind === 'bot' ? `${store.botName(seat) ?? ''} bot`.trim() : null,
+                `${fmtMoney(pl.cash)} cash`,
+                tag ? tag.toLowerCase() : null,
+                pl.jailCards > 0 ? `${pl.jailCards} Lockup ${pl.jailCards === 1 ? 'card' : 'cards'}` : null,
+              ]
+                .filter(Boolean)
+                .join(', ')}
               className={`pointer-events-auto relative flex w-60 min-w-0 shrink flex-col gap-1.5 rounded-2xl border-[1.5px] px-3 py-2.5 transition-[background-color,box-shadow,opacity,translate] duration-300 ease-spring ${
                 pl.bankrupt
                   ? 'border-line bg-panel opacity-40'

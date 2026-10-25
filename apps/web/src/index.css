@@ -216,13 +216,40 @@
   }
 }
 
+/*
+ * Reduced motion: the OS preference or the in-game toggle (GameScreen and main.tsx keep
+ * data-reduced-motion on <html> in step; JS paths use useReducedMotion). Every CSS entrance
+ * (stamps, banners, pops, slides, deals) lands at once with no slam, and the springy overshoot
+ * becomes a plain ease. Hover lifts and press scale stay. The toast keeps its hold-then-fade
+ * (it is how a toast leaves), and `finish` states are still reached because duration is 1ms,
+ * not none.
+ */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  :root {
+    --ease-spring: cubic-bezier(0.2, 0, 0, 1);
+  }
+  *:not(.animate-toast),
+  *:not(.animate-toast)::before,
+  *:not(.animate-toast)::after {
     animation-duration: 1ms !important;
+    animation-delay: 0s !important;
     animation-iteration-count: 1 !important;
   }
+}
+:root[data-reduced-motion='true'] {
+  --ease-spring: cubic-bezier(0.2, 0, 0, 1);
+}
+:root[data-reduced-motion='true'] *:not(.animate-toast),
+:root[data-reduced-motion='true'] *:not(.animate-toast)::before,
+:root[data-reduced-motion='true'] *:not(.animate-toast)::after {
+  animation-duration: 1ms !important;
+  animation-delay: 0s !important;
+  animation-iteration-count: 1 !important;
+}
+
+/* Dialogs take focus programmatically; the ring belongs on controls, not on the panel itself. */
+[role='dialog']:focus {
+  outline: none;
 }
 
 /* Card motion (D32 Feel study). Transform and opacity only; the JS side skips these with reduced motion. */
@@ -291,5 +318,41 @@
 @keyframes result-out {
   to {
     opacity: 0;
+  }
+}
+
+/* Scrollbars: a thin lamp-lit rail instead of the system bar. Chromium/Safari use the
+   ::-webkit-scrollbar parts (rounded thumb, no arrows); Firefox gets the standard properties. */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background: rgba(255, 214, 150, 0.22) padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 214, 150, 0.4);
+}
+::-webkit-scrollbar-thumb:active {
+  background-color: rgba(245, 181, 74, 0.7);
+}
+::-webkit-scrollbar-button {
+  display: none;
+}
+/* Scrollers on cream card stock get an ink thumb. */
+.bg-card ::-webkit-scrollbar-thumb,
+.bg-card::-webkit-scrollbar-thumb {
+  background-color: rgba(31, 42, 61, 0.22);
+}
+@supports (-moz-appearance: none) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 214, 150, 0.28) transparent;
   }
 }

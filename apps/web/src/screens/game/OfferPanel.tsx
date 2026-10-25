@@ -5,6 +5,7 @@ import type { GameStore, Snapshot, TradeOutcome } from '../../game/store.ts'
 import { mortgageFee, reaction } from '../../game/trade.ts'
 import { cssHex } from '../../spaceInfo.ts'
 import { useReducedMotion } from './cardEnv.tsx'
+import { useDialogFocus } from './useDialogFocus.ts'
 import { Icon } from './icons.tsx'
 import type { TradeDraft } from './TradeComposer.tsx'
 import { BundleOnMat, DealNotes, Felt, Mat, ResultStamp, SpeechBubble } from './TradeParts.tsx'
@@ -87,6 +88,7 @@ function OfferCard({
   const canAccept = leaving !== undefined || reduce(s, to.id, { type: 'ACCEPT_TRADE', tradeId: offer.id }).ok
 
   const rootRef = useRef<HTMLDivElement>(null)
+  const dialog = useDialogFocus({ also: rootRef, active: leaving === undefined })
   /** Cards and coins on the mats: `in:` keys are what you receive, `out:` keys what you hand over. */
   const pieces = useRef(new Map<string, HTMLElement>())
   const reg = (side: 'in' | 'out') => (key: string, el: HTMLElement | null) => {
@@ -150,8 +152,7 @@ function OfferCard({
   const sender = seats[offer.from]!
   return (
     <section
-      ref={rootRef}
-      aria-label={`Trade offer from ${from.name}`}
+      {...dialog.props}
       className="pointer-events-auto absolute inset-x-0 top-24 bottom-0 flex items-center justify-center bg-table/60 p-3"
     >
       <Panel className="relative flex max-h-full w-140 max-w-full animate-rise flex-col overflow-hidden rounded-3xl!">
@@ -166,7 +167,9 @@ function OfferCard({
         <div className="flex items-start gap-3.5 px-5.5 pt-5 pb-3.5">
           <TokenAvatar color={cssHex(sender.color)} piece={sender.piece} size={46} />
           <div className="flex min-w-0 flex-1 flex-col gap-2">
-            <Eyebrow className="text-accent">Trade offer</Eyebrow>
+            <Eyebrow className="text-accent">
+              <span id={dialog.titleId}>Trade offer</span>
+            </Eyebrow>
             <div className="font-display text-[22px] leading-tight font-bold">
               {from.name} offers {solo ? 'you' : to.name} a deal
             </div>
@@ -243,6 +246,7 @@ function OfferCard({
           </Btn>
           <Btn
             kind="primary"
+            autofocus
             disabled={!canAccept || leaving !== undefined}
             className="h-[50px]! rounded-[14px]! px-[22px]! text-base!"
             onClick={() => answer('ACCEPT_TRADE')}

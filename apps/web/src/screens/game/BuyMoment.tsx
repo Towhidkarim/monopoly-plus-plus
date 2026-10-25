@@ -3,6 +3,7 @@ import { SPACES, type Action } from '@skyline/engine'
 import type { GameStore, Snapshot } from '../../game/store.ts'
 import { cssHex } from '../../spaceInfo.ts'
 import { useReducedMotion } from './cardEnv.tsx'
+import { useDialogFocus } from './useDialogFocus.ts'
 import { familyOf, inkOn, rgba, setProgress } from './deed.ts'
 import { FADE_MS, FLY_MS, SOLD_HOLD_MS, flyToChip } from './finale.ts'
 import { GavelIcon, TagIcon } from './icons.tsx'
@@ -92,6 +93,7 @@ export function BuyMoment({
     return () => window.clearTimeout(t)
   }, [kind, finId, reduced])
 
+  const dialog = useDialogFocus({ active: !fin })
   const shown = live ?? fin
   if (!shown) return null
   const space = shown.space
@@ -112,7 +114,7 @@ export function BuyMoment({
     >
       <div ref={dimRef} aria-hidden="true" className="absolute inset-0 bg-table/55" />
       <section
-        aria-label={`Buy ${sp.name}`}
+        {...dialog.props}
         className="relative flex animate-rise flex-wrap items-center justify-center gap-11"
       >
         <div ref={flyRef}>
@@ -133,7 +135,9 @@ export function BuyMoment({
               <TagIcon color="var(--color-accent)" />
               For sale
             </Eyebrow>
-            <h2 className="font-display text-[32px] leading-[1.1] font-bold">Buy {sp.name}?</h2>
+            <h2 id={dialog.titleId} className="font-display text-[32px] leading-[1.1] font-bold">
+              Buy {sp.name}?
+            </h2>
 
             <div className="flex items-center justify-between rounded-2xl border border-line bg-white/4 px-4 py-3.5">
               <div className="flex flex-col gap-0.5">
@@ -217,6 +221,7 @@ export function BuyMoment({
             <div className="flex flex-col gap-2.5">
               <Btn
                 kind="primary"
+                autofocus
                 disabled={!buy}
                 onClick={() => act(buy)}
                 className="h-15.5 rounded-[18px] text-[19px] shadow-gold-lg"

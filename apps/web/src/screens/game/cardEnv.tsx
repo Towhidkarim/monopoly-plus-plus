@@ -15,7 +15,8 @@ export const BoardHandleContext = createContext<CardEnv>({ handle: null, night: 
 
 export const useCardEnv = (): CardEnv => useContext(BoardHandleContext)
 
-const query = () =>
+/** The operating system's reduced-motion preference. */
+export const osReducedMotion = (): boolean =>
   typeof window !== 'undefined' && typeof window.matchMedia === 'function'
     ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
     : false
@@ -23,7 +24,7 @@ const query = () =>
 /** The game's reduced-motion setting or the OS preference. */
 export function useReducedMotion(): boolean {
   const env = useCardEnv()
-  return env.reducedMotion || query()
+  return env.reducedMotion || osReducedMotion()
 }
 
 /**

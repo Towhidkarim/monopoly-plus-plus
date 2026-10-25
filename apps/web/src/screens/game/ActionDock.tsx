@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useRef, type ReactNode } from 'react'
 import type { GameStore, Snapshot } from '../../game/store.ts'
 import { Icon } from './icons.tsx'
 import type { TurnView } from './turn.ts'
@@ -26,6 +26,13 @@ export function ActionDock({
   /** Opens the trade screen, or null when the viewer cannot trade. */
   onTrade: (() => void) | null
 }) {
+  // The primary button is replaced (new key) whenever the action changes, for example Roll to End
+  // turn. If keyboard focus was on it, put focus on its successor instead of dropping it on <body>.
+  const primaryHadFocus = useRef(false)
+  const adoptFocus = (el: HTMLButtonElement | null) => {
+    const lost = !document.activeElement || document.activeElement === document.body
+    if (el && primaryHadFocus.current && lost) el.focus({ preventScroll: true })
+  }
   // Buy, debt, an offer and a waiting card carry their own buttons.
   if (
     snap.presented.over ||
@@ -51,7 +58,13 @@ export function ActionDock({
           // The wrapper pops in on each new primary; the button inside breathes while it waits.
           <span key={primary.label} className="inline-flex animate-pop">
             <button
+              ref={adoptFocus}
               type="button"
+              onFocus={() => (primaryHadFocus.current = true)}
+              onBlur={(e) => {
+                // Moving focus elsewhere clears it; the button being removed (no target) keeps it.
+                if (e.relatedTarget) primaryHadFocus.current = false
+              }}
               onClick={primary.run}
               className={`flex h-[66px] items-center gap-3 rounded-[18px] bg-accent px-8.5 font-display text-xl font-bold text-accent-ink shadow-gold-lg ${FX_BRIGHT} ${store.settings.reducedMotion ? '' : 'animate-breathe'}`}
             >

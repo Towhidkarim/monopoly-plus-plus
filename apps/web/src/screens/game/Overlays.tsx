@@ -18,6 +18,7 @@ import { cssHex, groupName } from '../../spaceInfo.ts'
 import { CardArt } from './cardArt.tsx'
 import { DECK_STYLE, artOf, flavorOf, moneyOf, textParts } from './cardInfo.ts'
 import { useReducedMotion } from './cardEnv.tsx'
+import { useDialogFocus } from './useDialogFocus.ts'
 import { CardStage, Stamp } from './cardMotion.tsx'
 import { Confetti } from './Confetti.tsx'
 import { Icon } from './icons.tsx'
@@ -27,6 +28,7 @@ import { Btn, Eyebrow, Kbd, Money, Panel, TokenAvatar } from './ui.tsx'
 /** The drawn card. A human's card waits for Continue; a bot's closes by itself. */
 export function CardPopup({ snap, store }: { snap: Snapshot; store: GameStore }) {
   const c = snap.card
+  const dialog = useDialogFocus({ active: c?.waiting === true })
   if (!c) return null
   const cards = c.deck === 'chance' ? CHANCE_CARDS : CHEST_CARDS
   const card = cards[c.cardId]
@@ -34,6 +36,7 @@ export function CardPopup({ snap, store }: { snap: Snapshot; store: GameStore })
   const money = card ? moneyOf(card, snap.state.config.goSalary) : null
   return (
     <div
+      {...dialog.props}
       className={`absolute inset-x-0 top-24 bottom-0 flex items-start justify-center px-4 pt-20 ${c.waiting ? 'pointer-events-auto bg-table/55' : 'pointer-events-none'}`}
     >
       <div className="flex flex-col items-center gap-[18px]">
@@ -77,7 +80,10 @@ export function CardPopup({ snap, store }: { snap: Snapshot; store: GameStore })
                 >
                   <path d={deck.pip} fill="#fff" />
                 </svg>
-                <span className="absolute inset-x-0 top-[18px] text-center text-xs font-bold tracking-[0.22em] text-white uppercase">
+                <span
+                  id={dialog.titleId}
+                  className="absolute inset-x-0 top-[18px] text-center text-xs font-bold tracking-[0.22em] text-white uppercase"
+                >
                   {deck.name}
                 </span>
                 <div
@@ -138,7 +144,7 @@ export function CardPopup({ snap, store }: { snap: Snapshot; store: GameStore })
                   </span>
                 )}
               </div>
-              <span className="absolute inset-x-6 bottom-[22px] flex justify-between text-[11px] text-[#6b7385]">
+              <span className="absolute inset-x-6 bottom-[22px] flex justify-between text-[11px] text-[#5f6778]">
                 <span>Drawn by {store.nameOf(c.playerId)}</span>
                 <span>
                   {deck.name} · {String(c.cardId + 1).padStart(2, '0')} / {cards.length}
@@ -150,6 +156,7 @@ export function CardPopup({ snap, store }: { snap: Snapshot; store: GameStore })
         {c.waiting ? (
           <Btn
             kind="primary"
+            autofocus
             onClick={() => store.ackCard()}
             className="h-[58px] rounded-[18px] px-[30px] text-lg"
           >
@@ -208,6 +215,7 @@ export function GameOver({
   const s = snap.state
   const reduced = useReducedMotion()
   const over = snap.presented.over && !snap.busy
+  const dialog = useDialogFocus({ active: over })
   // The CITY HALL stamp lands a beat after the certificate does.
   const [stamped, setStamped] = useState(false)
   useEffect(() => {
@@ -233,9 +241,12 @@ export function GameOver({
   })
 
   return (
-    <div className="absolute inset-0 z-30 flex overflow-y-auto bg-[rgba(6,10,20,0.74)] p-4 backdrop-blur-[2px]">
+    <div
+      {...dialog.props}
+      className="absolute inset-0 z-30 flex overflow-y-auto bg-[rgba(6,10,20,0.74)] p-4 backdrop-blur-[2px]"
+    >
       {!reduced && <Confetti />}
-      <div aria-label="Game over" className="relative m-auto flex flex-wrap items-start justify-center gap-9">
+      <div className="relative m-auto flex flex-wrap items-start justify-center gap-9">
         <article className="relative w-[440px] max-w-full animate-pop overflow-hidden rounded-[20px] bg-card font-card-body text-card-ink shadow-[0_30px_70px_rgba(2,6,16,0.7),0_3px_0_var(--color-card-edge)]">
           <div aria-hidden="true" className="absolute inset-2.5 rounded-[13px] border-2 border-coin-dark" />
           <div
@@ -243,7 +254,7 @@ export function GameOver({
             className="absolute inset-[15px] rounded-[10px] border border-coin-dark/40"
           />
           <div className="relative flex flex-col items-center gap-3 px-10 pt-[38px] pb-[34px] text-center">
-            <span className="font-card text-[13px] font-extrabold tracking-[0.24em] text-[#9a7322] uppercase">
+            <span className="font-card text-[13px] font-extrabold tracking-[0.24em] text-[#8a6318] uppercase">
               Game over · Round {s.round}
             </span>
             <div className="relative my-1.5 size-[110px]">
@@ -268,7 +279,9 @@ export function GameOver({
               />
             </div>
             <span className="text-sm text-card-muted">The city has a new mayor</span>
-            <h2 className="m-0 font-card text-[46px] leading-none font-extrabold">{winner.name} won!</h2>
+            <h2 id={dialog.titleId} className="m-0 font-card text-[46px] leading-none font-extrabold">
+              {winner.name} won!
+            </h2>
             <span className="font-card text-[22px] font-extrabold text-card-money">
               Net worth <Money value={winnerWorth} />
             </span>
@@ -342,7 +355,7 @@ export function GameOver({
             </p>
           )}
           <div className="flex gap-2.5">
-            <Btn kind="primary" onClick={onRestart} className="h-14 flex-1 rounded-2xl text-[17px]">
+            <Btn kind="primary" autofocus onClick={onRestart} className="h-14 flex-1 rounded-2xl text-[17px]">
               Play again
             </Btn>
             <Btn onClick={onQuit} className="h-14 rounded-2xl border-line px-[18px] text-[15px]">
@@ -395,24 +408,27 @@ const cap =
 /** The rulebook: rules on the left page, shortcuts on the right. */
 export function HelpOverlay({ onClose }: { onClose: () => void }) {
   usePanelSound()
+  const dialog = useDialogFocus()
   return (
-    <div className="pointer-events-auto absolute inset-0 z-30 flex overflow-y-auto bg-[rgba(6,10,20,0.66)] p-4">
+    <div
+      {...dialog.props}
+      className="pointer-events-auto absolute inset-0 z-30 flex overflow-y-auto bg-[rgba(6,10,20,0.66)] p-4"
+    >
       <button
         type="button"
         tabIndex={-1}
-        aria-label="Close help"
+        aria-hidden="true"
         onClick={onClose}
         className="absolute inset-0 cursor-default"
       />
-      <article
-        aria-label="How to play"
-        className="relative m-auto grid w-[900px] max-w-full animate-pop grid-cols-1 overflow-hidden rounded-[20px] bg-card font-card-body text-card-ink shadow-[0_30px_70px_rgba(2,6,16,0.7),0_3px_0_var(--color-card-edge)] md:grid-cols-2"
-      >
+      <article className="relative m-auto grid w-[900px] max-w-full animate-pop grid-cols-1 overflow-hidden rounded-[20px] bg-card font-card-body text-card-ink shadow-[0_30px_70px_rgba(2,6,16,0.7),0_3px_0_var(--color-card-edge)] md:grid-cols-2">
         <div className="flex flex-col gap-3.5 border-b-2 border-[#ece4d2] px-[30px] pt-[30px] pb-7 shadow-[inset_-14px_0_20px_-18px_rgba(60,40,10,0.35)] md:border-r-2 md:border-b-0">
-          <span className="font-card text-[13px] font-extrabold tracking-[0.22em] text-[#9a7322] uppercase">
+          <span className="font-card text-[13px] font-extrabold tracking-[0.22em] text-[#8a6318] uppercase">
             Rulebook
           </span>
-          <h2 className="m-0 font-card text-[34px] font-extrabold">How to play</h2>
+          <h2 id={dialog.titleId} className="m-0 font-card text-[34px] font-extrabold">
+            How to play
+          </h2>
           {RULES.map(([title, body], i) => (
             <div key={title} className="flex gap-3">
               <span className="flex size-7 flex-none items-center justify-center rounded-full bg-card-ink font-display text-[13px] font-bold text-card">
@@ -430,11 +446,12 @@ export function HelpOverlay({ onClose }: { onClose: () => void }) {
             type="button"
             onClick={onClose}
             aria-label="Close help"
+            data-autofocus
             className="absolute top-[18px] right-[18px] flex size-9 items-center justify-center rounded-[10px] border border-card-edge text-card-ink transition-[background-color,scale] duration-200 ease-spring hover:bg-black/[0.07] active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
             <Icon name="close" size={14} />
           </button>
-          <span className="font-card text-[13px] font-extrabold tracking-[0.22em] text-[#9a7322] uppercase">
+          <span className="font-card text-[13px] font-extrabold tracking-[0.22em] text-[#8a6318] uppercase">
             Shortcuts
           </span>
           <dl className="m-0 flex flex-col gap-[7px]">
@@ -543,16 +560,24 @@ export function GameMenu({
   useSyncExternalStore(sound.subscribe, sound.getVersion)
   const audio = sound.settings
   const [confirm, setConfirm] = useState(false)
+  const dialog = useDialogFocus()
   return (
     <>
       <button
         type="button"
+        tabIndex={-1}
+        aria-hidden="true"
         aria-label="Close menu"
         onClick={onClose}
         className="pointer-events-auto absolute inset-0 z-50 cursor-default"
       />
-      <Panel className="absolute top-[72px] right-5 z-50 flex max-h-[calc(100%-88px)] w-[330px] animate-pop flex-col gap-1 overflow-y-auto rounded-[22px] bg-panel! p-3.5 shadow-panel-lg backdrop-blur-none!">
-        <Eyebrow className="px-1.5 pt-1 pb-2 text-ink-muted">Game</Eyebrow>
+      <Panel
+        {...dialog.props}
+        className="absolute top-[92px] right-5 z-50 flex max-h-[calc(100%-108px)] w-[330px] animate-pop flex-col gap-1 overflow-y-auto rounded-[22px] bg-panel! p-3.5 shadow-panel-lg backdrop-blur-none!"
+      >
+        <Eyebrow className="px-1.5 pt-1 pb-2 text-ink-muted">
+          <span id={dialog.titleId}>Game settings</span>
+        </Eyebrow>
         <div className="flex flex-col gap-2 px-1.5 py-2">
           <span className="text-sm font-bold">Animation speed</span>
           <div className="flex gap-[3px] rounded-xl bg-table p-[3px]">

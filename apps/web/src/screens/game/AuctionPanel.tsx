@@ -4,6 +4,7 @@ import type { GameState } from '@skyline/engine'
 import type { GameStore, Snapshot } from '../../game/store.ts'
 import { cssHex } from '../../spaceInfo.ts'
 import { useReducedMotion } from './cardEnv.tsx'
+import { useDialogFocus } from './useDialogFocus.ts'
 import { bidAction, raiseOptions } from './auctionBids.ts'
 import { familyName, familyOf, rgba, setProgress } from './deed.ts'
 import { FADE_MS, FLY_MS, SOLD_HOLD_MS, flyToChip } from './finale.ts'
@@ -173,6 +174,7 @@ export function AuctionPanel({ snap, store, turn }: { snap: Snapshot; store: Gam
     })
   }, [hasGhost, winnerId, reduced])
 
+  const dialog = useDialogFocus({ active: a !== null && !fin })
   if (!a) return null
   const sp = SPACES[a.space]!
   const solo = store.setup.seats.filter((x) => x.kind === 'human').length === 1
@@ -209,11 +211,11 @@ export function AuctionPanel({ snap, store, turn }: { snap: Snapshot; store: Gam
       <div ref={panelRef} className="flex max-h-full w-195 max-w-full">
         <Panel className="relative flex w-full animate-rise flex-col overflow-hidden rounded-[26px] bg-panel shadow-panel-lg">
           <section
-            aria-label={`Auction for ${sp.name}`}
+            {...dialog.props}
             className="flex min-h-0 flex-1 flex-col"
             {...(fin ? { inert: true } : {})}
           >
-            <div className="flex items-center gap-5.5 border-b border-line bg-white/3 px-6.5 py-5.5">
+            <div className="flex items-center gap-5.5 border-b border-line bg-white/3 px-6.5 py-5.5 [@media(max-height:760px)]:py-3.5">
               <div ref={deedRef} className="shrink-0 rotate-[-4deg]">
                 <DeedCard index={a.space} variant="compact" state="forSale" />
               </div>
@@ -222,7 +224,9 @@ export function AuctionPanel({ snap, store, turn }: { snap: Snapshot; store: Gam
                   <GavelIcon color="var(--color-accent)" />
                   Auction
                 </Eyebrow>
-                <h2 className="truncate font-display text-[30px] leading-tight font-bold">{sp.name}</h2>
+                <h2 id={dialog.titleId} className="truncate font-display text-[30px] leading-tight font-bold">
+                  {sp.name}
+                </h2>
                 <span className="text-sm text-ink-muted">
                   List price <Money value={sp.price} /> · {familyName(a.space)}, {family.indexOf(a.space) + 1}{' '}
                   of {family.length}
@@ -345,71 +349,73 @@ export function AuctionPanel({ snap, store, turn }: { snap: Snapshot; store: Gam
                   </span>
                 </div>
               )}
+            </div>
 
-              <div className="flex flex-col gap-3 px-6.5 pt-4.5 pb-6">
-                {myBid ? (
-                  <>
-                    <Eyebrow className="text-ink-muted">
-                      Your bid · you have <Money value={myCash} className="text-gold" />
-                    </Eyebrow>
-                    <div className="flex flex-wrap gap-2.5">
-                      {raises.map((r) => (
-                        <Btn
-                          key={r.key}
-                          kind="primary"
-                          onClick={() => placeBid(r.amount)}
-                          className="h-14 min-w-24 flex-1 flex-col gap-0! rounded-2xl px-2"
-                        >
-                          <Money value={r.amount} className="font-display text-[17px] leading-tight" />
-                          <span className="flex items-center gap-1.5 text-[11px] leading-tight font-extrabold opacity-75">
-                            {r.step}
-                            <Kbd>{r.key}</Kbd>
-                          </span>
-                        </Btn>
-                      ))}
-                      <label className="flex h-14 min-w-32 flex-[1.3] items-center gap-1.5 rounded-2xl border border-line bg-table px-3.5 focus-within:border-accent">
-                        <span className="font-display text-ink-muted">₵</span>
-                        <input
-                          value={custom}
-                          inputMode="numeric"
-                          onChange={(e) => setCustom(e.target.value.replace(/\D/g, '').slice(0, 7))}
-                          onKeyDown={(e) => e.key === 'Enter' && submitCustom()}
-                          placeholder="Custom"
-                          aria-label="Custom bid"
-                          className={`w-full min-w-0 bg-transparent font-display text-[17px] outline-none placeholder:text-ink-muted/70 ${custom && !typedOk ? 'text-alert' : 'text-ink'}`}
-                        />
-                      </label>
-                      {custom && (
-                        <Btn
-                          kind="primary"
-                          disabled={!typedOk}
-                          onClick={submitCustom}
-                          className="h-14 rounded-2xl px-5"
-                        >
-                          Bid
-                        </Btn>
-                      )}
+            {/* The bid row stays put; only the middle scrolls on a short window. */}
+            <div className="flex shrink-0 flex-col gap-3 border-t border-line/60 px-6.5 pt-4 pb-5">
+              {myBid ? (
+                <>
+                  <Eyebrow className="text-ink-muted">
+                    Your bid · you have <Money value={myCash} className="text-gold" />
+                  </Eyebrow>
+                  <div className="flex flex-wrap gap-2.5">
+                    {raises.map((r, i) => (
                       <Btn
-                        onClick={() => turn.act({ type: 'PASS_BID' })}
-                        className="h-14 w-23 rounded-2xl text-[15px]"
+                        key={r.key}
+                        kind="primary"
+                        autofocus={i === 0}
+                        onClick={() => placeBid(r.amount)}
+                        className="h-14 min-w-24 flex-1 flex-col gap-0! rounded-2xl px-2"
                       >
-                        Pass
-                        <Kbd>P</Kbd>
+                        <Money value={r.amount} className="font-display text-[17px] leading-tight" />
+                        <span className="flex items-center gap-1.5 text-[11px] leading-tight font-extrabold opacity-75">
+                          {r.step}
+                          <Kbd>{r.key}</Kbd>
+                        </span>
                       </Btn>
-                    </div>
-                  </>
-                ) : fin ? (
-                  <div className="py-2 text-center text-[13px] text-ink-muted">
-                    {sold
-                      ? `${nameOf(fin.winner)} won it for ${fmtMoney(fin.amount)}.`
-                      : 'Nobody wanted it. It stays on the market.'}
+                    ))}
+                    <label className="flex h-14 min-w-32 flex-[1.3] items-center gap-1.5 rounded-2xl border border-line bg-table px-3.5 focus-within:border-accent">
+                      <span className="font-display text-ink-muted">₵</span>
+                      <input
+                        value={custom}
+                        inputMode="numeric"
+                        onChange={(e) => setCustom(e.target.value.replace(/\D/g, '').slice(0, 7))}
+                        onKeyDown={(e) => e.key === 'Enter' && submitCustom()}
+                        placeholder="Custom"
+                        aria-label="Custom bid"
+                        className={`w-full min-w-0 bg-transparent font-display text-[17px] outline-none placeholder:text-ink-muted/70 ${custom && !typedOk ? 'text-alert' : 'text-ink'}`}
+                      />
+                    </label>
+                    {custom && (
+                      <Btn
+                        kind="primary"
+                        disabled={!typedOk}
+                        onClick={submitCustom}
+                        className="h-14 rounded-2xl px-5"
+                      >
+                        Bid
+                      </Btn>
+                    )}
+                    <Btn
+                      onClick={() => turn.act({ type: 'PASS_BID' })}
+                      className="h-14 w-23 rounded-2xl text-[15px]"
+                    >
+                      Pass
+                      <Kbd>P</Kbd>
+                    </Btn>
                   </div>
-                ) : (
-                  <div className="py-2 text-center text-[13px] text-ink-muted">
-                    {s.players[bidder]!.name} is deciding…
-                  </div>
-                )}
-              </div>
+                </>
+              ) : fin ? (
+                <div className="py-2 text-center text-[13px] text-ink-muted">
+                  {sold
+                    ? `${nameOf(fin.winner)} won it for ${fmtMoney(fin.amount)}.`
+                    : 'Nobody wanted it. It stays on the market.'}
+                </div>
+              ) : (
+                <div className="py-2 text-center text-[13px] text-ink-muted">
+                  {s.players[bidder]!.name} is deciding…
+                </div>
+              )}
             </div>
           </section>
 

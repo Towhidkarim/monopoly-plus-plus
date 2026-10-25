@@ -72,6 +72,7 @@ export function HandCard({
   k,
   onTable,
   blocked,
+  setNote,
   onPick,
   fly,
 }: {
@@ -81,6 +82,8 @@ export function HandCard({
   k: number
   onTable: boolean
   blocked: string | null
+  /** Which set it belongs to, for the tooltip. */
+  setNote?: string | undefined
   /** Omitted while the table is locked (an offer is out). */
   onPick?: (rect: DOMRect) => void
   fly: FlyRects
@@ -104,15 +107,17 @@ export function HandCard({
       ref={ref}
       type="button"
       disabled={blocked !== null || !onPick}
-      title={blocked ?? sp.name}
+      title={blocked ?? (setNote ? `${sp.name} · ${setNote}` : sp.name)}
       aria-label={`${sp.name}${onTable ? ', on the table, click to take back' : ', click to add to the deal'}`}
       aria-pressed={onTable}
       onClick={(e) => onPick?.(e.currentTarget.getBoundingClientRect())}
-      className={`relative block shrink-0 rounded-[14px] text-left transition-[translate,scale,opacity] duration-200 ease-spring focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent enabled:hover:-translate-y-1 enabled:active:scale-[0.97] ${onTable ? 'opacity-35' : ''}`}
+      className={`relative block shrink-0 rounded-[14px] text-left transition-[translate,scale,opacity] duration-200 ease-spring hover:z-10 focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent enabled:hover:-translate-y-1 enabled:active:scale-[0.97]`}
     >
       <DeedFace s={s} seats={seats} space={space} k={k} selected={onTable} />
+      {/* A veil, not opacity: in a fanned hand a see-through card would show the one under it. */}
+      {onTable && <span aria-hidden="true" className="absolute inset-0 rounded-[14px] bg-[#0b1426]/65" />}
       {blocked && (
-        <span className="absolute inset-0 flex flex-col items-center justify-center gap-1 rounded-[14px] bg-table/70 px-2 text-center text-[10px] leading-tight font-bold text-ink">
+        <span className="absolute inset-0 flex flex-col items-center justify-center gap-1 rounded-[14px] bg-table/70 px-2 min-[700px]:max-[1179px]:justify-start min-[700px]:max-[1179px]:pt-2 text-center text-[10px] leading-tight font-bold text-ink">
           <Icon name="lock" size={16} />
           {blocked}
         </span>
@@ -188,7 +193,7 @@ export function MatCard({
 export function CardSlot({ k, children }: { k: number; children: ReactNode }) {
   return (
     <span
-      className="flex shrink-0 items-center justify-center rounded-[14px] border-2 border-dashed border-white/18 p-3 text-center text-xs text-white/50"
+      className="flex shrink-0 items-center justify-center rounded-[14px] border-2 border-dashed border-white/18 p-3 text-center text-xs text-white/60"
       style={{ width: CARD_W * k, height: CARD_H * k }}
     >
       {children}
@@ -265,7 +270,11 @@ export function Mat({
       className={`flex min-w-0 flex-col gap-3 rounded-[18px] border-2 border-dashed p-3 min-[1180px]:p-3.5 ${className}`}
       style={{ borderColor: t.border }}
     >
-      <span className="text-xs font-extrabold tracking-[0.12em] uppercase" style={{ color: t.ink }}>
+      {/* z-10: a card flying in from a hand passes under the label, never over it. */}
+      <span
+        className="relative z-10 text-xs font-extrabold tracking-[0.12em] uppercase"
+        style={{ color: t.ink }}
+      >
         {label ?? t.label}
       </span>
       {/* Padding keeps a tilted card inside the dashed zone and clear of the label. */}
@@ -440,7 +449,7 @@ export function BundleOnMat({
       ))}
       {bundle.cash > 0 && <CoinStack value={bundle.cash} row reg={(el) => reg?.('cash', el)} />}
       {bundle.jailCards > 0 && <JailPill count={bundle.jailCards} />}
-      {empty && <span className="py-2 text-sm text-white/50">Nothing</span>}
+      {empty && <span className="py-2 text-sm text-white/60">Nothing</span>}
     </>
   )
 }

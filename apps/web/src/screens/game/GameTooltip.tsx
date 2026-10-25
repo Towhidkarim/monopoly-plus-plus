@@ -77,7 +77,7 @@ export function GameTooltip({ index, snap, store }: { index: number; snap: Snaps
                   {level === 5 && <span className="ml-1 text-[11px] font-bold">Hotel</span>}
                 </span>
               )}
-              <span className="text-[11px] text-[#6b7385]">Click for the full card</span>
+              <span className="text-[11px] text-[#5f6778]">Click for the full card</span>
             </>
           ) : (
             <span className="text-card-muted">{info.kind}</span>

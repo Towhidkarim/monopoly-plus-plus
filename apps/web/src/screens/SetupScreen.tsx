@@ -79,7 +79,7 @@ export function SetupScreen({ onStart }: { onStart: (setup: GameSetup, saved?: S
       <div className="relative flex h-full justify-center overflow-y-auto p-3 sm:p-6 lg:w-[580px] lg:justify-start lg:overflow-visible lg:p-8">
         <section
           aria-label="New game setup"
-          className="my-auto flex w-full max-w-xl animate-rise flex-col gap-4 rounded-[28px] border border-line bg-panel p-5 shadow-panel-lg sm:p-7 lg:my-0 lg:h-full lg:max-w-none lg:overflow-y-auto"
+          className="my-auto flex w-full max-w-xl animate-rise flex-col gap-4 [@media(max-height:860px)]:gap-3 rounded-[28px] border border-line bg-panel p-5 shadow-panel-lg sm:p-7 max-h-full overflow-y-auto lg:my-0 lg:h-full lg:max-w-none"
         >
           <div className="flex flex-col gap-1">
             <h1 className="flex items-center gap-3 font-display text-[40px] leading-tight font-bold">
@@ -116,7 +116,7 @@ export function SetupScreen({ onStart }: { onStart: (setup: GameSetup, saved?: S
               <button
                 type="button"
                 onClick={() => onStart(saved.setup, saved)}
-                className="px-5 font-card text-base font-extrabold text-[#9a7322] transition-colors hover:bg-black/[0.06] hover:text-[#7a5a14] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                className="px-5 font-card text-base font-extrabold text-[#8a6318] transition-colors hover:bg-black/[0.06] hover:text-[#7a5a14] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               >
                 Continue →
               </button>
@@ -251,7 +251,8 @@ export function SetupScreen({ onStart }: { onStart: (setup: GameSetup, saved?: S
             ))}
           </div>
 
-          <div className="mt-auto flex flex-col gap-3 pt-2">
+          {/* Sticky: Start game stays visible however short the window is. */}
+          <div className="sticky -bottom-5 z-10 sm:-bottom-7 mt-auto -mr-5 -mb-5 -ml-5 flex flex-col gap-3 rounded-b-[28px] border-t border-line bg-panel px-5 pt-3 pb-5 sm:-mr-7 sm:-mb-7 sm:-ml-7 sm:px-7 sm:pb-7">
             <Btn
               kind="primary"
               onClick={() =>
@@ -262,7 +263,7 @@ export function SetupScreen({ onStart }: { onStart: (setup: GameSetup, saved?: S
                   seats: seats.map((s) => ({ ...s, name: s.name.trim() || s.id })),
                 })
               }
-              className="h-16 rounded-[18px] text-xl shadow-gold-lg"
+              className="h-16 rounded-[18px] text-xl shadow-gold-lg [@media(max-height:860px)]:h-14"
             >
               Start game
             </Btn>

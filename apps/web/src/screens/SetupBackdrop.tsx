@@ -3,7 +3,8 @@ import { loadPrefs } from '../game/prefs.ts'
 import { currentCursorSet } from '../cursors.ts'
 import { mountBoard, type BoardHandle } from '@skyline/board'
 
-const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
+const reducedMotion = () =>
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches || loadPrefs().reducedMotion === true
 
 /**
  * The bare board with the city the next game will use, behind the setup panel.

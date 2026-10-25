@@ -287,7 +287,9 @@ export class GameStore {
   }
 
   private tuning(speed: number): Pick<BoardTuning, 'speed' | 'reducedMotion' | 'ambient'> {
-    return { speed, reducedMotion: this.settings.reducedMotion, ambient: this.settings.cityLife }
+    // The setting or the OS preference, same as the shell (see useReducedMotion).
+    const os = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
+    return { speed, reducedMotion: this.settings.reducedMotion || os, ambient: this.settings.cityLife }
   }
 
   setSettings(patch: Partial<StoreSettings>): void {

@@ -480,7 +480,7 @@ export function DeedCard({
           Mortgage {fmtMoney(mortgageValue(index))}
         </span>
       </div>
-      <div className="flex items-center justify-between px-[22px] pt-1 pb-[18px] text-[10px] text-[#7a8293]">
+      <div className="flex items-center justify-between px-[22px] pt-1 pb-[18px] text-[10px] text-[#5f6778]">
         <span>
           {isProp
             ? '×2 rent with the full set'
