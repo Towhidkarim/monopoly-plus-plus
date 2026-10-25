@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Lamplight and Tabletop mix</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=DM+Sans:wght@400;500;700&amp;family=Manrope:wght@400;600;800&amp;family=Sora:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 1560px; height: 1000px; box-sizing: border-box; padding: 48px; background: #0a1222; color: #f4ede2; font-family: 'Manrope', system-ui, sans-serif; display: flex; flex-direction: column; gap: 32px">
+<header style="display: flex; flex-direction: column; gap: 8px">
+<h2 style="margin: 0; font-family: 'Sora', sans-serif; font-size: 32px; font-weight: 700">A + B · Lamplight panels, card-stock faces</h2>
+<p style="margin: 0; font-size: 15px; color: #a8b1c4">Event cards with a printed frame, emblem and illustration; panels with depth, money flow, a countdown and player status.</p>
+</header>
+<div style="display: flex; gap: 48px; align-items: flex-start">
+
+<div style="display: flex; gap: 36px">
+<sc-for list="{{cards}}" as="cd" hint-placeholder-count="2">
+<div style="position: relative; width: 280px; height: 420px">
+<div aria-hidden="true" style="position: absolute; inset: 16px -10px -10px 16px; border-radius: 20px; background: {{cd.back}}; transform: rotate(5deg); box-shadow: 0 14px 30px rgba(2,6,16,0.5)"></div>
+<div aria-hidden="true" style="position: absolute; inset: 8px -4px -4px 8px; border-radius: 20px; background: {{cd.back}}; transform: rotate(2.5deg); border: 2px solid {{cd.backEdge}}"></div>
+<article aria-label="{{cd.kind}} card" style="position: absolute; inset: 0; border-radius: 20px; background: #fbf8f1; color: #1f2a3d; box-shadow: 0 24px 50px rgba(2,6,16,0.6), 0 3px 0 #e4dccb; transform: rotate(-2deg); overflow: hidden; font-family: 'DM Sans', sans-serif">
+<div style="height: 92px; background: {{cd.band}}; background-image: repeating-linear-gradient(135deg, rgba(255,255,255,0.09) 0 10px, rgba(255,255,255,0) 10px 20px); position: relative">
+<div style="position: absolute; left: 16px; top: 14px; display: flex; flex-direction: column; align-items: center; gap: 2px; color: #ffffff">
+<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="{{cd.pip}}" fill="#ffffff"></path></svg>
+</div>
+<span style="position: absolute; left: 0; right: 0; top: 16px; text-align: center; color: #ffffff; font-size: 12px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase">{{cd.kind}}</span>
+<div style="position: absolute; left: 50%; top: 42px; width: 84px; height: 84px; margin-left: -42px; border-radius: 50%; background: #fbf8f1; border: 4px solid {{cd.band}}; box-shadow: 0 6px 14px rgba(20,16,8,0.25); display: flex; align-items: center; justify-content: center">
+<svg width="58" height="58" viewBox="0 0 58 58" role="img" aria-label="{{cd.artLabel}}">
+<path d="{{cd.art1}}" fill="{{cd.artFill}}"></path>
+<path d="{{cd.art2}}" fill="none" stroke="{{cd.band}}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="{{cd.dash}}"></path>
+<path d="{{cd.art3}}" fill="{{cd.band}}"></path>
+</svg>
+</div>
+</div>
+<div aria-hidden="true" style="position: absolute; inset: 8px; border-radius: 14px; border: 1.5px solid {{cd.frame}}; pointer-events: none"></div>
+<div aria-hidden="true" style="position: absolute; inset: 12px; border-radius: 11px; border: 1px solid {{cd.frameSoft}}; pointer-events: none"></div>
+<div style="padding: 52px 26px 0; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center">
+<span style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 13px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: {{cd.flavorInk}}">{{cd.flavor}}</span>
+<p style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-size: 21px; font-weight: 800; line-height: 1.22">{{cd.lead}} <span style="padding: 0 6px; border-radius: 6px; background: {{cd.chipBg}}; color: {{cd.chipInk}}">{{cd.target}}</span>{{cd.rest}}</p>
+<span style="margin-top: 4px; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: #e9f3ec; color: #14513b; font-size: 14px; font-weight: 700">
+<span style="width: 18px; height: 18px; border-radius: 50%; background: #f2c14e; box-shadow: inset 0 -2px 0 #c8962a; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; color: #5a3a00">₵</span>{{cd.money}}</span>
+</div>
+<div style="position: absolute; left: 22px; right: 22px; bottom: 20px; display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: #6b7385">
+<span>{{cd.footer}}</span>
+<svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" style="transform: rotate(180deg)"><path d="{{cd.pip}}" fill="{{cd.band}}"></path></svg>
+</div>
+</article>
+</div>
+</sc-for>
+</div>
+
+<div style="width: 330px; display: flex; flex-direction: column; gap: 10px">
+<span style="font-size: 12px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: #a8b1c4">Players</span>
+<sc-for list="{{players}}" as="pl" hint-placeholder-count="4">
+<div style="position: relative; display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 18px; background: {{pl.bg}}; border: 1.5px solid {{pl.border}}; box-shadow: {{pl.shadow}}">
+<div style="position: relative; flex: none; width: 44px; height: 44px">
+<div style="width: 44px; height: 44px; border-radius: 50%; background: {{pl.color}}; box-shadow: inset 0 -4px 0 rgba(0,0,0,0.18), 0 0 0 3px {{pl.halo}}; display: flex; align-items: center; justify-content: center">
+<svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><path d="{{pl.icon}}" fill="none" stroke="#1a1020" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+</div>
+<sc-if value="{{pl.locked}}" hint-placeholder-val="{{false}}">
+<span aria-label="In Lockup" style="position: absolute; right: -4px; bottom: -4px; width: 20px; height: 20px; border-radius: 50%; background: #121c33; border: 2px solid #a8b1c4; display: flex; align-items: center; justify-content: center">
+<svg width="11" height="11" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 6 V4 a3 3 0 0 1 6 0 V6 M2 6 H10 V11 H2 Z" fill="none" stroke="#f4ede2" stroke-width="1.6"></path></svg>
+</span>
+</sc-if>
+</div>
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px">
+<div style="display: flex; align-items: center; gap: 8px">
+<span style="font-family: 'Sora', sans-serif; font-size: 16px; font-weight: 700">{{pl.name}}</span>
+<span style="font-size: 10px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 7px; border-radius: 999px; background: {{pl.tagBg}}; color: {{pl.tagInk}}">{{pl.tag}}</span>
+</div>
+<div style="display: flex; gap: 3px" aria-label="{{pl.setsLabel}}">
+<sc-for list="{{pl.sets}}" as="st" hint-placeholder-count="8">
+<span style="width: 18px; height: 6px; border-radius: 3px; background: {{st.c}}; opacity: {{st.a}}"></span>
+</sc-for>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px">
+<span style="font-family: 'Sora', sans-serif; font-size: 19px; font-weight: 700; font-variant-numeric: tabular-nums; color: {{pl.cashInk}}">₵{{pl.cash}}</span>
+<span style="font-size: 11px; color: #a8b1c4">worth ₵{{pl.worth}}</span>
+</div>
+<sc-if value="{{pl.active}}" hint-placeholder-val="{{false}}">
+<div aria-hidden="true" style="position: absolute; left: 18px; right: 18px; bottom: -1px; height: 3px; border-radius: 3px; background: #f5b54a; box-shadow: 0 0 12px rgba(245,181,74,0.7)"></div>
+</sc-if>
+</div>
+</sc-for>
+</div>
+
+<div style="width: 360px; display: flex; flex-direction: column; gap: 14px">
+<span style="font-size: 12px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: #a8b1c4">Moments</span>
+<div role="status" style="position: relative; overflow: hidden; display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 18px; background: #121c33; border: 1px solid rgba(255,214,150,0.16); box-shadow: inset 0 1px 0 rgba(255,255,255,0.07), 0 12px 28px rgba(2,6,16,0.45)">
+<span style="display: flex; align-items: center; gap: 4px">
+<span style="width: 30px; height: 30px; border-radius: 50%; background: #22d3ee; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 12px; color: #1a1020">N</span>
+<svg width="26" height="12" viewBox="0 0 26 12" aria-hidden="true"><path d="M1 6 H22 M17 1 L23 6 L17 11" fill="none" stroke="#ffcf70" stroke-width="2" stroke-linecap="round" stroke-dasharray="3 3"></path></svg>
+<span style="width: 30px; height: 30px; border-radius: 50%; background: #fb7185; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 12px; color: #1a1020">Y</span>
+</span>
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column">
+<span style="font-size: 14px; font-weight: 700">Rent from Nova</span>
+<span style="font-size: 12px; color: #a8b1c4">Foundry Way · 2 houses</span>
+</span>
+<span style="font-family: 'Sora', sans-serif; font-size: 22px; font-weight: 700; color: #ffcf70; text-shadow: 0 0 14px rgba(255,207,112,0.45)">+₵100</span>
+<div aria-hidden="true" style="position: absolute; left: 0; bottom: 0; height: 3px; width: 62%; background: #f5b54a; opacity: 0.6"></div>
+</div>
+<div role="status" style="display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 18px; background: #121c33; border: 1px solid rgba(251,113,133,0.4); box-shadow: inset 0 1px 0 rgba(255,255,255,0.07)">
+<span style="width: 30px; height: 30px; border-radius: 10px; background: rgba(251,113,133,0.16); display: flex; align-items: center; justify-content: center">
+<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2 L15 14 H1 Z M8 6 V10 M8 12 V12.5" fill="none" stroke="#fb7185" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+</span>
+<span style="flex: 1; font-size: 13px">Juno is low on cash: <strong style="color: #fb7185">₵64</strong></span>
+</div>
+
+<section aria-label="Auction" style="border-radius: 22px; background: #121c33; border: 1px solid rgba(255,214,150,0.16); box-shadow: inset 0 1px 0 rgba(255,255,255,0.07), 0 18px 36px rgba(2,6,16,0.5); overflow: hidden">
+<div style="display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid rgba(255,214,150,0.1)">
+<div style="flex: none; width: 46px; height: 60px; border-radius: 8px; background: #fbf8f1; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.35)">
+<div style="height: 18px; background: #f87171"></div>
+<div style="padding: 4px; font-size: 8px; font-weight: 700; color: #1f2a3d; line-height: 1.1">Opera Lane</div>
+</div>
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+<span style="display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: #f5b54a">
+<svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 9 L9 3 M6 12 L12 6 M5 7 L9 11 M10 12 L14 16 M1 15 H8" fill="none" stroke="#f5b54a" stroke-width="1.8" stroke-linecap="round"></path></svg>Auction</span>
+<span style="font-family: 'Sora', sans-serif; font-size: 17px; font-weight: 700">Opera Lane</span>
+<span style="font-size: 12px; color: #a8b1c4">List ₵240 · Theater 1 of 3</span>
+</span>
+<div style="position: relative; width: 52px; height: 52px; flex: none">
+<svg width="52" height="52" viewBox="0 0 52 52" role="img" aria-label="4 seconds left">
+<circle cx="26" cy="26" r="22" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="5"></circle>
+<circle cx="26" cy="26" r="22" fill="none" stroke="#f5b54a" stroke-width="5" stroke-linecap="round" stroke-dasharray="83 138" transform="rotate(-90 26 26)"></circle>
+</svg>
+<span style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: 'Sora', sans-serif; font-weight: 700; font-size: 16px">4</span>
+</div>
+</div>
+<div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 16px">
+<span style="display: flex; align-items: center; gap: 8px">
+<span style="width: 28px; height: 28px; border-radius: 50%; background: #a78bfa; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 12px; color: #1a1020; box-shadow: 0 0 0 3px rgba(245,181,74,0.5)">J</span>
+<span style="display: flex; flex-direction: column">
+<span style="font-size: 11px; color: #a8b1c4">High bid</span>
+<span style="font-size: 13px; font-weight: 700">Juno leads</span>
+</span>
+</span>
+<span style="font-family: 'Sora', sans-serif; font-size: 34px; font-weight: 700; color: #ffcf70; text-shadow: 0 0 18px rgba(255,207,112,0.4)">₵140</span>
+</div>
+<div style="display: flex; gap: 8px; padding: 0 16px 16px">
+<button type="button" style="flex: 1; height: 44px; border-radius: 12px; border: 0; background: #f5b54a; color: #1c1205; font-family: 'Sora', sans-serif; font-weight: 700; font-size: 15px; box-shadow: inset 0 -3px 0 rgba(0,0,0,0.18)">+₵10</button>
+<button type="button" style="flex: 1; height: 44px; border-radius: 12px; border: 0; background: #f5b54a; color: #1c1205; font-family: 'Sora', sans-serif; font-weight: 700; font-size: 15px; box-shadow: inset 0 -3px 0 rgba(0,0,0,0.18)">+₵50</button>
+<button type="button" style="flex: 1; height: 44px; border-radius: 12px; border: 1px solid rgba(255,214,150,0.2); background: transparent; color: #f4ede2; font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 14px">Pass</button>
+</div>
+</section>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1560,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const diamond = 'M8 1 L15 8 L8 15 L1 8 Z';
+    const coin = 'M8 1 A7 7 0 1 1 7.99 1 Z';
+    const cards = [
+      {
+        kind: 'Opportunity', band: '#5b5fd6', back: '#2b2f7a', backEdge: '#7c80ea', frame: '#5b5fd6', frameSoft: 'rgba(91,95,214,0.25)',
+        pip: diamond, flavor: 'Opening night', flavorInk: '#5b5fd6',
+        lead: 'Advance to', target: 'Opera Lane', rest: '.', chipBg: '#fde2e2', chipInk: '#9b1c1c',
+        money: 'Pass Launch: +₵200', footer: 'Opportunity · 07 / 16',
+        artLabel: 'A map pin with a dotted route',
+        art1: 'M29 6 C21 6 16 12 16 19 C16 28 29 40 29 40 C29 40 42 28 42 19 C42 12 37 6 29 6 Z',
+        art2: 'M8 50 C16 44 22 52 30 46 C36 42 42 48 50 44', dash: '1 5',
+        art3: 'M29 14 A5 5 0 1 1 28.99 14 Z', artFill: '#fde2e2'
+      },
+      {
+        kind: 'City Fund', band: '#14957f', back: '#0e5246', backEdge: '#3cc2a9', frame: '#14957f', frameSoft: 'rgba(20,149,127,0.25)',
+        pip: coin, flavor: 'Civic grant', flavorInk: '#14957f',
+        lead: 'The city funds your', target: 'new park', rest: '. Collect from the bank.', chipBg: '#dcf2e8', chipInk: '#14513b',
+        money: 'Collect ₵150', footer: 'City Fund · 03 / 16',
+        artLabel: 'A coin above a small building',
+        art1: 'M12 44 V30 L29 20 L46 30 V44 Z',
+        art2: 'M20 44 V34 H26 V44 M32 44 V34 H38 V44', dash: '0',
+        art3: 'M29 4 A8 8 0 1 1 28.99 4 Z', artFill: '#dcf2e8'
+      }
+    ];
+    const groups = ['#a78bfa', '#7dd3fc', '#f472b6', '#fb923c', '#f87171', '#fbbf24', '#34d399', '#6366f1'];
+    const sets = (owned) => groups.map((c, i) => ({ c, a: owned[i] ?? 0.14 }));
+    const icons = {
+      taxi: 'M4 16 L5.5 11 H18.5 L20 16 V19 H4 Z M7 19 V21 M17 19 V21 M9 8 H15 V11 H9 Z M7 15.5 H8 M16 15.5 H17',
+      drone: 'M12 10 V14 M8 12 H16 M4 8 H8 M16 8 H20 M6 8 V11 L9 12 M18 8 V11 L15 12',
+      balloon: 'M12 3 A6 6 0 0 1 18 9 C18 13 14 16 12 17 C10 16 6 13 6 9 A6 6 0 0 1 12 3 Z M10.5 17 L11 20 H13 L13.5 17',
+      bus: 'M5 4 H19 V17 H5 Z M5 11 H19 M8 17 V20 M16 17 V20 M8 14 H9 M15 14 H16'
+    };
+    const base = { bg: '#121c33', border: 'rgba(255,214,150,0.12)', shadow: 'inset 0 1px 0 rgba(255,255,255,0.06)', halo: 'rgba(255,255,255,0.08)', tagBg: 'rgba(255,255,255,0.08)', tagInk: '#a8b1c4', cashInk: '#ffcf70', locked: false, active: false };
+    const players = [
+      { ...base, name: 'You', tag: 'Your turn', tagBg: '#f5b54a', tagInk: '#1c1205', active: true, bg: '#16213d', border: '#f5b54a', shadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 0 0 4px rgba(245,181,74,0.14), 0 14px 30px rgba(2,6,16,0.5)', halo: 'rgba(245,181,74,0.55)', color: '#fb7185', icon: icons.taxi, cash: '1,290', worth: '2,140', sets: sets({ 1: 1, 3: 0.5 }), setsLabel: 'Owns Old Town, part of Market' },
+      { ...base, name: 'Nova', tag: 'In Lockup', locked: true, color: '#22d3ee', icon: icons.drone, cash: '1,425', worth: '1,980', sets: sets({ 0: 0.5, 5: 0.5 }), setsLabel: 'Part of Docks and Tech' },
+      { ...base, name: 'Atlas', tag: 'Tycoon bot', color: '#fbbf24', icon: icons.bus, cash: '1,044', worth: '2,310', sets: sets({ 6: 1, 7: 0.5 }), setsLabel: 'Owns Uptown, part of Crown' },
+      { ...base, name: 'Juno', tag: 'Low cash', tagBg: 'rgba(251,113,133,0.16)', tagInk: '#fda4af', border: 'rgba(251,113,133,0.45)', cashInk: '#fb7185', color: '#a78bfa', icon: icons.balloon, cash: '64', worth: '1,120', sets: sets({ 4: 0.5, 2: 0.5 }), setsLabel: 'Part of Theater and Gardens' }
+    ];
+    return { cards, players };
+  }
+}
+</script>
+</body>
+</html>

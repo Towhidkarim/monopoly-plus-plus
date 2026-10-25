@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Card drawn, trade offer, tooltip</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=DM+Sans:wght@400;500;700&amp;family=Manrope:wght@400;600;800&amp;family=Sora:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="position: relative; width: 1440px; height: 900px; overflow: hidden; background: #0a1222; color: #f4ede2; font-family: 'Manrope', system-ui, sans-serif">
+<img src="/_blob/282b5fd59a8a364586baba3721257d1f" alt="The board at night" style="position: absolute; left: 230px; top: 90px; width: 980px; height: 833px; object-fit: contain">
+<div aria-hidden="true" style="position: absolute; inset: 0; background: rgba(6,10,20,0.55)"></div>
+<div style="position: absolute; left: 0; top: 0">
+<dc-import name="Hud" active="you" hint-size="1440px,96px"></dc-import>
+</div>
+
+<div role="status" style="position: absolute; left: 50%; top: 112px; transform: translateX(-50%); display: flex; align-items: center; gap: 14px; padding: 10px 22px 10px 10px; border-radius: 999px; background: #fbf8f1; color: #1f2a3d; box-shadow: 0 16px 34px rgba(2,6,16,0.55), 0 0 0 4px rgba(125,211,252,0.35), 0 3px 0 #e4dccb">
+<span style="width: 42px; height: 42px; border-radius: 50%; background: #7dd3fc; background-image: repeating-linear-gradient(135deg, rgba(255,255,255,0.18) 0 5px, rgba(255,255,255,0) 5px 10px); display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 14 14" aria-hidden="true"><path d="M7 1 L8.6 5.2 L13 5.4 L9.6 8.2 L10.8 12.6 L7 10.1 L3.2 12.6 L4.4 8.2 L1 5.4 L5.4 5.2 Z" fill="#0b2a3a"></path></svg></span>
+<span style="display: flex; flex-direction: column">
+<span style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 22px; font-weight: 800; line-height: 1.1">Old Town complete!</span>
+<span style="font-family: 'DM Sans', sans-serif; font-size: 13px; color: #5a6373">Rent doubles on empty lots. Time to build.</span>
+</span>
+</div>
+
+<div style="position: absolute; left: 70px; top: 210px; display: flex; flex-direction: column; align-items: center; gap: 18px">
+<div style="position: relative; width: 300px; height: 440px">
+<div aria-hidden="true" style="position: absolute; inset: 16px -10px -10px 16px; border-radius: 22px; background: #2b2f7a; transform: rotate(5deg)"></div>
+<article aria-label="Opportunity card" style="position: absolute; inset: 0; border-radius: 22px; background: #fbf8f1; color: #1f2a3d; box-shadow: 0 30px 60px rgba(2,6,16,0.65), 0 3px 0 #e4dccb; transform: rotate(-2deg); overflow: hidden; font-family: 'DM Sans', sans-serif">
+<div style="height: 100px; background: #5b5fd6; background-image: repeating-linear-gradient(135deg, rgba(255,255,255,0.09) 0 10px, rgba(255,255,255,0) 10px 20px); position: relative">
+<span style="position: absolute; left: 0; right: 0; top: 18px; text-align: center; color: #ffffff; font-size: 12px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase">Opportunity</span>
+<div style="position: absolute; left: 50%; top: 46px; width: 90px; height: 90px; margin-left: -45px; border-radius: 50%; background: #fbf8f1; border: 4px solid #5b5fd6; box-shadow: 0 6px 14px rgba(20,16,8,0.25); display: flex; align-items: center; justify-content: center">
+<svg width="60" height="60" viewBox="0 0 58 58" role="img" aria-label="A coin with a star"><circle cx="29" cy="29" r="18" fill="#f2c14e"></circle><circle cx="29" cy="29" r="13" fill="none" stroke="#c8962a" stroke-width="2"></circle><path d="M29 20 L31.5 26 L38 26.3 L33 30.4 L34.7 36.8 L29 33.2 L23.3 36.8 L25 30.4 L20 26.3 L26.5 26 Z" fill="#5b5fd6"></path></svg>
+</div>
+</div>
+<div aria-hidden="true" style="position: absolute; inset: 8px; border-radius: 15px; border: 1.5px solid #5b5fd6"></div>
+<div aria-hidden="true" style="position: absolute; inset: 12px; border-radius: 12px; border: 1px solid rgba(91,95,214,0.25)"></div>
+<div style="padding: 56px 28px 0; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center">
+<span style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 13px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #5b5fd6">Lucky break</span>
+<p style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-size: 23px; font-weight: 800; line-height: 1.22">Your building wins a design prize.</p>
+<span style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 999px; background: #e9f3ec; color: #14513b; font-size: 15px; font-weight: 700"><span style="width: 18px; height: 18px; border-radius: 50%; background: #f2c14e; box-shadow: inset 0 -2px 0 #c8962a"></span>Collect ₵100</span>
+</div>
+<span style="position: absolute; left: 24px; right: 24px; bottom: 22px; display: flex; justify-content: space-between; font-size: 11px; color: #6b7385"><span>Drawn by You</span><span>Opportunity · 11 / 16</span></span>
+</article>
+</div>
+<button type="button" style="height: 58px; padding: 0 30px; border-radius: 18px; border: 0; background: #f5b54a; color: #1c1205; font-family: 'Sora', sans-serif; font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 12px; box-shadow: inset 0 -4px 0 rgba(0,0,0,0.18), 0 10px 26px rgba(245,181,74,0.32)">Continue <span style="font-family: 'Manrope', sans-serif; font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 6px; background: #fbf8f1; color: #1f2a3d; box-shadow: 0 2px 0 #c9c1ae">Space</span></button>
+</div>
+
+<section role="dialog" aria-label="Trade offer from Juno" style="position: absolute; left: 450px; top: 220px; width: 560px; border-radius: 24px; background: #121c33; border: 1px solid rgba(255,214,150,0.16); box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 28px 60px rgba(2,6,16,0.65); overflow: hidden">
+<div style="display: flex; align-items: flex-start; gap: 14px; padding: 20px 22px 14px">
+<span style="flex: none; width: 46px; height: 46px; border-radius: 50%; background: #a78bfa; box-shadow: inset 0 -3px 0 rgba(0,0,0,0.18); display: flex; align-items: center; justify-content: center"><svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 A6 6 0 0 1 18 9 C18 13 14 16 12 17 C10 16 6 13 6 9 A6 6 0 0 1 12 3 Z M10.5 17 L11 20 H13 L13.5 17" fill="none" stroke="#1a1020" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
+<span style="flex: 1; display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 12px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: #f5b54a">Trade offer</span>
+<span style="font-family: 'Sora', sans-serif; font-size: 22px; font-weight: 700">Juno offers you a deal</span>
+<span style="align-self: flex-start; padding: 8px 12px; border-radius: 4px 14px 14px 14px; background: #fbf8f1; color: #1f2a3d; font-family: 'DM Sans', sans-serif; font-size: 14px">“Take it or leave it.”</span>
+</span>
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 0 18px; padding: 14px; border-radius: 18px; background: #173a35; box-shadow: inset 0 0 0 4px #122e2a, inset 0 6px 18px rgba(0,0,0,0.3)">
+<div style="display: flex; flex-direction: column; gap: 10px; padding: 12px; border-radius: 14px; border: 2px dashed rgba(94,234,212,0.55)">
+<span style="font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #5eead4">You get</span>
+<span style="display: flex; align-items: center; gap: 10px">
+<span style="position: relative; width: 40px; height: 34px"><span style="position: absolute; left: 2px; top: 14px; width: 36px; height: 16px; border-radius: 50%; background: #c8962a"></span><span style="position: absolute; left: 2px; top: 8px; width: 36px; height: 16px; border-radius: 50%; background: #e0ad3e"></span><span style="position: absolute; left: 2px; top: 2px; width: 36px; height: 16px; border-radius: 50%; background: #f2c14e; box-shadow: inset 0 -2px 0 #c8962a"></span></span>
+<span style="font-family: 'Sora', sans-serif; font-size: 24px; font-weight: 700; color: #ffcf70">₵180</span>
+</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px; padding: 12px; border-radius: 14px; border: 2px dashed rgba(251,113,133,0.55)">
+<span style="font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #fda4af">You give</span>
+<div style="width: 112px; height: 146px">
+<div style="transform: scale(0.8); transform-origin: top left">
+<dc-import name="RichDeed" compact="{{true}}" street="Mill Avenue" group="Old Town" color="#7dd3fc" ink="#0b2a3a" price="{{100}}" level="{{0}}" owned="{{true}}" night="{{true}}" hint-size="140px,182px"></dc-import>
+</div>
+</div>
+</div>
+</div>
+<div style="margin: 12px 18px 0; display: flex; gap: 6px; flex-wrap: wrap">
+<span style="display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; background: rgba(251,113,133,0.12); color: #fda4af; font-size: 12px; font-weight: 800"><span style="width: 10px; height: 10px; border-radius: 3px; background: #7dd3fc"></span>Breaks up your Old Town set</span>
+</div>
+<div style="display: flex; gap: 10px; padding: 16px 18px 20px; justify-content: flex-end">
+<button type="button" style="height: 50px; padding: 0 16px; border-radius: 14px; border: 0; background: transparent; color: #f4ede2; font-family: 'Manrope', sans-serif; font-size: 14px; font-weight: 800; text-decoration: underline; text-underline-offset: 4px">Counter</button>
+<button type="button" style="height: 50px; padding: 0 18px; border-radius: 14px; border: 1px solid rgba(255,214,150,0.2); background: transparent; color: #f4ede2; font-family: 'Manrope', sans-serif; font-size: 15px; font-weight: 800; display: flex; align-items: center; gap: 8px">Decline <span style="font-size: 11px; padding: 2px 7px; border-radius: 6px; background: #fbf8f1; color: #1f2a3d; box-shadow: 0 2px 0 #c9c1ae">N</span></button>
+<button type="button" style="height: 50px; padding: 0 22px; border-radius: 14px; border: 0; background: #f5b54a; color: #1c1205; font-family: 'Sora', sans-serif; font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; box-shadow: inset 0 -4px 0 rgba(0,0,0,0.18)">Accept <span style="font-family: 'Manrope', sans-serif; font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: 6px; background: #fbf8f1; color: #1f2a3d; box-shadow: 0 2px 0 #c9c1ae">Y</span></button>
+</div>
+</section>
+
+<div role="tooltip" style="position: absolute; left: 1100px; top: 330px; width: 220px; border-radius: 14px; background: #fbf8f1; color: #1f2a3d; box-shadow: 0 16px 34px rgba(2,6,16,0.6), 0 2px 0 #e4dccb; overflow: hidden; font-family: 'DM Sans', sans-serif">
+<div style="padding: 8px 12px; background: #fbbf24; background-image: repeating-linear-gradient(135deg, rgba(255,255,255,0.16) 0 7px, rgba(255,255,255,0) 7px 14px)">
+<span style="display: block; font-size: 9px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: #3a2a05; opacity: 0.8">Tech</span>
+<span style="display: block; font-family: 'Bricolage Grotesque', sans-serif; font-size: 17px; font-weight: 800; color: #3a2a05">Tech Boulevard</span>
+</div>
+<div style="padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; font-size: 13px">
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 50%; background: #fbbf24"></span>Atlas · rent <strong style="color: #1d7354">₵110</strong></span>
+<span style="display: flex; gap: 2px"><svg width="12" height="11" viewBox="0 0 13 12" aria-hidden="true"><path d="M1.5 6 L6.5 1.5 L11.5 6 V11 H1.5 Z" fill="#fbbf24" stroke="#1f2a3d" stroke-width="1.2"></path></svg><svg width="12" height="11" viewBox="0 0 13 12" aria-hidden="true"><path d="M1.5 6 L6.5 1.5 L11.5 6 V11 H1.5 Z" fill="transparent" stroke="#c9c1ae" stroke-width="1.2"></path></svg><svg width="12" height="11" viewBox="0 0 13 12" aria-hidden="true"><path d="M1.5 6 L6.5 1.5 L11.5 6 V11 H1.5 Z" fill="transparent" stroke="#c9c1ae" stroke-width="1.2"></path></svg><svg width="12" height="11" viewBox="0 0 13 12" aria-hidden="true"><path d="M1.5 6 L6.5 1.5 L11.5 6 V11 H1.5 Z" fill="transparent" stroke="#c9c1ae" stroke-width="1.2"></path></svg></span>
+<span style="font-size: 11px; color: #6b7385">Click for the full card</span>
+</div>
+</div>
+<span aria-hidden="true" style="position: absolute; left: 1196px; top: 312px; width: 12px; height: 12px; border-radius: 50%; background: #fbbf24; box-shadow: 0 0 0 4px rgba(251,191,36,0.3)"></span>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>New game setup</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=DM+Sans:wght@400;500;700&amp;family=Manrope:wght@400;600;800&amp;family=Sora:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="position: relative; width: 1440px; height: 900px; overflow: hidden; background: #0a1222; color: #f4ede2; font-family: 'Manrope', system-ui, sans-serif">
+<img src="/_blob/02d991195100a8f99d29620078e8d37a" alt="Your next city, by day" style="position: absolute; left: 560px; top: 40px; width: 900px; height: 765px; object-fit: contain">
+<div style="position: absolute; right: 60px; bottom: 60px; display: flex; align-items: center; gap: 10px; padding: 10px 12px 10px 16px; border-radius: 999px; background: #121c33; border: 1px solid rgba(255,214,150,0.16); box-shadow: 0 12px 28px rgba(2,6,16,0.5)">
+<span style="font-size: 13px; color: #a8b1c4">Your next city · seed <strong style="color: #f4ede2">48213</strong></span>
+<button type="button" style="height: 36px; padding: 0 14px; border-radius: 999px; border: 0; background: #fbf8f1; color: #1f2a3d; font-family: 'Manrope', sans-serif; font-size: 13px; font-weight: 800; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 0 #c9c1ae">
+<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="#1f2a3d" stroke-width="2.2"></rect><circle cx="8.5" cy="8.5" r="1.6" fill="#1f2a3d"></circle><circle cx="15.5" cy="15.5" r="1.6" fill="#1f2a3d"></circle></svg>New city</button>
+</div>
+
+<section style="position: absolute; left: 32px; top: 32px; bottom: 32px; width: 540px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px; padding: 30px; border-radius: 28px; background: #121c33; border: 1px solid rgba(255,214,150,0.16); box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 30px 60px rgba(2,6,16,0.6)">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="display: flex; align-items: center; gap: 12px; font-family: 'Sora', sans-serif; font-size: 40px; font-weight: 700">
+<svg width="40" height="34" viewBox="0 0 26 22" aria-hidden="true"><path d="M1 21 V13 H6 V21 M8 21 V5 H14 V21 M16 21 V9 H21 V21 M23 21 V15 H25" fill="none" stroke="#f5b54a" stroke-width="2" stroke-linejoin="round"></path><circle cx="11" cy="9" r="1" fill="#ffcf70"></circle><circle cx="11" cy="13" r="1" fill="#ffcf70"></circle><circle cx="18.5" cy="13" r="1" fill="#ffcf70"></circle></svg>Skyline</span>
+<span style="font-size: 15px; color: #a8b1c4">Build the city. Bankrupt your rivals.</span>
+</div>
+
+<div style="display: flex; align-items: stretch; border-radius: 14px; background: #fbf8f1; color: #1f2a3d; box-shadow: 0 10px 22px rgba(2,6,16,0.45), 0 2px 0 #e4dccb; font-family: 'DM Sans', sans-serif; overflow: hidden">
+<span style="flex: 1; display: flex; flex-direction: column; gap: 2px; padding: 12px 16px">
+<span style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 17px; font-weight: 800">Resume your last game</span>
+<span style="font-size: 12px; color: #5a6373">4 players · Standard · round 12 of 30</span>
+</span>
+<span aria-hidden="true" style="width: 0; border-left: 2px dashed #d8cfbb; margin: 8px 0"></span>
+<button type="button" style="padding: 0 20px; border: 0; background: transparent; color: #9a7322; font-family: 'Bricolage Grotesque', sans-serif; font-size: 16px; font-weight: 800">Continue →</button>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<span style="font-size: 12px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: #a8b1c4">Mode</span>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px">
+<sc-for list="{{modes}}" as="m" hint-placeholder-count="3">
+<button type="button" aria-pressed="{{m.on}}" style="position: relative; display: flex; flex-direction: column; text-align: left; padding: 0; border: 0; border-radius: 14px; overflow: hidden; background: #fbf8f1; color: #1f2a3d; font-family: 'DM Sans', sans-serif; box-shadow: {{m.shadow}}; transform: {{m.lift}}">
+<span style="display: block; width: 100%; box-sizing: border-box; padding: 10px 12px; background: {{m.color}}; background-image: repeating-linear-gradient(135deg, rgba(255,255,255,0.16) 0 7px, rgba(255,255,255,0) 7px 14px); font-family: 'Bricolage Grotesque', sans-serif; font-size: 17px; font-weight: 800; color: {{m.ink}}">{{m.name}}</span>
+<span style="padding: 10px 12px 12px; font-size: 12px; line-height: 1.4; color: #3d4757">{{m.blurb}}</span>
+<sc-if value="{{m.on}}" hint-placeholder-val="{{false}}">
+<span aria-hidden="true" style="position: absolute; right: 8px; top: 8px; width: 22px; height: 22px; border-radius: 50%; background: #fbf8f1; display: flex; align-items: center; justify-content: center"><svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 6 L5 9 L10 3" fill="none" stroke="#1c1205" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
+</sc-if>
+</button>
+</sc-for>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<span style="display: flex; align-items: center; justify-content: space-between">
+<span style="font-size: 12px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: #a8b1c4">Players</span>
+<span style="display: flex; gap: 4px; padding: 3px; border-radius: 12px; background: #0a1222">
+<sc-for list="{{counts}}" as="n" hint-placeholder-count="5">
+<button type="button" aria-pressed="{{n.on}}" style="width: 34px; height: 30px; border-radius: 9px; border: 0; background: {{n.bg}}; color: {{n.ink}}; font-family: 'Sora', sans-serif; font-size: 14px; font-weight: 700">{{n.n}}</button>
+</sc-for>
+</span>
+</span>
+<sc-for list="{{seats}}" as="s" hint-placeholder-count="4">
+<div style="display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 14px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,214,150,0.1)">
+<span style="width: 36px; height: 36px; border-radius: 50%; background: {{s.color}}; box-shadow: inset 0 -3px 0 rgba(0,0,0,0.18); display: flex; align-items: center; justify-content: center; flex: none"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="{{s.icon}}" fill="none" stroke="#1a1020" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
+<input type="text" aria-label="{{s.label}}" value="{{s.name}}" style="flex: 1; min-width: 0; height: 38px; box-sizing: border-box; padding: 0 12px; border-radius: 10px; border: 1px solid rgba(255,214,150,0.14); background: #0a1222; color: #f4ede2; font-family: 'Manrope', sans-serif; font-size: 14px; font-weight: 700">
+<span style="display: flex; gap: 2px; padding: 3px; border-radius: 10px; background: #0a1222">
+<button type="button" aria-pressed="{{s.human}}" style="height: 30px; padding: 0 10px; border-radius: 8px; border: 0; background: {{s.hBg}}; color: {{s.hInk}}; font-family: 'Manrope', sans-serif; font-size: 12px; font-weight: 800">Human</button>
+<button type="button" aria-pressed="{{s.bot}}" style="height: 30px; padding: 0 10px; border-radius: 8px; border: 0; background: {{s.bBg}}; color: {{s.bInk}}; font-family: 'Manrope', sans-serif; font-size: 12px; font-weight: 800">Bot</button>
+</span>
+<span style="height: 30px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border-radius: 10px; border: 1px solid rgba(255,214,150,0.14); font-size: 12px; font-weight: 700; color: #a8b1c4">{{s.piece}} <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 4 L5 7 L8 4" fill="none" stroke="#a8b1c4" stroke-width="1.6"></path></svg></span>
+</div>
+</sc-for>
+</div>
+
+<button type="button" style="margin-top: auto; height: 64px; border-radius: 18px; border: 0; background: #f5b54a; color: #1c1205; font-family: 'Sora', sans-serif; font-size: 20px; font-weight: 700; box-shadow: inset 0 -4px 0 rgba(0,0,0,0.18), 0 10px 28px rgba(245,181,74,0.32)">Start game</button>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const icons = {
+      taxi: 'M4 16 L5.5 11 H18.5 L20 16 V19 H4 Z M7 19 V21 M17 19 V21 M9 8 H15 V11 H9 Z',
+      drone: 'M12 10 V14 M8 12 H16 M4 8 H8 M16 8 H20 M6 8 V11 L9 12 M18 8 V11 L15 12',
+      balloon: 'M12 3 A6 6 0 0 1 18 9 C18 13 14 16 12 17 C10 16 6 13 6 9 A6 6 0 0 1 12 3 Z M10.5 17 L11 20 H13 L13.5 17',
+      bus: 'M5 4 H19 V17 H5 Z M5 11 H19 M8 17 V20 M16 17 V20'
+    };
+    const modes = [
+      { name: 'Standard', blurb: '2 dealt properties, 30 rounds, richest wins. About an hour.', color: '#f5b54a', ink: '#1c1205', on: true },
+      { name: 'Turbo', blurb: '4 dealt properties, bigger salary, 20 rounds. Quick and punchy.', color: '#fb7185', ink: '#3a0c14', on: false },
+      { name: 'Classic', blurb: 'The full game. Last player standing wins.', color: '#6366f1', ink: '#ffffff', on: false }
+    ].map((m) => ({
+      ...m,
+      shadow: m.on ? '0 0 0 3px #f5b54a, 0 14px 26px rgba(2,6,16,0.5)' : '0 8px 18px rgba(2,6,16,0.4), 0 2px 0 #e4dccb',
+      lift: m.on ? 'translateY(-4px) rotate(-1deg)' : 'none'
+    }));
+    const counts = [2, 3, 4, 5, 6].map((n) => ({ n, on: n === 4, bg: n === 4 ? '#f5b54a' : 'transparent', ink: n === 4 ? '#1c1205' : '#a8b1c4' }));
+    const seat = (name, color, icon, piece, human, i) => ({
+      name, color, icon, piece, human, bot: !human, label: 'Player ' + (i + 1) + ' name',
+      hBg: human ? '#7dd3fc' : 'transparent', hInk: human ? '#0b2a3a' : '#a8b1c4',
+      bBg: human ? 'transparent' : 'rgba(255,255,255,0.1)', bInk: human ? '#a8b1c4' : '#f4ede2'
+    });
+    const seats = [
+      seat('You', '#fb7185', icons.taxi, 'Taxi', true, 0),
+      seat('Nova', '#22d3ee', icons.drone, 'Drone', false, 1),
+      seat('Atlas', '#fbbf24', icons.bus, 'Bus', false, 2),
+      seat('Juno', '#a78bfa', icons.balloon, 'Balloon', false, 3)
+    ];
+    return { modes, counts, seats };
+  }
+}
+</script>
+</body>
+</html>

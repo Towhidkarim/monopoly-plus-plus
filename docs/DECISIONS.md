@@ -234,3 +234,13 @@ Targets are verified by the bot simulation harness, not guessed. Rules are small
 **Decision:** Stay 2D and code-drawn; no Blender or pre-rendered sprites for now. Get the most out of the existing kit: gradients and fake occlusion on faces, light spill and bloom at night, richer silhouettes and props. The tall downtown stays (BOARD.md section 5), with the same richness on towers. Order: a city richness draft on `#art` for review first, then the Milestone 8 cards, UX and UI color theming.
 **Why:** Keeps the seeded city, buildings that grow with play, the iso/top-down morph and a light download; no binary asset pipeline.
 - **No more raised downtown:** the plinth drops from 0.22 to a curb-high 0.03 step (`PLINTH_Z`). The tall, plain grey wall with the ring road running along its edge read as a cake on a table; the reference city sits on the ground.
+
+## D32. Milestone 8 look: Lamplight panels with card-stock faces (2026-10-25)
+
+**Context:** The developer compared three UI directions on a design canvas (sources in `docs/design/m8/`) and asked for richer cards and UI pieces, then for every screen in that style.
+**Decision:**
+- **Panels:** dark ink-blue glass (`#121c33` on the `#0a1222`/`#0b1426` table, kept matched with the board's table), a faint warm border (`rgba(255,214,150,0.16)`), a 1 px top highlight and soft drop shadows. Lamp gold `#f5b54a` is the one accent (primary buttons, active player); money is `#ffcf70`; good `#5eead4`, bad `#fb7185`.
+- **Physical things are card stock:** deeds, event cards, the turn ribbon, bills, the results certificate, keycaps and dice use cream `#fbf8f1` with a pressed edge (`#e4dccb`), ink `#1f2a3d`, green money `#1d7354`. Cards carry a printed double frame and a striped band in their group or deck color.
+- **Type (self-hosted, OFL, Fontsource variable fonts):** Sora for display, Manrope for UI text, Bricolage Grotesque for card titles, DM Sans for card text. Bricolage is second in every stack because it is the only one of the four with the ₵ glyph (U+20B5); the browser takes just that glyph from it.
+- **Feel:** cozy and physical, not neon. Glow only on money and the active player. Motion is transform and opacity only, springy, and off or reduced with reduced motion.
+**Why:** The board is the brightest thing on screen; the UI reads as objects lying on the same table, and cards feel like things you hold.

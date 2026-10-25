@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Property cards, chosen mix</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=DM+Sans:wght@400;500;700&amp;family=Manrope:wght@400;600;800&amp;family=Sora:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 1560px; height: 900px; box-sizing: border-box; padding: 48px; background: #0a1222; color: #f4ede2; font-family: 'Manrope', system-ui, sans-serif; display: flex; flex-direction: column; gap: 28px">
+<header style="display: flex; flex-direction: column; gap: 8px">
+<h2 style="margin: 0; font-family: 'Sora', sans-serif; font-size: 32px; font-weight: 700">Property cards · owned, for sale, mortgaged</h2>
+<p style="margin: 0; font-size: 15px; color: #a8b1c4">Card stock with a printed frame, the group's striped band, the owner's token as an emblem, the building in a framed window, and a rent ladder that shows where you are now.</p>
+</header>
+<div style="display: flex; gap: 40px; align-items: flex-start">
+<sc-for list="{{deeds}}" as="d" hint-placeholder-count="3">
+<article aria-label="{{d.name}} title deed, {{d.stateLabel}}" style="position: relative; width: 300px; flex: none; border-radius: 20px; background: #fbf8f1; color: #1f2a3d; box-shadow: 0 24px 50px rgba(2,6,16,0.6), 0 3px 0 #e4dccb; overflow: hidden; font-family: 'DM Sans', sans-serif; filter: {{d.filter}}">
+<div style="position: relative; height: 92px; background: {{d.color}}; background-image: repeating-linear-gradient(135deg, rgba(255,255,255,0.14) 0 9px, rgba(255,255,255,0) 9px 18px)">
+<svg width="14" height="13" viewBox="0 0 13 12" aria-hidden="true" style="position: absolute; left: 18px; top: 16px"><path d="M1 6 L6.5 1 L12 6 V11 H1 Z" fill="{{d.ink}}" opacity="0.7"></path></svg>
+<span style="position: absolute; left: 0; right: 0; top: 16px; text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: {{d.ink}}; opacity: 0.8">{{d.group}}</span>
+<span style="position: absolute; left: 20px; right: 20px; top: 36px; text-align: center; font-family: 'Bricolage Grotesque', sans-serif; font-size: 27px; font-weight: 800; line-height: 1.05; color: {{d.ink}}">{{d.name}}</span>
+</div>
+<div aria-hidden="true" style="position: absolute; inset: 8px; border-radius: 14px; border: 1.5px solid {{d.frame}}; pointer-events: none"></div>
+<div aria-hidden="true" style="position: absolute; inset: 12px; border-radius: 11px; border: 1px solid {{d.frameSoft}}; pointer-events: none"></div>
+<sc-if value="{{d.owned}}" hint-placeholder-val="{{true}}">
+<span aria-label="Owned by {{d.ownerName}}" style="position: absolute; right: 18px; top: 66px; width: 46px; height: 46px; border-radius: 50%; background: {{d.ownerColor}}; border: 4px solid #fbf8f1; box-shadow: 0 6px 14px rgba(20,16,8,0.3), inset 0 -4px 0 rgba(0,0,0,0.18); display: flex; align-items: center; justify-content: center">
+<svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 16 L5.5 11 H18.5 L20 16 V19 H4 Z M7 19 V21 M17 19 V21 M9 8 H15 V11 H9 Z" fill="none" stroke="#1a1020" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+</span>
+</sc-if>
+<div style="position: relative; margin: 14px 20px 0; height: 150px; border-radius: 14px; background: {{d.sky}}; box-shadow: inset 0 2px 8px rgba(0,0,0,0.25), 0 0 0 3px #fbf8f1, 0 0 0 4px {{d.frameSoft}}; overflow: hidden">
+<div style="position: absolute; inset: 6px 22px 0">
+<dc-import name="Hero" night="{{d.night}}" hint-size="216px,140px"></dc-import>
+</div>
+<span style="position: absolute; left: 10px; top: 10px; padding: 4px 9px; border-radius: 999px; background: rgba(251,248,241,0.92); font-size: 11px; font-weight: 700; color: #1f2a3d">{{d.levelLabel}}</span>
+<span style="position: absolute; right: 10px; bottom: 10px; display: flex; align-items: center; gap: 5px; padding: 4px 10px 4px 5px; border-radius: 999px; background: #fbf8f1; font-family: 'Bricolage Grotesque', sans-serif; font-size: 15px; font-weight: 800; color: #1f2a3d; box-shadow: 0 3px 8px rgba(0,0,0,0.25)">
+<span style="width: 18px; height: 18px; border-radius: 50%; background: #f2c14e; box-shadow: inset 0 -2px 0 #c8962a; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #5a3a00">₵</span>{{d.price}}</span>
+</div>
+<div style="display: flex; align-items: center; gap: 8px; padding: 12px 22px 4px">
+<span style="display: flex; gap: 4px">
+<sc-for list="{{d.set}}" as="s" hint-placeholder-count="3">
+<span style="width: 16px; height: 20px; border-radius: 4px; background: {{s.bg}}; border: 1.5px solid {{d.color}}"></span>
+</sc-for>
+</span>
+<span style="font-size: 12px; font-weight: 700; color: #5a6373">{{d.setLabel}}</span>
+</div>
+<div style="padding: 6px 16px 4px; display: flex; flex-direction: column">
+<sc-for list="{{d.rows}}" as="r" hint-placeholder-count="6">
+<div style="display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 10px; background: {{r.bg}}; border-bottom: 1px dashed {{r.rule}}">
+<span style="width: 34px; font-size: 9px; font-weight: 800; letter-spacing: 0.1em; color: {{r.nowInk}}">{{r.now}}</span>
+<span style="flex: 1; display: flex; align-items: center; gap: 3px; font-size: 13px; font-weight: 700; color: #5a6373">
+<sc-if value="{{r.base}}" hint-placeholder-val="{{false}}">Rent</sc-if>
+<sc-for list="{{r.slots}}" as="sl" hint-placeholder-count="4">
+<svg width="14" height="13" viewBox="0 0 13 12" aria-hidden="true"><path d="M1.5 6 L6.5 1.5 L11.5 6 V11 H1.5 Z" fill="{{sl.fill}}" stroke="{{sl.stroke}}" stroke-width="1.2"></path></svg>
+</sc-for>
+<sc-if value="{{r.hotel}}" hint-placeholder-val="{{false}}">
+<svg width="16" height="16" viewBox="0 0 14 14" aria-hidden="true"><path d="M2 13 V4 L7 1 L12 4 V13 Z M5 6 H6 M8 6 H9 M5 9 H6 M8 9 H9" fill="{{r.hotelFill}}" stroke="#1f2a3d" stroke-width="0.8"></path></svg>
+<span>Hotel</span>
+</sc-if>
+</span>
+<span style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; color: {{r.ink}}">₵{{r.amount}}</span>
+</div>
+</sc-for>
+</div>
+<div style="display: flex; justify-content: space-between; gap: 8px; padding: 10px 22px 6px">
+<span style="display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: #3d4757">
+<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 13 L9 7 M7 3 L13 9 M6 4 L10 2 L14 6 L12 10" fill="none" stroke="#3d4757" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>Build ₵{{d.house}}</span>
+<span style="display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: #3d4757">
+<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 6 L8 2 L14 6 Z M3 7 V12 M6.5 7 V12 M9.5 7 V12 M13 7 V12 M2 14 H14" fill="none" stroke="#3d4757" stroke-width="1.5" stroke-linejoin="round"></path></svg>Mortgage ₵{{d.mortgage}}</span>
+</div>
+<div style="display: flex; align-items: center; justify-content: space-between; padding: 4px 22px 18px; font-size: 10px; color: #7a8293">
+<span>×2 rent with the full set</span>
+<span>{{d.number}}</span>
+</div>
+<sc-if value="{{d.forSale}}" hint-placeholder-val="{{false}}">
+<div aria-hidden="true" style="position: absolute; right: -44px; top: 22px; width: 170px; padding: 6px 0; text-align: center; transform: rotate(38deg); background: #c94a31; color: #ffffff; font-size: 11px; font-weight: 800; letter-spacing: 0.18em; box-shadow: 0 4px 10px rgba(0,0,0,0.25)">FOR SALE</div>
+</sc-if>
+<sc-if value="{{d.mortgaged}}" hint-placeholder-val="{{false}}">
+<div aria-hidden="true" style="position: absolute; left: 34px; top: 250px; padding: 6px 16px; border: 4px solid #b42318; border-radius: 10px; color: #b42318; font-family: 'Sora', sans-serif; font-weight: 700; font-size: 26px; letter-spacing: 0.12em; transform: rotate(-12deg); background: rgba(251,248,241,0.75)">MORTGAGED</div>
+</sc-if>
+</article>
+</sc-for>
+<div style="display: flex; flex-direction: column; gap: 14px">
+<span style="font-size: 12px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: #a8b1c4">Compact (hand, trade table, My city)</span>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px">
+<sc-for list="{{compacts}}" as="c" hint-placeholder-count="4">
+<article aria-label="{{c.name}}, {{c.stateLabel}}" style="position: relative; width: 140px; border-radius: 14px; background: #fbf8f1; color: #1f2a3d; overflow: hidden; box-shadow: 0 14px 30px rgba(2,6,16,0.55), 0 2px 0 #e4dccb; font-family: 'DM Sans', sans-serif; filter: {{c.filter}}">
+<div style="height: 50px; padding: 8px 10px; box-sizing: border-box; background: {{c.color}}; background-image: repeating-linear-gradient(135deg, rgba(255,255,255,0.14) 0 7px, rgba(255,255,255,0) 7px 14px)">
+<span style="display: block; font-size: 8px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: {{c.ink}}; opacity: 0.8">{{c.group}}</span>
+<span style="display: block; font-family: 'Bricolage Grotesque', sans-serif; font-size: 15px; font-weight: 800; line-height: 1.05; color: {{c.ink}}">{{c.name}}</span>
+</div>
+<div aria-hidden="true" style="position: absolute; inset: 5px; border-radius: 10px; border: 1px solid {{c.frame}}; pointer-events: none"></div>
+<div style="margin: 8px 10px 0; height: 76px; border-radius: 9px; background: {{c.sky}}; box-shadow: inset 0 2px 6px rgba(0,0,0,0.22); overflow: hidden; padding: 2px 12px 0; box-sizing: border-box">
+<dc-import name="Hero" night="{{c.night}}" hint-size="96px,72px"></dc-import>
+</div>
+<div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 10px 10px">
+<span style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 14px; font-weight: 800; color: #1d7354">₵{{c.price}}</span>
+<span style="display: flex; gap: 2px; align-items: center">
+<sc-for list="{{c.slots}}" as="sl" hint-placeholder-count="4">
+<svg width="11" height="10" viewBox="0 0 13 12" aria-hidden="true"><path d="M1.5 6 L6.5 1.5 L11.5 6 V11 H1.5 Z" fill="{{sl.fill}}" stroke="{{sl.stroke}}" stroke-width="1.2"></path></svg>
+</sc-for>
+</span>
+</div>
+<sc-if value="{{c.owned}}" hint-placeholder-val="{{true}}">
+<span aria-label="Owned by {{c.ownerName}}" style="position: absolute; right: 8px; top: 38px; width: 24px; height: 24px; border-radius: 50%; background: {{c.ownerColor}}; border: 3px solid #fbf8f1; box-shadow: 0 3px 6px rgba(0,0,0,0.3)"></span>
+</sc-if>
+</article>
+</sc-for>
+</div>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1560,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const tint = (hex, a) => {
+      const n = parseInt(hex.slice(1), 16);
+      return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
+    };
+    const slots = (n, color) => [0, 1, 2, 3].map((k) => ({
+      fill: k < n ? color : 'transparent',
+      stroke: k < n ? '#1f2a3d' : '#c9c1ae'
+    }));
+    const make = (o) => {
+      const level = o.level;
+      const rows = o.rents.map((amount, i) => {
+        const now = o.owned && !o.mortgaged && i === level;
+        return {
+          amount,
+          base: i === 0,
+          hotel: i === 5,
+          hotelFill: now ? o.color : '#efe7d4',
+          slots: i > 0 && i < 5 ? slots(i, now ? o.color : '#d8cfbb') : [],
+          now: now ? 'NOW' : '',
+          nowInk: '#1f2a3d',
+          bg: now ? tint(o.color, 0.28) : 'transparent',
+          rule: i === 5 || now ? 'transparent' : '#e7dfcd',
+          ink: now ? '#14513b' : '#1d7354'
+        };
+      });
+      const levelLabel = !o.owned ? 'Empty lot' : level === 0 ? 'No houses yet' : level === 5 ? 'Hotel' : level + (level === 1 ? ' house' : ' houses');
+      return {
+        ...o,
+        rows,
+        levelLabel,
+        frame: tint(o.color, 0.9),
+        frameSoft: tint(o.color, 0.3),
+        sky: o.night ? '#16213a' : '#dcebe3',
+        mortgage: Math.round(o.priceN / 2),
+        filter: o.mortgaged ? 'saturate(0.35)' : 'none',
+        set: [0, 1, 2].slice(0, o.setSize).map((k) => ({ bg: k < o.setOwned ? o.color : 'transparent' })),
+        setLabel: 'Set ' + o.setOwned + ' of ' + o.setSize + (o.setOwned === o.setSize ? ' · complete' : ''),
+        stateLabel: o.forSale ? 'for sale' : o.mortgaged ? 'mortgaged' : 'owned by ' + o.ownerName
+      };
+    };
+    const deeds = [
+      make({ name: 'Foundry Way', group: 'Old Town', color: '#7dd3fc', ink: '#0b2a3a', price: '120', priceN: 120, house: 50, rents: [8, 40, 100, 300, 450, 600], level: 2, owned: true, forSale: false, mortgaged: false, ownerName: 'You', ownerColor: '#fb7185', night: true, setOwned: 3, setSize: 3, number: 'Old Town · 3 / 3' }),
+      make({ name: 'Opera Lane', group: 'Theater', color: '#f87171', ink: '#3a0c0c', price: '240', priceN: 240, house: 150, rents: [20, 100, 300, 750, 925, 1100], level: 0, owned: false, forSale: true, mortgaged: false, ownerName: '', ownerColor: '', night: false, setOwned: 0, setSize: 3, number: 'Theater · 3 / 3' }),
+      make({ name: 'Grand Terrace', group: 'Crown', color: '#6366f1', ink: '#ffffff', price: '400', priceN: 400, house: 200, rents: [50, 200, 600, 1400, 1700, 2000], level: 0, owned: true, forSale: false, mortgaged: true, ownerName: 'Juno', ownerColor: '#a78bfa', night: false, setOwned: 1, setSize: 2, number: 'Crown · 2 / 2' })
+    ];
+    const compact = (o) => ({
+      ...o,
+      frame: tint(o.color, 0.55),
+      sky: o.night ? '#16213a' : '#dcebe3',
+      filter: o.mortgaged ? 'saturate(0.35)' : 'none',
+      slots: o.level >= 5 ? [] : slots(o.level, o.color),
+      stateLabel: o.owned ? 'owned by ' + o.ownerName : 'for sale'
+    });
+    const compacts = [
+      compact({ name: 'Foundry Way', group: 'Old Town', color: '#7dd3fc', ink: '#0b2a3a', price: 120, level: 2, owned: true, ownerName: 'You', ownerColor: '#fb7185', night: true, mortgaged: false }),
+      compact({ name: 'Harbor Row', group: 'Docks', color: '#a78bfa', ink: '#1d1240', price: 60, level: 4, owned: true, ownerName: 'You', ownerColor: '#fb7185', night: true, mortgaged: false }),
+      compact({ name: 'Opera Lane', group: 'Theater', color: '#f87171', ink: '#3a0c0c', price: 240, level: 0, owned: false, ownerName: '', ownerColor: '', night: false, mortgaged: false }),
+      compact({ name: 'Grand Terrace', group: 'Crown', color: '#6366f1', ink: '#ffffff', price: 400, level: 0, owned: true, ownerName: 'Juno', ownerColor: '#a78bfa', night: false, mortgaged: true })
+    ];
+    return { deeds, compacts };
+  }
+}
+</script>
+</body>
+</html>

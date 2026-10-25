@@ -127,6 +127,18 @@ Acceptance: ambient adds less than a defined frame-time budget (record it); togg
 
 References for the card and UI look: `docs/reference/UI_REFS.md`.
 
+Build plan (2026-10-25, look approved: DECISIONS.md D32, design sources in `docs/design/m8/`). Each step is committed on its own; the developer may improve anything spotted along the way, aiming for fun, cozy and visible juice:
+
+1. Foundation and game chrome: theme tokens, fonts, shared primitives (panel, buttons, keycaps, token avatars, money with coin), top bar, turn ribbon, dice tray, hint, activity toasts, action dock. In parallel: board framing (warmer slab sides with a light rim, a soft table vignette, a subtle day/night table shift).
+2. Cards: rich deed (full and compact, real building art from the board), Opportunity and City Fund cards with emblems, card motion (idle sway, tilt, deal, flip, stamps).
+3. Buy moment and auction (raise steps from the current bid, bidder cards, bid history).
+4. Trade table (felt mats, coin stacks, bot mood) and incoming offers.
+5. Raise money (bill) and the My city drawer.
+6. Setup, game over (certificate, podium), menu, rulebook help, tooltip, callouts; copy fixes (stale trade text, dev links).
+7. Smaller windows (no overlap), keyboard and accessibility pass.
+
+After Milestone 8: 3D dice thrown onto the board (Pixi cubes, tumble solved backward to the engine's result), tried on `#playground` first.
+
 Status 2026-10-24: the structured trade screen (offers both ways, bot verdicts, counter-offers, bot offers to humans) was pulled forward and is done (DECISIONS.md D24). The rest of this milestone, including the card-styled look of the trade screen, is still to do.
 
 - Flat overlay cards: title deeds, Chance/Chest draw with launch from the deck stack, flip, reveal, return.

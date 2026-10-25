@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Card feel</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=DM+Sans:wght@400;500;700&amp;family=Manrope:wght@400;600;800&amp;family=Plus+Jakarta+Sans:wght@400;600;800&amp;family=Sora:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+@keyframes sway{0%,100%{transform:translateY(0) rotate(-0.6deg)}50%{transform:translateY(-5px) rotate(0.6deg)}}
+@keyframes dealA{0%{transform:translate(-360px,140px) rotate(-28deg) scale(0.55);opacity:0}55%{transform:translate(14px,-10px) rotate(4deg) scale(1.04);opacity:1}75%{transform:translate(-4px,2px) rotate(-1.5deg) scale(0.99)}100%{transform:none}}
+@keyframes dealB{0%{transform:translate(-360px,140px) rotate(-28deg) scale(0.55);opacity:0}55%{transform:translate(14px,-10px) rotate(4deg) scale(1.04);opacity:1}75%{transform:translate(-4px,2px) rotate(-1.5deg) scale(0.99)}100%{transform:none}}
+@keyframes stampA{0%{transform:scale(2.6) rotate(-16deg);opacity:0}55%{transform:scale(0.9) rotate(-9deg);opacity:1}100%{transform:scale(1) rotate(-9deg);opacity:1}}
+@keyframes stampB{0%{transform:scale(2.6) rotate(-16deg);opacity:0}55%{transform:scale(0.9) rotate(-9deg);opacity:1}100%{transform:scale(1) rotate(-9deg);opacity:1}}
+@keyframes shakeA{0%,100%{transform:none}20%{transform:translate(-6px,3px)}40%{transform:translate(5px,-4px)}60%{transform:translate(-3px,2px)}80%{transform:translate(2px,-1px)}}
+@keyframes shakeB{0%,100%{transform:none}20%{transform:translate(-6px,3px)}40%{transform:translate(5px,-4px)}60%{transform:translate(-3px,2px)}80%{transform:translate(2px,-1px)}}
+@keyframes jigA{0%,100%{transform:none}25%{transform:rotate(-3deg) scale(1.03)}50%{transform:rotate(2.5deg) scale(1.03)}75%{transform:rotate(-1deg)}}
+@keyframes jigB{0%,100%{transform:none}25%{transform:rotate(-3deg) scale(1.03)}50%{transform:rotate(2.5deg) scale(1.03)}75%{transform:rotate(-1deg)}}
+</style>
+</helmet>
+<div style="width: 1100px; height: 720px; box-sizing: border-box; display: flex; background: {{bg}}; color: {{ink}}; font-family: 'Manrope', system-ui, sans-serif">
+<div style="flex: 1; position: relative; overflow: hidden; animation: {{shake}}">
+<div aria-hidden="true" style="position: absolute; left: 56px; top: 380px; width: 132px; height: 178px">
+<div style="position: absolute; inset: 0; border-radius: 12px; background: {{deck}}; transform: rotate(-6deg) translate(-6px, 6px)"></div>
+<div style="position: absolute; inset: 0; border-radius: 12px; background: {{deck}}; transform: rotate(-3deg) translate(-3px, 3px)"></div>
+<div style="position: absolute; inset: 0; border-radius: 12px; background: {{deck}}; border: 2px solid {{deckEdge}}; display: flex; align-items: center; justify-content: center; font-family: 'Sora', sans-serif; font-weight: 700; font-size: 15px; letter-spacing: 0.2em; color: {{deckEdge}}">DEEDS</div>
+</div>
+<div style="position: absolute; left: 290px; top: 70px; width: 300px; animation: {{deal}}">
+<div style="animation: {{sway}}">
+<div onMouseMove="{{onMove}}" onMouseLeave="{{onLeave}}" style="perspective: 900px">
+<div style="position: relative; transform-style: preserve-3d; transform: rotateX({{rx}}deg) rotateY({{ry}}deg) translateY({{lift}}px) scale({{scale}}); transition: {{tilt}}">
+<div style="position: relative; transform-style: preserve-3d; transform: rotateY({{flipDeg}}deg); transition: transform 560ms cubic-bezier(0.2, 0.9, 0.3, 1.15)">
+<div style="backface-visibility: hidden; animation: {{jig}}">
+<dc-import name="Deed" theme="{{theme}}" level="{{level}}" night="{{night}}" hint-size="300px,500px"></dc-import>
+<div aria-hidden="true" style="position: absolute; inset: 0; border-radius: 18px; pointer-events: none; background: radial-gradient(circle at {{sx}}% {{sy}}%, rgba(255,255,255,{{sheen}}), rgba(255,255,255,0) 45%)"></div>
+</div>
+<div aria-hidden="true" style="position: absolute; inset: 0; backface-visibility: hidden; transform: rotateY(180deg); border-radius: 18px; background: {{deck}}; border: 2px solid {{deckEdge}}; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px">
+<svg width="96" height="96" viewBox="0 0 96 96"><path d="M48 8 L88 48 L48 88 L8 48 Z" fill="none" stroke="{{deckEdge}}" stroke-width="3"></path><path d="M30 62 V40 H40 V62 M44 62 V28 H54 V62 M58 62 V46 H68 V62" fill="none" stroke="{{deckEdge}}" stroke-width="3"></path></svg>
+<span style="font-family: 'Sora', sans-serif; font-weight: 700; letter-spacing: 0.3em; color: {{deckEdge}}">SKYLINE</span>
+</div>
+</div>
+<sc-if value="{{stampOn}}" hint-placeholder-val="{{false}}">
+<div aria-hidden="true" style="position: absolute; left: 40px; top: 190px; padding: 8px 22px; border: 5px solid #e8463a; border-radius: 10px; color: #e8463a; font-family: 'Sora', sans-serif; font-weight: 700; font-size: 44px; letter-spacing: 0.12em; background: rgba(255,255,255,0.08); animation: {{stamp}}">{{stampWord}}</div>
+</sc-if>
+</div>
+</div>
+</div>
+</div>
+</div>
+<aside style="width: 340px; box-sizing: border-box; padding: 32px 28px; display: flex; flex-direction: column; gap: 14px; background: {{panel}}; border-left: 1px solid {{line}}">
+<h2 style="margin: 0; font-family: 'Sora', sans-serif; font-size: 24px">Card feel</h2>
+<p style="margin: 0; font-size: 14px; line-height: 1.5; color: {{muted}}">Hover the card: it lifts and tilts toward the cursor with a light sheen, and settles with a spring when you leave. At rest it sways a little.</p>
+<button type="button" onClick="{{onDeal}}" style="height: 46px; border-radius: 14px; font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer; border: 1px solid {{line}}; background: transparent; color: {{ink}}">Deal from the deck</button>
+<button type="button" onClick="{{flip}}" style="height: 46px; border-radius: 14px; font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer; border: 1px solid {{line}}; background: transparent; color: {{ink}}">Flip</button>
+<button type="button" onClick="{{hike}}" style="height: 46px; border-radius: 14px; font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer; border: 1px solid {{line}}; background: transparent; color: {{ink}}">Build a house (rent jiggles)</button>
+<button type="button" onClick="{{sold}}" style="height: 46px; border-radius: 14px; font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer; border: 0; background: {{accent}}; color: {{accentInk}}">Stamp SOLD</button>
+<button type="button" onClick="{{deal2}}" style="height: 46px; border-radius: 14px; font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer; border: 1px solid {{line}}; background: transparent; color: {{ink}}">Stamp DEAL!</button>
+<p style="margin: 6px 0 0; font-size: 12px; line-height: 1.5; color: {{muted}}">Timings: tilt follows in 120 ms, springs back in 500 ms; deal 620 ms; flip 560 ms; stamp 420 ms with a 300 ms shake. With reduced motion, sway, tilt and shake are off.</p>
+</aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["lamplight","paper","slate"],"default":"lamplight"},"reducedMotion":{"editor":"boolean","default":false},"$preview":{"width":1100,"height":720}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { rx: 0, ry: 0, sx: 50, sy: 30, hover: false, flipped: false, dealN: 0, stampN: 0, stampOn: false, stampWord: 'SOLD', level: 2, jigN: 0 };
+  }
+  renderVals() {
+    const s = this.state;
+    const theme = this.props.theme ?? 'lamplight';
+    const calm = this.props.reducedMotion ?? false;
+    const pal = {
+      lamplight: { bg: '#0a1222', panel: '#121c33', line: 'rgba(255,214,150,0.16)', ink: '#f4ede2', muted: '#a8b1c4', deck: '#1d2944', deckEdge: '#f5b54a', accent: '#f5b54a', accentInk: '#1c1205' },
+      paper: { bg: '#dbe5dc', panel: '#fbf8f1', line: '#e1d8c5', ink: '#1f2a3d', muted: '#5a6373', deck: '#c94a31', deckEdge: '#fbf8f1', accent: '#c94a31', accentInk: '#ffffff' },
+      slate: { bg: '#0f1623', panel: '#1a2333', line: '#2b3649', ink: '#e8edf4', muted: '#9aa6b8', deck: '#22304a', deckEdge: '#2dd4bf', accent: '#2dd4bf', accentInk: '#05302b' }
+    }[theme] ?? {};
+    const odd = (n) => n % 2 === 1;
+    return {
+      ...pal,
+      theme,
+      night: theme === 'lamplight',
+      level: s.level,
+      rx: calm ? 0 : s.rx,
+      ry: calm ? 0 : s.ry,
+      sx: s.sx,
+      sy: s.sy,
+      sheen: s.hover && !calm ? 0.22 : 0,
+      lift: s.hover ? -14 : 0,
+      scale: s.hover ? 1.03 : 1,
+      tilt: s.hover ? 'transform 120ms ease-out' : 'transform 500ms cubic-bezier(0.2, 0.9, 0.3, 1.35)',
+      flipDeg: s.flipped ? 180 : 0,
+      sway: calm || s.hover ? 'none' : 'sway 4.2s ease-in-out infinite',
+      deal: s.dealN === 0 ? 'none' : (odd(s.dealN) ? 'dealA' : 'dealB') + ' 620ms cubic-bezier(0.2, 0.9, 0.3, 1) both',
+      stamp: (odd(s.stampN) ? 'stampA' : 'stampB') + ' 420ms cubic-bezier(0.2, 0.9, 0.3, 1.2) forwards',
+      shake: s.stampN === 0 || calm ? 'none' : (odd(s.stampN) ? 'shakeA' : 'shakeB') + ' 300ms ease-out 260ms',
+      jig: s.jigN === 0 || calm ? 'none' : (odd(s.jigN) ? 'jigA' : 'jigB') + ' 420ms ease-out',
+      stampOn: s.stampOn,
+      stampWord: s.stampWord,
+      onMove: (e) => {
+        const r = e.currentTarget.getBoundingClientRect();
+        const x = (e.clientX - r.left) / r.width;
+        const y = (e.clientY - r.top) / r.height;
+        this.setState({ hover: true, ry: (x - 0.5) * 18, rx: (0.5 - y) * 14, sx: x * 100, sy: y * 100 });
+      },
+      onLeave: () => this.setState({ hover: false, rx: 0, ry: 0 }),
+      onDeal: () => this.setState({ dealN: s.dealN + 1, flipped: false, stampOn: false }),
+      flip: () => this.setState({ flipped: !s.flipped }),
+      hike: () => this.setState({ level: s.level >= 5 ? 1 : s.level + 1, jigN: s.jigN + 1 }),
+      sold: () => this.setState({ stampOn: true, stampWord: 'SOLD', stampN: s.stampN + 1 }),
+      deal2: () => this.setState({ stampOn: true, stampWord: 'DEAL!', stampN: s.stampN + 1 })
+    };
+  }
+}
+</script>
+</body>
+</html>

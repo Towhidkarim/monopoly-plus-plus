@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Buy moment</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=DM+Sans:wght@400;500;700&amp;family=Manrope:wght@400;600;800&amp;family=Sora:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#f5b54a}a:hover{color:#ffd48a}
+</style>
+</helmet>
+<div style="position: relative; width: 1440px; height: 900px; overflow: hidden; background: #0a1222; color: #f4ede2; font-family: 'Manrope', system-ui, sans-serif">
+<img src="/_blob/02d991195100a8f99d29620078e8d37a" alt="The board by day" style="position: absolute; left: 230px; top: 90px; width: 980px; height: 833px; object-fit: contain">
+<div aria-hidden="true" style="position: absolute; inset: 0; background: rgba(6,10,20,0.62)"></div>
+<div style="position: absolute; left: 0; top: 0">
+<dc-import name="Hud" active="you" hint-size="1440px,96px"></dc-import>
+</div>
+
+<div role="dialog" aria-label="Buy Opera Lane" style="position: absolute; left: 50%; top: 150px; transform: translateX(-50%); display: flex; align-items: center; gap: 44px">
+<div style="transform: rotate(-3deg)">
+<dc-import name="RichDeed" street="Opera Lane" group="Theater" color="#f87171" ink="#3a0c0c" price="{{240}}" house="{{150}}" rents="{{rents}}" level="{{0}}" owned="{{false}}" for-sale="{{true}}" night="{{false}}" set-owned="{{0}}" set-size="{{3}}" number="Theater · 3 / 3" hint-size="300px,610px"></dc-import>
+</div>
+<section style="width: 400px; display: flex; flex-direction: column; gap: 18px; padding: 26px; border-radius: 24px; background: #121c33; border: 1px solid rgba(255,214,150,0.16); box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 24px 50px rgba(2,6,16,0.6)">
+<span style="display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: #f5b54a">
+<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 8 V2 H8 L15 9 L9 15 Z" fill="none" stroke="#f5b54a" stroke-width="1.6" stroke-linejoin="round"></path><circle cx="5.5" cy="5.5" r="1.3" fill="#f5b54a"></circle></svg>For sale</span>
+<h2 style="margin: 0; font-family: 'Sora', sans-serif; font-size: 32px; font-weight: 700; line-height: 1.1">Buy Opera Lane?</h2>
+<div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-radius: 16px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,214,150,0.1)">
+<span style="display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #a8b1c4">Your cash</span>
+<span style="display: flex; align-items: center; gap: 10px; font-family: 'Sora', sans-serif; font-size: 22px; font-weight: 700">
+<span style="color: #a8b1c4; text-decoration: line-through; text-decoration-color: rgba(168,177,196,0.6)">₵1,290</span>
+<svg width="20" height="12" viewBox="0 0 20 12" aria-hidden="true"><path d="M1 6 H17 M13 2 L18 6 L13 10" fill="none" stroke="#f5b54a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+<span style="color: #ffcf70">₵1,050</span>
+</span>
+</span>
+<span style="padding: 4px 10px; border-radius: 999px; background: rgba(251,113,133,0.14); color: #fda4af; font-size: 13px; font-weight: 800">−₵240</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; border-radius: 16px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,214,150,0.1)">
+<div style="display: flex; align-items: center; justify-content: space-between">
+<span style="display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700"><span style="width: 12px; height: 12px; border-radius: 3px; background: #f87171"></span>Theater</span>
+<span style="font-size: 13px; color: #a8b1c4">you'd own 1 of 3</span>
+</div>
+<div style="display: flex; gap: 8px">
+<span style="flex: 1; display: flex; flex-direction: column; gap: 6px; align-items: center">
+<span style="width: 100%; height: 34px; border-radius: 8px; background: #f87171; box-shadow: 0 0 0 2px #fbf8f1 inset; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; color: #3a0c0c">Opera Lane</span>
+<span style="font-size: 11px; color: #ffcf70; font-weight: 700">This one</span>
+</span>
+<span style="flex: 1; display: flex; flex-direction: column; gap: 6px; align-items: center">
+<span style="width: 100%; height: 34px; border-radius: 8px; border: 1.5px dashed rgba(248,113,113,0.6); display: flex; align-items: center; justify-content: center; font-size: 11px; color: #a8b1c4">Theater Row</span>
+<span style="font-size: 11px; color: #a8b1c4">For sale</span>
+</span>
+<span style="flex: 1; display: flex; flex-direction: column; gap: 6px; align-items: center">
+<span style="width: 100%; height: 34px; border-radius: 8px; background: rgba(167,139,250,0.2); border: 1.5px solid #a78bfa; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #ddd6fe">Gallery Walk</span>
+<span style="font-size: 11px; color: #c4b5fd">Juno owns</span>
+</span>
+</div>
+<span style="font-size: 13px; line-height: 1.4; color: #a8b1c4">First piece of Theater. Juno holds Gallery Walk, so the set needs a trade later.</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px">
+<button type="button" style="height: 62px; border-radius: 18px; border: 0; background: #f5b54a; color: #1c1205; font-family: 'Sora', sans-serif; font-size: 19px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 12px; box-shadow: inset 0 -4px 0 rgba(0,0,0,0.18), 0 10px 26px rgba(245,181,74,0.32)">Buy for ₵240 <span style="font-family: 'Manrope', sans-serif; font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 6px; background: #fbf8f1; color: #1f2a3d; box-shadow: 0 2px 0 #c9c1ae">B</span></button>
+<button type="button" style="height: 52px; border-radius: 16px; border: 1px solid rgba(255,214,150,0.2); background: transparent; color: #f4ede2; font-family: 'Manrope', sans-serif; font-size: 15px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 10px">
+<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 9 L9 3 M6 12 L12 6 M5 7 L9 11 M10 12 L14 16 M1 15 H8" fill="none" stroke="#f4ede2" stroke-width="1.6" stroke-linecap="round"></path></svg>Put it up for auction <span style="font-size: 11px; padding: 2px 7px; border-radius: 6px; background: #fbf8f1; color: #1f2a3d; box-shadow: 0 2px 0 #c9c1ae">A</span></button>
+</div>
+<span style="font-size: 12px; color: #a8b1c4; text-align: center">Auctioning lets everyone bid, including you.</span>
+</section>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { rents: [20, 100, 300, 750, 925, 1100] };
+  }
+}
+</script>
+</body>
+</html>
