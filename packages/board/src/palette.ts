@@ -3,8 +3,11 @@
 export const palette = {
   table: 0x0b1426,
   slabTop: 0x1b2638,
-  slabLeft: 0x334155,
-  slabRight: 0x1e293b,
+  slabLeft: 0x2b3350,
+  slabRight: 0x1b2238,
+  slabRim: 0x7f8dbb,
+  /** Table by day: a touch toward dusk-blue; it settles to `table` at night. */
+  tableDay: 0x0f1b33,
   tileTop: 0xe2e8f0,
   cornerTop: 0xcbd5e1,
   tileLeft: 0x94a3b8,

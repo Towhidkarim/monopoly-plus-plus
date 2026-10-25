@@ -4,7 +4,8 @@ import { Animator, ease } from './anim/animator.ts'
 import { project, unproject, type Pos } from './geometry/project.ts'
 import { cloneJuice, type JuiceConfig } from './juice/config.ts'
 import { Particles } from './juice/particles.ts'
-import { NIGHT, blinkAt, lightsAt, nightTint } from './art/paint.ts'
+import { NIGHT, blinkAt, lightsAt, mix, nightTint, vignetteFill } from './art/paint.ts'
+import { palette } from './palette.ts'
 import { BOARD, nearerNeighbor, ringFootprint, tileAt, tileCenter, tokenAnchor } from './geometry/ring.ts'
 import { jump, travel, type MotionContext } from './pieces/motion.ts'
 import { SIDE_HEADING, type PieceKind } from './pieces/shapes.ts'
@@ -81,6 +82,8 @@ export class Board {
   readonly listeners: BoardListeners = {}
 
   private readonly world = new Container()
+  /** Screen-space table vignette behind the world; rebuilt only on resize. */
+  private readonly vignette = new Graphics()
   private readonly ground = new GroundView()
   private readonly tileLayer = new Container({ sortableChildren: true })
   private readonly shadowLayer = new Container()
@@ -144,8 +147,10 @@ export class Board {
     this.debugLayer.addChild(this.debugLines)
     this.debugLayer.visible = false
     this.debugLayer.eventMode = 'none'
-    app.stage.addChild(this.world)
+    app.stage.addChild(this.vignette, this.world)
+    this.vignette.eventMode = 'none'
 
+    app.renderer.background.color = mix(palette.tableDay, palette.table, this.night)
     this.redraw()
     this.bindInput()
     this.onResize()
@@ -206,6 +211,7 @@ export class Board {
   private applyNight(n: number): void {
     this.night = n
     this.ground.graphics.tint = nightTint(NIGHT.ground, n, 0.6)
+    this.app.renderer.background.color = mix(palette.tableDay, palette.table, n)
     for (const tile of this.tiles) tile.setNight(n)
     this.city.setNight(n)
     for (const token of this.tokens.values()) this.lightToken(token)
@@ -784,5 +790,9 @@ export class Board {
   private readonly onResize = (): void => {
     this.camera.setViewport(this.app.screen.width, this.app.screen.height)
     this.camera.setBounds(this.worldBounds())
+    const { width, height } = this.app.screen
+    // Faint lift under the board, darker toward the edges (one rect, one radial gradient).
+    const g = this.vignette.clear().rect(0, 0, width, height).fill(vignetteFill())
+    g.eventMode = 'none'
   }
 }

@@ -1,133 +1,193 @@
 <!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<title>Deed card</title>
-<script src="./support.js"></script>
-</head>
-<body>
-<x-dc>
-<helmet>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=DM+Sans:wght@400;500;700&amp;family=Manrope:wght@400;600;800&amp;family=Plus+Jakarta+Sans:wght@400;600;800&amp;family=Sora:wght@600;700&amp;display=swap" rel="stylesheet">
-<style>
-body{margin:0}
-</style>
-</helmet>
-<sc-if value="{{full}}" hint-placeholder-val="{{true}}">
-<article aria-label="{{name}} title deed" style="width: 300px; box-sizing: border-box; border-radius: 18px; overflow: hidden; background: {{t.card}}; border: 1px solid {{t.border}}; box-shadow: {{t.shadow}}; color: {{t.ink}}; font-family: {{t.body}}">
-<header style="background: {{color}}; padding: 14px 16px 14px 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px">
-<div style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
-<span style="font-size: 11px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: {{bandInk}}; opacity: 0.78">{{group}}</span>
-<span style="font-family: {{t.display}}; font-size: 24px; font-weight: 700; line-height: 1.1; color: {{bandInk}}">{{name}}</span>
-</div>
-<span aria-label="Owned by {{ownerName}}" style="flex: none; width: 36px; height: 36px; border-radius: 50%; background: {{ownerColor}}; border: 2px solid {{bandInk}}; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 15px; color: #1a1020">{{owner}}</span>
-</header>
-<div style="height: 150px; background: {{t.hero}}; padding: 6px 24px 0; box-sizing: border-box">
-<dc-import name="Hero" night="{{night}}" hint-size="252px,144px"></dc-import>
-</div>
-<div style="padding: 10px 12px 6px; display: flex; flex-direction: column; gap: 2px">
-<sc-for list="{{rows}}" as="row" hint-placeholder-count="6">
-<div style="display: flex; align-items: center; justify-content: space-between; padding: 7px 10px; border-radius: 10px; background: {{row.bg}}">
-<span style="display: flex; align-items: center; gap: 4px; min-height: 14px; font-size: 13px; font-weight: 600; color: {{t.muted}}">
-<sc-if value="{{row.base}}" hint-placeholder-val="{{false}}">Rent</sc-if>
-<sc-for list="{{row.pips}}" as="pip" hint-placeholder-count="2">
-<svg width="13" height="12" viewBox="0 0 13 12" aria-hidden="true"><path d="M1 6 L6.5 1 L12 6 V11 H1 Z" fill="{{row.glyph}}"></path></svg>
-</sc-for>
-<sc-if value="{{row.hotel}}" hint-placeholder-val="{{false}}">
-<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M2 13 V4 L7 1 L12 4 V13 Z" fill="{{row.glyph}}"></path></svg>
-<span>Hotel</span>
-</sc-if>
-</span>
-<span style="font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; color: {{row.money}}">₵{{row.amount}}</span>
-</div>
-</sc-for>
-</div>
-<div style="display: flex; flex-wrap: wrap; gap: 6px; padding: 6px 14px 16px">
-<span style="font-size: 11px; font-weight: 700; padding: 5px 9px; border-radius: 999px; background: {{t.tag}}">×2 with full set</span>
-<span style="font-size: 11px; font-weight: 700; padding: 5px 9px; border-radius: 999px; background: {{t.tag}}">Build ₵{{houseCost}}</span>
-<span style="font-size: 11px; font-weight: 700; padding: 5px 9px; border-radius: 999px; background: {{t.tag}}">Mortgage ₵{{mortgage}}</span>
-</div>
-</article>
-</sc-if>
-<sc-if value="{{compact}}" hint-placeholder-val="{{false}}">
-<article aria-label="{{name}} title deed" style="width: 132px; box-sizing: border-box; border-radius: 12px; overflow: hidden; background: {{t.card}}; border: 1px solid {{t.border}}; box-shadow: {{t.shadow}}; color: {{t.ink}}; font-family: {{t.body}}">
-<header style="background: {{color}}; padding: 8px 10px; height: 52px; box-sizing: border-box">
-<span style="display: block; font-size: 9px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: {{bandInk}}; opacity: 0.78">{{group}}</span>
-<span style="display: block; font-family: {{t.display}}; font-size: 14px; font-weight: 700; line-height: 1.1; color: {{bandInk}}">{{name}}</span>
-</header>
-<div style="height: 84px; background: {{t.hero}}; padding: 4px 10px 0; box-sizing: border-box">
-<dc-import name="Hero" night="{{night}}" hint-size="112px,80px"></dc-import>
-</div>
-<div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 10px 10px">
-<span style="font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums; color: {{t.money}}">₵{{price}}</span>
-<span style="display: flex; gap: 2px">
-<sc-for list="{{levelPips}}" as="pip" hint-placeholder-count="2">
-<svg width="11" height="10" viewBox="0 0 13 12" aria-hidden="true"><path d="M1 6 L6.5 1 L12 6 V11 H1 Z" fill="{{t.glyph}}"></path></svg>
-</sc-for>
-</span>
-</div>
-</article>
-</sc-if>
-</x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["lamplight","paper","slate"],"default":"lamplight"},"compact":{"editor":"boolean","default":false},"level":{"editor":"int","min":0,"max":5,"default":2},"night":{"editor":"boolean","default":true},"street":{"editor":null},"group":{"editor":null},"color":{"editor":null},"bandInk":{"editor":null},"price":{"editor":null},"houseCost":{"editor":null},"rents":{"editor":null},"owner":{"editor":null},"ownerName":{"editor":null},"ownerColor":{"editor":null},"$preview":{"width":320,"height":560}}'>
-class Component extends DCLogic {
-  renderVals() {
-    const themes = {
-      lamplight: {
-        card: '#16213a', border: 'rgba(255,214,150,0.16)', ink: '#f4ede2', muted: '#a8b1c4',
-        shadow: '0 22px 48px rgba(2,6,16,0.6)', money: '#ffcf70', rowHi: 'rgba(255,196,92,0.16)',
-        rowHiInk: '#ffe2a6', tag: 'rgba(255,255,255,0.08)', hero: '#101a30', glyph: '#cdb68f',
-        glyphHi: '#ffcf70', display: "'Sora', system-ui, sans-serif", body: "'Manrope', system-ui, sans-serif"
-      },
-      paper: {
-        card: '#fbf8f1', border: '#e4dccb', ink: '#1f2a3d', muted: '#5f6878',
-        shadow: '0 16px 32px rgba(52,44,24,0.18), 0 3px 0 #e4dccb', money: '#1d7354', rowHi: '#efe7d4',
-        rowHiInk: '#14513b', tag: '#f0eadc', hero: '#e7efe6', glyph: '#9a8f78', glyphHi: '#1d7354',
-        display: "'Bricolage Grotesque', system-ui, sans-serif", body: "'DM Sans', system-ui, sans-serif"
-      },
-      slate: {
-        card: '#f7f9fc', border: '#dce3ec', ink: '#152033', muted: '#566173',
-        shadow: '0 18px 40px rgba(6,12,26,0.42)', money: '#0e7f75', rowHi: '#dff4f1', rowHiInk: '#0a5a53',
-        tag: '#e9eef5', hero: '#e3eaf3', glyph: '#8a96a7', glyphHi: '#0e7f75',
-        display: "'Plus Jakarta Sans', system-ui, sans-serif", body: "'Plus Jakarta Sans', system-ui, sans-serif"
+  <head>
+    <meta charset="utf-8" />
+    <title>Deed card</title>
+    <script src="./support.js"></script>
+  </head>
+  <body>
+    <x-dc>
+      <helmet>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=DM+Sans:wght@400;500;700&amp;family=Manrope:wght@400;600;800&amp;family=Plus+Jakarta+Sans:wght@400;600;800&amp;family=Sora:wght@600;700&amp;display=swap"
+          rel="stylesheet"
+        />
+        <style>
+          body {
+            margin: 0;
+          }
+        </style>
+      </helmet>
+      <sc-if value="{{full}}" hint-placeholder-val="{{true}}">
+        <article
+          aria-label="{{name}} title deed"
+          style="width: 300px; box-sizing: border-box; border-radius: 18px; overflow: hidden; background: {{t.card}}; border: 1px solid {{t.border}}; box-shadow: {{t.shadow}}; color: {{t.ink}}; font-family: {{t.body}}"
+        >
+          <header
+            style="background: {{color}}; padding: 14px 16px 14px 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px"
+          >
+            <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+              <span
+                style="font-size: 11px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: {{bandInk}}; opacity: 0.78"
+                >{{group}}</span
+              >
+              <span
+                style="font-family: {{t.display}}; font-size: 24px; font-weight: 700; line-height: 1.1; color: {{bandInk}}"
+                >{{name}}</span
+              >
+            </div>
+            <span
+              aria-label="Owned by {{ownerName}}"
+              style="flex: none; width: 36px; height: 36px; border-radius: 50%; background: {{ownerColor}}; border: 2px solid {{bandInk}}; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 15px; color: #1a1020"
+              >{{owner}}</span
+            >
+          </header>
+          <div style="height: 150px; background: {{t.hero}}; padding: 6px 24px 0; box-sizing: border-box">
+            <dc-import name="Hero" night="{{night}}" hint-size="252px,144px"></dc-import>
+          </div>
+          <div style="padding: 10px 12px 6px; display: flex; flex-direction: column; gap: 2px">
+            <sc-for list="{{rows}}" as="row" hint-placeholder-count="6">
+              <div
+                style="display: flex; align-items: center; justify-content: space-between; padding: 7px 10px; border-radius: 10px; background: {{row.bg}}"
+              >
+                <span
+                  style="display: flex; align-items: center; gap: 4px; min-height: 14px; font-size: 13px; font-weight: 600; color: {{t.muted}}"
+                >
+                  <sc-if value="{{row.base}}" hint-placeholder-val="{{false}}">Rent</sc-if>
+                  <sc-for list="{{row.pips}}" as="pip" hint-placeholder-count="2">
+                    <svg width="13" height="12" viewBox="0 0 13 12" aria-hidden="true">
+                      <path d="M1 6 L6.5 1 L12 6 V11 H1 Z" fill="{{row.glyph}}"></path>
+                    </svg>
+                  </sc-for>
+                  <sc-if value="{{row.hotel}}" hint-placeholder-val="{{false}}">
+                    <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
+                      <path d="M2 13 V4 L7 1 L12 4 V13 Z" fill="{{row.glyph}}"></path>
+                    </svg>
+                    <span>Hotel</span>
+                  </sc-if>
+                </span>
+                <span
+                  style="font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; color: {{row.money}}"
+                  >₵{{row.amount}}</span
+                >
+              </div>
+            </sc-for>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 6px; padding: 6px 14px 16px">
+            <span
+              style="font-size: 11px; font-weight: 700; padding: 5px 9px; border-radius: 999px; background: {{t.tag}}"
+              >×2 with full set</span
+            >
+            <span
+              style="font-size: 11px; font-weight: 700; padding: 5px 9px; border-radius: 999px; background: {{t.tag}}"
+              >Build ₵{{houseCost}}</span
+            >
+            <span
+              style="font-size: 11px; font-weight: 700; padding: 5px 9px; border-radius: 999px; background: {{t.tag}}"
+              >Mortgage ₵{{mortgage}}</span
+            >
+          </div>
+        </article>
+      </sc-if>
+      <sc-if value="{{compact}}" hint-placeholder-val="{{false}}">
+        <article
+          aria-label="{{name}} title deed"
+          style="width: 132px; box-sizing: border-box; border-radius: 12px; overflow: hidden; background: {{t.card}}; border: 1px solid {{t.border}}; box-shadow: {{t.shadow}}; color: {{t.ink}}; font-family: {{t.body}}"
+        >
+          <header style="background: {{color}}; padding: 8px 10px; height: 52px; box-sizing: border-box">
+            <span
+              style="display: block; font-size: 9px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: {{bandInk}}; opacity: 0.78"
+              >{{group}}</span
+            >
+            <span
+              style="display: block; font-family: {{t.display}}; font-size: 14px; font-weight: 700; line-height: 1.1; color: {{bandInk}}"
+              >{{name}}</span
+            >
+          </header>
+          <div style="height: 84px; background: {{t.hero}}; padding: 4px 10px 0; box-sizing: border-box">
+            <dc-import name="Hero" night="{{night}}" hint-size="112px,80px"></dc-import>
+          </div>
+          <div
+            style="display: flex; align-items: center; justify-content: space-between; padding: 8px 10px 10px"
+          >
+            <span
+              style="font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums; color: {{t.money}}"
+              >₵{{price}}</span
+            >
+            <span style="display: flex; gap: 2px">
+              <sc-for list="{{levelPips}}" as="pip" hint-placeholder-count="2">
+                <svg width="11" height="10" viewBox="0 0 13 12" aria-hidden="true">
+                  <path d="M1 6 L6.5 1 L12 6 V11 H1 Z" fill="{{t.glyph}}"></path>
+                </svg>
+              </sc-for>
+            </span>
+          </div>
+        </article>
+      </sc-if>
+    </x-dc>
+    <script
+      type="text/x-dc"
+      data-dc-script
+      data-props='{"theme":{"editor":"enum","options":["lamplight","paper","slate"],"default":"lamplight"},"compact":{"editor":"boolean","default":false},"level":{"editor":"int","min":0,"max":5,"default":2},"night":{"editor":"boolean","default":true},"street":{"editor":null},"group":{"editor":null},"color":{"editor":null},"bandInk":{"editor":null},"price":{"editor":null},"houseCost":{"editor":null},"rents":{"editor":null},"owner":{"editor":null},"ownerName":{"editor":null},"ownerColor":{"editor":null},"$preview":{"width":320,"height":560}}'
+    >
+      class Component extends DCLogic {
+        renderVals() {
+          const themes = {
+            lamplight: {
+              card: '#16213a', border: 'rgba(255,214,150,0.16)', ink: '#f4ede2', muted: '#a8b1c4',
+              shadow: '0 22px 48px rgba(2,6,16,0.6)', money: '#ffcf70', rowHi: 'rgba(255,196,92,0.16)',
+              rowHiInk: '#ffe2a6', tag: 'rgba(255,255,255,0.08)', hero: '#101a30', glyph: '#cdb68f',
+              glyphHi: '#ffcf70', display: "'Sora', system-ui, sans-serif", body: "'Manrope', system-ui, sans-serif"
+            },
+            paper: {
+              card: '#fbf8f1', border: '#e4dccb', ink: '#1f2a3d', muted: '#5f6878',
+              shadow: '0 16px 32px rgba(52,44,24,0.18), 0 3px 0 #e4dccb', money: '#1d7354', rowHi: '#efe7d4',
+              rowHiInk: '#14513b', tag: '#f0eadc', hero: '#e7efe6', glyph: '#9a8f78', glyphHi: '#1d7354',
+              display: "'Bricolage Grotesque', system-ui, sans-serif", body: "'DM Sans', system-ui, sans-serif"
+            },
+            slate: {
+              card: '#f7f9fc', border: '#dce3ec', ink: '#152033', muted: '#566173',
+              shadow: '0 18px 40px rgba(6,12,26,0.42)', money: '#0e7f75', rowHi: '#dff4f1', rowHiInk: '#0a5a53',
+              tag: '#e9eef5', hero: '#e3eaf3', glyph: '#8a96a7', glyphHi: '#0e7f75',
+              display: "'Plus Jakarta Sans', system-ui, sans-serif", body: "'Plus Jakarta Sans', system-ui, sans-serif"
+            }
+          };
+          const themeId = this.props.theme ?? 'lamplight';
+          const t = themes[themeId] ?? themes.lamplight;
+          const level = this.props.level ?? 2;
+          const rents = this.props.rents ?? [8, 40, 100, 300, 450, 600];
+          const price = this.props.price ?? 120;
+          const rows = rents.map((amount, i) => ({
+            amount,
+            base: i === 0,
+            hotel: i === 5,
+            pips: i > 0 && i < 5 ? Array.from({ length: i }, (_, k) => k) : [],
+            bg: i === level ? t.rowHi : 'transparent',
+            money: i === level ? t.rowHiInk : t.money,
+            glyph: i === level ? t.glyphHi : t.glyph
+          }));
+          const compact = this.props.compact ?? false;
+          return {
+            t,
+            full: !compact,
+            compact,
+            rows,
+            levelPips: Array.from({ length: Math.min(level, 4) }, (_, k) => k),
+            night: this.props.night ?? themeId === 'lamplight',
+            name: this.props.street ?? 'Foundry Way',
+            group: this.props.group ?? 'Old Town',
+            color: this.props.color ?? '#7dd3fc',
+            bandInk: this.props.bandInk ?? '#0b2a3a',
+            price,
+            houseCost: this.props.houseCost ?? 50,
+            mortgage: Math.round(price / 2),
+            owner: this.props.owner ?? 'Y',
+            ownerName: this.props.ownerName ?? 'You',
+            ownerColor: this.props.ownerColor ?? '#fb7185'
+          };
+        }
       }
-    };
-    const themeId = this.props.theme ?? 'lamplight';
-    const t = themes[themeId] ?? themes.lamplight;
-    const level = this.props.level ?? 2;
-    const rents = this.props.rents ?? [8, 40, 100, 300, 450, 600];
-    const price = this.props.price ?? 120;
-    const rows = rents.map((amount, i) => ({
-      amount,
-      base: i === 0,
-      hotel: i === 5,
-      pips: i > 0 && i < 5 ? Array.from({ length: i }, (_, k) => k) : [],
-      bg: i === level ? t.rowHi : 'transparent',
-      money: i === level ? t.rowHiInk : t.money,
-      glyph: i === level ? t.glyphHi : t.glyph
-    }));
-    const compact = this.props.compact ?? false;
-    return {
-      t,
-      full: !compact,
-      compact,
-      rows,
-      levelPips: Array.from({ length: Math.min(level, 4) }, (_, k) => k),
-      night: this.props.night ?? themeId === 'lamplight',
-      name: this.props.street ?? 'Foundry Way',
-      group: this.props.group ?? 'Old Town',
-      color: this.props.color ?? '#7dd3fc',
-      bandInk: this.props.bandInk ?? '#0b2a3a',
-      price,
-      houseCost: this.props.houseCost ?? 50,
-      mortgage: Math.round(price / 2),
-      owner: this.props.owner ?? 'Y',
-      ownerName: this.props.ownerName ?? 'You',
-      ownerColor: this.props.ownerColor ?? '#fb7185'
-    };
-  }
-}
-</script>
-</body>
+    </script>
+  </body>
 </html>

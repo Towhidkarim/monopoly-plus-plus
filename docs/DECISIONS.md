@@ -244,3 +244,7 @@ Targets are verified by the bot simulation harness, not guessed. Rules are small
 - **Type (self-hosted, OFL, Fontsource variable fonts):** Sora for display, Manrope for UI text, Bricolage Grotesque for card titles, DM Sans for card text. Bricolage is second in every stack because it is the only one of the four with the ₵ glyph (U+20B5); the browser takes just that glyph from it.
 - **Feel:** cozy and physical, not neon. Glow only on money and the active player. Motion is transform and opacity only, springy, and off or reduced with reduced motion.
 **Why:** The board is the brightest thing on screen; the UI reads as objects lying on the same table, and cards feel like things you hold.
+
+## D33. Board framing: warm slab, table vignette, day/night table (2026-10-25)
+
+The board should read as a crafted object on a dark table. Slab sides move from cold slate to a deeper navy-slate (`#2b3350` lit, `#1b2238` shaded) with a thin bevel highlight (`#7f8dbb`, 55% alpha) on the two visible top edges. The table shadow is a radial falloff on a diamond larger than the slab instead of one hard polygon. A screen-space vignette (one rect, one radial `FillGradient`, behind the world, rebuilt only on resize) lifts the middle faintly and darkens the edges. The renderer background eases from `tableDay` `#0f1b33` to `table` `#0b1426` with the existing night level, set only when the level changes (during the few-second fade), never per frame otherwise. The table color stays matched to the UI base.

@@ -1,145 +1,308 @@
 <!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<title>Skyline UI directions</title>
-<script src="./support.js"></script>
-</head>
-<body>
-<x-dc>
-<helmet>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=DM+Sans:wght@400;500;700&amp;family=Manrope:wght@400;600;800&amp;family=Plus+Jakarta+Sans:wght@400;600;800&amp;family=Sora:wght@600;700&amp;display=swap" rel="stylesheet">
-<style>
-body{margin:0}
-</style>
-</helmet>
-<div style="width: 1920px; height: 1200px; box-sizing: border-box; padding: 40px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 40px; background: #060b16">
-<sc-for list="{{panes}}" as="th" hint-placeholder-count="3">
-<section aria-label="{{th.title}}" style="border-radius: 28px; padding: 28px; background: {{th.table}}; color: {{th.ink}}; font-family: {{th.body}}; display: flex; flex-direction: column; gap: 22px; overflow: hidden">
-<header style="display: flex; flex-direction: column; gap: 10px">
-<h2 style="margin: 0; font-family: {{th.display}}; font-size: 30px; font-weight: 700">{{th.title}}</h2>
-<p style="margin: 0; font-size: 15px; line-height: 1.45; color: {{th.muted}}">{{th.blurb}}</p>
-<div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap">
-<sc-for list="{{th.swatches}}" as="sw" hint-placeholder-count="5">
-<span style="display: flex; align-items: center; gap: 6px; padding: 4px 10px 4px 4px; border-radius: 999px; background: {{th.panel}}; border: 1px solid {{th.panelBorder}}; font-size: 12px; font-weight: 600">
-<span style="width: 20px; height: 20px; border-radius: 50%; background: {{sw.hex}}; border: 1px solid {{th.panelBorder}}"></span>{{sw.label}}</span>
-</sc-for>
-</div>
-<span style="font-size: 12px; color: {{th.muted}}">Type: {{th.fonts}}</span>
-</header>
-<div style="display: flex; gap: 20px; align-items: flex-start">
-<dc-import name="Deed" theme="{{th.id}}" night="{{th.night}}" hint-size="300px,500px"></dc-import>
-<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 16px">
-<div style="position: relative; height: 290px">
-<div style="position: absolute; inset: 14px 0 0 14px; border-radius: 16px; background: {{th.deckBack}}; transform: rotate(4deg)"></div>
-<div style="position: absolute; inset: 7px 7px 7px 7px; border-radius: 16px; background: {{th.deckBack}}; transform: rotate(2deg); opacity: 0.85"></div>
-<article aria-label="Opportunity card" style="position: absolute; inset: 0 14px 14px 0; border-radius: 16px; overflow: hidden; background: {{th.eventCard}}; color: {{th.eventInk}}; box-shadow: {{th.cardShadow}}; display: flex; flex-direction: column; transform: rotate(-2deg)">
-<div style="background: #6366f1; color: #ffffff; padding: 10px 14px; display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase">
-<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M7 1 L13 7 L7 13 L1 7 Z" fill="none" stroke="#ffffff" stroke-width="2"></path></svg>Opportunity</div>
-<p style="margin: 0; padding: 18px 16px; flex: 1; font-family: {{th.display}}; font-size: 20px; font-weight: 700; line-height: 1.25">Advance to Opera Lane. If you pass Launch, collect ₵200.</p>
-<span style="padding: 0 16px 14px; font-size: 12px; color: {{th.eventMuted}}">Drawn by You</span>
-</article>
-</div>
-<div role="status" style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 14px; background: {{th.panel}}; border: 1px solid {{th.panelBorder}}; font-size: 13px">
-<span style="flex: none; width: 22px; height: 22px; border-radius: 50%; background: {{th.coin}}; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: #3a2400">₵</span>
-<span>Nova paid you <strong style="color: {{th.money}}">₵100</strong> rent</span>
-</div>
-<div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 14px; background: {{th.panel}}; border: 1px solid {{th.panelBorder}}">
-<span style="font-size: 12px; color: {{th.muted}}">Auction · high bid</span>
-<span style="font-family: {{th.display}}; font-size: 22px; font-weight: 700; color: {{th.money}}">₵140</span>
-</div>
-</div>
-</div>
-<div style="display: flex; gap: 20px; align-items: flex-end">
-<div style="width: 300px; height: 200px; position: relative; flex: none">
-<div style="position: absolute; left: 0; bottom: 0; transform: rotate(-8deg); transform-origin: bottom center">
-<dc-import name="Deed" theme="{{th.id}}" night="{{th.night}}" compact="{{true}}" level="{{1}}" street="Harbor Row" group="Docks" color="#a78bfa" band-ink="#1d1240" price="{{60}}" hint-size="132px,178px"></dc-import>
-</div>
-<div style="position: absolute; left: 84px; bottom: 8px">
-<dc-import name="Deed" theme="{{th.id}}" night="{{th.night}}" compact="{{true}}" level="{{2}}" hint-size="132px,178px"></dc-import>
-</div>
-<div style="position: absolute; left: 168px; bottom: 0; transform: rotate(8deg); transform-origin: bottom center">
-<dc-import name="Deed" theme="{{th.id}}" night="{{th.night}}" compact="{{true}}" level="{{0}}" street="Grand Terrace" group="Crown" color="#6366f1" band-ink="#ffffff" price="{{400}}" hint-size="132px,178px"></dc-import>
-</div>
-</div>
-<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px">
-<sc-for list="{{th.players}}" as="pl" hint-placeholder-count="3">
-<div style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 14px; background: {{th.panel}}; border: 2px solid {{pl.ring}}">
-<span style="flex: none; width: 30px; height: 30px; border-radius: 50%; background: {{pl.color}}; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; color: #1a1020">{{pl.initial}}</span>
-<span style="flex: 1; min-width: 0; display: flex; flex-direction: column">
-<span style="font-size: 14px; font-weight: 700">{{pl.name}}</span>
-<span style="font-size: 10px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: {{pl.statusColor}}">{{pl.status}}</span>
-</span>
-<span style="font-family: {{th.display}}; font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; color: {{th.money}}">₵{{pl.cash}}</span>
-</div>
-</sc-for>
-</div>
-</div>
-<nav aria-label="Actions" style="display: flex; gap: 10px; padding: 10px; border-radius: 22px; background: {{th.panel}}; border: 1px solid {{th.panelBorder}}">
-<button type="button" style="flex: 1; height: 54px; border-radius: 16px; border: 1px solid {{th.panelBorder}}; background: transparent; color: {{th.ink}}; font-family: {{th.body}}; font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px">My city <span style="font-size: 11px; padding: 2px 6px; border-radius: 6px; background: {{th.keyBg}}">C</span></button>
-<button type="button" style="flex: 1.6; height: 54px; border-radius: 16px; border: 0; background: {{th.accent}}; color: {{th.accentInk}}; font-family: {{th.display}}; font-size: 18px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: {{th.accentGlow}}">Roll dice <span style="font-family: {{th.body}}; font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: 6px; background: {{th.accentKey}}">Space</span></button>
-<button type="button" style="flex: 1; height: 54px; border-radius: 16px; border: 1px solid {{th.panelBorder}}; background: transparent; color: {{th.ink}}; font-family: {{th.body}}; font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px">Trade <span style="font-size: 11px; padding: 2px 6px; border-radius: 6px; background: {{th.keyBg}}">T</span></button>
-</nav>
-</section>
-</sc-for>
-</div>
-</x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1200}}'>
-class Component extends DCLogic {
-  renderVals() {
-    const players = (ink, muted, money, accent) => [
-      { initial: 'Y', name: 'You', cash: '1,290', color: '#fb7185', ring: accent, status: 'Your turn', statusColor: accent },
-      { initial: 'N', name: 'Nova', cash: '1,425', color: '#22d3ee', ring: 'transparent', status: 'Balanced bot', statusColor: muted },
-      { initial: 'J', name: 'Juno', cash: '980', color: '#a78bfa', ring: 'transparent', status: 'Shark bot', statusColor: muted }
-    ];
-    const panes = [
-      {
-        id: 'lamplight', title: 'A · Lamplight', night: true,
-        blurb: 'Matches the city at night: deep ink-blue glass panels, warm lamp-gold accent and money. The UI feels like part of the lit city, calm by day and glowing by night.',
-        fonts: 'Sora (display) + Manrope (text)',
-        display: "'Sora', system-ui, sans-serif", body: "'Manrope', system-ui, sans-serif",
-        table: '#0a1222', panel: '#121c33', panelBorder: 'rgba(255,214,150,0.16)', ink: '#f4ede2', muted: '#a8b1c4',
-        accent: '#f5b54a', accentInk: '#1c1205', accentKey: 'rgba(28,18,5,0.16)', accentGlow: '0 8px 24px rgba(245,181,74,0.32)',
-        money: '#ffcf70', coin: '#ffcf70', keyBg: 'rgba(255,255,255,0.1)',
-        eventCard: '#16213a', eventInk: '#f4ede2', eventMuted: '#a8b1c4', deckBack: '#26324f', cardShadow: '0 22px 48px rgba(2,6,16,0.6)',
-        swatches: [
-          { label: 'Table', hex: '#0a1222' }, { label: 'Panel', hex: '#121c33' }, { label: 'Lamp gold', hex: '#f5b54a' },
-          { label: 'Warm ink', hex: '#f4ede2' }, { label: 'Money', hex: '#ffcf70' }
-        ]
-      },
-      {
-        id: 'paper', title: 'B · Tabletop', night: false,
-        blurb: 'A physical board game on a table: cream card stock with a pressed edge, ink-navy type, a brick-coral accent and green money. Light and friendly, like the daytime board.',
-        fonts: 'Bricolage Grotesque (display) + DM Sans (text)',
-        display: "'Bricolage Grotesque', system-ui, sans-serif", body: "'DM Sans', system-ui, sans-serif",
-        table: '#dbe5dc', panel: '#fbf8f1', panelBorder: '#e1d8c5', ink: '#1f2a3d', muted: '#5a6373',
-        accent: '#c94a31', accentInk: '#ffffff', accentKey: 'rgba(255,255,255,0.22)', accentGlow: '0 4px 0 #9c3622',
-        money: '#1d7354', coin: '#f2c14e', keyBg: '#efe7d4',
-        eventCard: '#fbf8f1', eventInk: '#1f2a3d', eventMuted: '#5a6373', deckBack: '#e7d6c2', cardShadow: '0 16px 32px rgba(52,44,24,0.18), 0 3px 0 #e4dccb',
-        swatches: [
-          { label: 'Table', hex: '#dbe5dc' }, { label: 'Card stock', hex: '#fbf8f1' }, { label: 'Brick', hex: '#c94a31' },
-          { label: 'Ink navy', hex: '#1f2a3d' }, { label: 'Money', hex: '#1d7354' }
-        ]
-      },
-      {
-        id: 'slate', title: 'C · Calm slate', night: false,
-        blurb: 'An evolution of today’s look: cool slate panels, crisp white cards, and a softer mint-teal accent instead of the current bright cyan. Clean and neutral; lets the board do the talking.',
-        fonts: 'Plus Jakarta Sans (one family)',
-        display: "'Plus Jakarta Sans', system-ui, sans-serif", body: "'Plus Jakarta Sans', system-ui, sans-serif",
-        table: '#0f1623', panel: '#1a2333', panelBorder: '#2b3649', ink: '#e8edf4', muted: '#9aa6b8',
-        accent: '#2dd4bf', accentInk: '#05302b', accentKey: 'rgba(5,48,43,0.14)', accentGlow: '0 8px 24px rgba(45,212,191,0.25)',
-        money: '#5eead4', coin: '#fbbf24', keyBg: 'rgba(255,255,255,0.1)',
-        eventCard: '#f7f9fc', eventInk: '#152033', eventMuted: '#566173', deckBack: '#33415a', cardShadow: '0 18px 40px rgba(6,12,26,0.42)',
-        swatches: [
-          { label: 'Table', hex: '#0f1623' }, { label: 'Panel', hex: '#1a2333' }, { label: 'Mint', hex: '#2dd4bf' },
-          { label: 'Card', hex: '#f7f9fc' }, { label: 'Money', hex: '#5eead4' }
-        ]
+  <head>
+    <meta charset="utf-8" />
+    <title>Skyline UI directions</title>
+    <script src="./support.js"></script>
+  </head>
+  <body>
+    <x-dc>
+      <helmet>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=DM+Sans:wght@400;500;700&amp;family=Manrope:wght@400;600;800&amp;family=Plus+Jakarta+Sans:wght@400;600;800&amp;family=Sora:wght@600;700&amp;display=swap"
+          rel="stylesheet"
+        />
+        <style>
+          body {
+            margin: 0;
+          }
+        </style>
+      </helmet>
+      <div
+        style="
+          width: 1920px;
+          height: 1200px;
+          box-sizing: border-box;
+          padding: 40px;
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 40px;
+          background: #060b16;
+        "
+      >
+        <sc-for list="{{panes}}" as="th" hint-placeholder-count="3">
+          <section
+            aria-label="{{th.title}}"
+            style="border-radius: 28px; padding: 28px; background: {{th.table}}; color: {{th.ink}}; font-family: {{th.body}}; display: flex; flex-direction: column; gap: 22px; overflow: hidden"
+          >
+            <header style="display: flex; flex-direction: column; gap: 10px">
+              <h2 style="margin: 0; font-family: {{th.display}}; font-size: 30px; font-weight: 700">
+                {{th.title}}
+              </h2>
+              <p style="margin: 0; font-size: 15px; line-height: 1.45; color: {{th.muted}}">{{th.blurb}}</p>
+              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap">
+                <sc-for list="{{th.swatches}}" as="sw" hint-placeholder-count="5">
+                  <span
+                    style="display: flex; align-items: center; gap: 6px; padding: 4px 10px 4px 4px; border-radius: 999px; background: {{th.panel}}; border: 1px solid {{th.panelBorder}}; font-size: 12px; font-weight: 600"
+                  >
+                    <span
+                      style="width: 20px; height: 20px; border-radius: 50%; background: {{sw.hex}}; border: 1px solid {{th.panelBorder}}"
+                    ></span
+                    >{{sw.label}}</span
+                  >
+                </sc-for>
+              </div>
+              <span style="font-size: 12px; color: {{th.muted}}">Type: {{th.fonts}}</span>
+            </header>
+            <div style="display: flex; gap: 20px; align-items: flex-start">
+              <dc-import
+                name="Deed"
+                theme="{{th.id}}"
+                night="{{th.night}}"
+                hint-size="300px,500px"
+              ></dc-import>
+              <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+                <div style="position: relative; height: 290px">
+                  <div
+                    style="position: absolute; inset: 14px 0 0 14px; border-radius: 16px; background: {{th.deckBack}}; transform: rotate(4deg)"
+                  ></div>
+                  <div
+                    style="position: absolute; inset: 7px 7px 7px 7px; border-radius: 16px; background: {{th.deckBack}}; transform: rotate(2deg); opacity: 0.85"
+                  ></div>
+                  <article
+                    aria-label="Opportunity card"
+                    style="position: absolute; inset: 0 14px 14px 0; border-radius: 16px; overflow: hidden; background: {{th.eventCard}}; color: {{th.eventInk}}; box-shadow: {{th.cardShadow}}; display: flex; flex-direction: column; transform: rotate(-2deg)"
+                  >
+                    <div
+                      style="
+                        background: #6366f1;
+                        color: #ffffff;
+                        padding: 10px 14px;
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        font-size: 12px;
+                        font-weight: 800;
+                        letter-spacing: 0.14em;
+                        text-transform: uppercase;
+                      "
+                    >
+                      <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
+                        <path
+                          d="M7 1 L13 7 L7 13 L1 7 Z"
+                          fill="none"
+                          stroke="#ffffff"
+                          stroke-width="2"
+                        ></path></svg
+                      >Opportunity
+                    </div>
+                    <p
+                      style="margin: 0; padding: 18px 16px; flex: 1; font-family: {{th.display}}; font-size: 20px; font-weight: 700; line-height: 1.25"
+                    >
+                      Advance to Opera Lane. If you pass Launch, collect ₵200.
+                    </p>
+                    <span style="padding: 0 16px 14px; font-size: 12px; color: {{th.eventMuted}}"
+                      >Drawn by You</span
+                    >
+                  </article>
+                </div>
+                <div
+                  role="status"
+                  style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 14px; background: {{th.panel}}; border: 1px solid {{th.panelBorder}}; font-size: 13px"
+                >
+                  <span
+                    style="flex: none; width: 22px; height: 22px; border-radius: 50%; background: {{th.coin}}; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: #3a2400"
+                    >₵</span
+                  >
+                  <span>Nova paid you <strong style="color: {{th.money}}">₵100</strong> rent</span>
+                </div>
+                <div
+                  style="display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 14px; background: {{th.panel}}; border: 1px solid {{th.panelBorder}}"
+                >
+                  <span style="font-size: 12px; color: {{th.muted}}">Auction · high bid</span>
+                  <span
+                    style="font-family: {{th.display}}; font-size: 22px; font-weight: 700; color: {{th.money}}"
+                    >₵140</span
+                  >
+                </div>
+              </div>
+            </div>
+            <div style="display: flex; gap: 20px; align-items: flex-end">
+              <div style="width: 300px; height: 200px; position: relative; flex: none">
+                <div
+                  style="
+                    position: absolute;
+                    left: 0;
+                    bottom: 0;
+                    transform: rotate(-8deg);
+                    transform-origin: bottom center;
+                  "
+                >
+                  <dc-import
+                    name="Deed"
+                    theme="{{th.id}}"
+                    night="{{th.night}}"
+                    compact="{{true}}"
+                    level="{{1}}"
+                    street="Harbor Row"
+                    group="Docks"
+                    color="#a78bfa"
+                    band-ink="#1d1240"
+                    price="{{60}}"
+                    hint-size="132px,178px"
+                  ></dc-import>
+                </div>
+                <div style="position: absolute; left: 84px; bottom: 8px">
+                  <dc-import
+                    name="Deed"
+                    theme="{{th.id}}"
+                    night="{{th.night}}"
+                    compact="{{true}}"
+                    level="{{2}}"
+                    hint-size="132px,178px"
+                  ></dc-import>
+                </div>
+                <div
+                  style="
+                    position: absolute;
+                    left: 168px;
+                    bottom: 0;
+                    transform: rotate(8deg);
+                    transform-origin: bottom center;
+                  "
+                >
+                  <dc-import
+                    name="Deed"
+                    theme="{{th.id}}"
+                    night="{{th.night}}"
+                    compact="{{true}}"
+                    level="{{0}}"
+                    street="Grand Terrace"
+                    group="Crown"
+                    color="#6366f1"
+                    band-ink="#ffffff"
+                    price="{{400}}"
+                    hint-size="132px,178px"
+                  ></dc-import>
+                </div>
+              </div>
+              <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px">
+                <sc-for list="{{th.players}}" as="pl" hint-placeholder-count="3">
+                  <div
+                    style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 14px; background: {{th.panel}}; border: 2px solid {{pl.ring}}"
+                  >
+                    <span
+                      style="flex: none; width: 30px; height: 30px; border-radius: 50%; background: {{pl.color}}; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; color: #1a1020"
+                      >{{pl.initial}}</span
+                    >
+                    <span style="flex: 1; min-width: 0; display: flex; flex-direction: column">
+                      <span style="font-size: 14px; font-weight: 700">{{pl.name}}</span>
+                      <span
+                        style="font-size: 10px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: {{pl.statusColor}}"
+                        >{{pl.status}}</span
+                      >
+                    </span>
+                    <span
+                      style="font-family: {{th.display}}; font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; color: {{th.money}}"
+                      >₵{{pl.cash}}</span
+                    >
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <nav
+              aria-label="Actions"
+              style="display: flex; gap: 10px; padding: 10px; border-radius: 22px; background: {{th.panel}}; border: 1px solid {{th.panelBorder}}"
+            >
+              <button
+                type="button"
+                style="flex: 1; height: 54px; border-radius: 16px; border: 1px solid {{th.panelBorder}}; background: transparent; color: {{th.ink}}; font-family: {{th.body}}; font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px"
+              >
+                My city
+                <span style="font-size: 11px; padding: 2px 6px; border-radius: 6px; background: {{th.keyBg}}"
+                  >C</span
+                >
+              </button>
+              <button
+                type="button"
+                style="flex: 1.6; height: 54px; border-radius: 16px; border: 0; background: {{th.accent}}; color: {{th.accentInk}}; font-family: {{th.display}}; font-size: 18px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: {{th.accentGlow}}"
+              >
+                Roll dice
+                <span
+                  style="font-family: {{th.body}}; font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: 6px; background: {{th.accentKey}}"
+                  >Space</span
+                >
+              </button>
+              <button
+                type="button"
+                style="flex: 1; height: 54px; border-radius: 16px; border: 1px solid {{th.panelBorder}}; background: transparent; color: {{th.ink}}; font-family: {{th.body}}; font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px"
+              >
+                Trade
+                <span style="font-size: 11px; padding: 2px 6px; border-radius: 6px; background: {{th.keyBg}}"
+                  >T</span
+                >
+              </button>
+            </nav>
+          </section>
+        </sc-for>
+      </div>
+    </x-dc>
+    <script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1200}}'>
+      class Component extends DCLogic {
+        renderVals() {
+          const players = (ink, muted, money, accent) => [
+            { initial: 'Y', name: 'You', cash: '1,290', color: '#fb7185', ring: accent, status: 'Your turn', statusColor: accent },
+            { initial: 'N', name: 'Nova', cash: '1,425', color: '#22d3ee', ring: 'transparent', status: 'Balanced bot', statusColor: muted },
+            { initial: 'J', name: 'Juno', cash: '980', color: '#a78bfa', ring: 'transparent', status: 'Shark bot', statusColor: muted }
+          ];
+          const panes = [
+            {
+              id: 'lamplight', title: 'A · Lamplight', night: true,
+              blurb: 'Matches the city at night: deep ink-blue glass panels, warm lamp-gold accent and money. The UI feels like part of the lit city, calm by day and glowing by night.',
+              fonts: 'Sora (display) + Manrope (text)',
+              display: "'Sora', system-ui, sans-serif", body: "'Manrope', system-ui, sans-serif",
+              table: '#0a1222', panel: '#121c33', panelBorder: 'rgba(255,214,150,0.16)', ink: '#f4ede2', muted: '#a8b1c4',
+              accent: '#f5b54a', accentInk: '#1c1205', accentKey: 'rgba(28,18,5,0.16)', accentGlow: '0 8px 24px rgba(245,181,74,0.32)',
+              money: '#ffcf70', coin: '#ffcf70', keyBg: 'rgba(255,255,255,0.1)',
+              eventCard: '#16213a', eventInk: '#f4ede2', eventMuted: '#a8b1c4', deckBack: '#26324f', cardShadow: '0 22px 48px rgba(2,6,16,0.6)',
+              swatches: [
+                { label: 'Table', hex: '#0a1222' }, { label: 'Panel', hex: '#121c33' }, { label: 'Lamp gold', hex: '#f5b54a' },
+                { label: 'Warm ink', hex: '#f4ede2' }, { label: 'Money', hex: '#ffcf70' }
+              ]
+            },
+            {
+              id: 'paper', title: 'B · Tabletop', night: false,
+              blurb: 'A physical board game on a table: cream card stock with a pressed edge, ink-navy type, a brick-coral accent and green money. Light and friendly, like the daytime board.',
+              fonts: 'Bricolage Grotesque (display) + DM Sans (text)',
+              display: "'Bricolage Grotesque', system-ui, sans-serif", body: "'DM Sans', system-ui, sans-serif",
+              table: '#dbe5dc', panel: '#fbf8f1', panelBorder: '#e1d8c5', ink: '#1f2a3d', muted: '#5a6373',
+              accent: '#c94a31', accentInk: '#ffffff', accentKey: 'rgba(255,255,255,0.22)', accentGlow: '0 4px 0 #9c3622',
+              money: '#1d7354', coin: '#f2c14e', keyBg: '#efe7d4',
+              eventCard: '#fbf8f1', eventInk: '#1f2a3d', eventMuted: '#5a6373', deckBack: '#e7d6c2', cardShadow: '0 16px 32px rgba(52,44,24,0.18), 0 3px 0 #e4dccb',
+              swatches: [
+                { label: 'Table', hex: '#dbe5dc' }, { label: 'Card stock', hex: '#fbf8f1' }, { label: 'Brick', hex: '#c94a31' },
+                { label: 'Ink navy', hex: '#1f2a3d' }, { label: 'Money', hex: '#1d7354' }
+              ]
+            },
+            {
+              id: 'slate', title: 'C · Calm slate', night: false,
+              blurb: 'An evolution of today’s look: cool slate panels, crisp white cards, and a softer mint-teal accent instead of the current bright cyan. Clean and neutral; lets the board do the talking.',
+              fonts: 'Plus Jakarta Sans (one family)',
+              display: "'Plus Jakarta Sans', system-ui, sans-serif", body: "'Plus Jakarta Sans', system-ui, sans-serif",
+              table: '#0f1623', panel: '#1a2333', panelBorder: '#2b3649', ink: '#e8edf4', muted: '#9aa6b8',
+              accent: '#2dd4bf', accentInk: '#05302b', accentKey: 'rgba(5,48,43,0.14)', accentGlow: '0 8px 24px rgba(45,212,191,0.25)',
+              money: '#5eead4', coin: '#fbbf24', keyBg: 'rgba(255,255,255,0.1)',
+              eventCard: '#f7f9fc', eventInk: '#152033', eventMuted: '#566173', deckBack: '#33415a', cardShadow: '0 18px 40px rgba(6,12,26,0.42)',
+              swatches: [
+                { label: 'Table', hex: '#0f1623' }, { label: 'Panel', hex: '#1a2333' }, { label: 'Mint', hex: '#2dd4bf' },
+                { label: 'Card', hex: '#f7f9fc' }, { label: 'Money', hex: '#5eead4' }
+              ]
+            }
+          ];
+          return { panes: panes.map((p) => ({ ...p, players: players(p.ink, p.muted, p.money, p.accent) })) };
+        }
       }
-    ];
-    return { panes: panes.map((p) => ({ ...p, players: players(p.ink, p.muted, p.money, p.accent) })) };
-  }
-}
-</script>
-</body>
+    </script>
+  </body>
 </html>

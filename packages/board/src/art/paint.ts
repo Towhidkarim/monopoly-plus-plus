@@ -84,6 +84,24 @@ function fadeOut(color: number, alpha: number): FillGradient {
   return g
 }
 
+let vignette: FillGradient | undefined
+/** Table vignette for a screen-sized rect: a faint lift in the middle, darker toward the edges. */
+export function vignetteFill(): FillGradient {
+  vignette ??= new FillGradient({
+    type: 'radial',
+    center: { x: 0.5, y: 0.54 },
+    innerRadius: 0,
+    outerCenter: { x: 0.5, y: 0.54 },
+    outerRadius: 0.64,
+    colorStops: [
+      { offset: 0, color: 'rgba(70,100,160,0.10)' },
+      { offset: 0.45, color: 'rgba(70,100,160,0)' },
+      { offset: 1, color: 'rgba(0,0,0,0.5)' },
+    ],
+  })
+  return vignette
+}
+
 /** Fills a screen polygon with `color` fading out from the center of its bounding box. */
 export function soft(g: Graphics, poly: number[], color: number, alpha: number): void {
   g.poly(poly).fill(fadeOut(color, alpha))

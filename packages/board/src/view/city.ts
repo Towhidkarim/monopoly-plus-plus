@@ -12,11 +12,13 @@ import {
   lightsAt,
   mix,
   nightTint,
+  soft,
   tree,
   type Paint,
 } from '../art/paint.ts'
 import { BOARD_STYLE } from '../art/style.ts'
 import { drawTrack } from '../art/train.ts'
+import { project } from '../geometry/project.ts'
 import { palette } from '../palette.ts'
 import { cosmeticRng, isoBox, rect } from './draw.ts'
 import { Ambient } from './ambient.ts'
@@ -40,14 +42,23 @@ export class GroundView {
 
   draw(t: number): void {
     const g = this.graphics.clear()
-    // Soft table shadow under the board.
-    g.poly(rect(0.25, 0.45, BOARD + 0.35, BOARD + 0.55, -0.55, t)).fill({ color: 0x000000, alpha: 0.35 })
+    // Soft table shadow under the board: a radial falloff on a diamond bigger than the slab.
+    const m = 2.6
+    soft(g, rect(0.25 - m, 0.45 - m, BOARD + 0.35 + m, BOARD + 0.55 + m, -0.55, t), 0x000000, 0.6)
     isoBox(
       g,
       { col0: 0, row0: 0, col1: BOARD, row1: BOARD, z0: -0.5, z1: SLAB_Z },
       { top: palette.slabTop, left: palette.slabLeft, right: palette.slabRight },
       t,
     )
+    // Bevel: a thin highlight along the two visible top edges of the slab.
+    const a = project({ col: 0, row: BOARD, z: SLAB_Z }, t)
+    const b = project({ col: BOARD, row: BOARD, z: SLAB_Z }, t)
+    const c = project({ col: BOARD, row: 0, z: SLAB_Z }, t)
+    g.moveTo(a.x, a.y)
+      .lineTo(b.x, b.y)
+      .lineTo(c.x, c.y)
+      .stroke({ width: 1.2, color: palette.slabRim, alpha: 0.55 })
   }
 }
 

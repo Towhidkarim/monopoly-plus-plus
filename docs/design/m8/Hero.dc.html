@@ -1,82 +1,94 @@
 <!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<title>Hero building</title>
-<script src="./support.js"></script>
-</head>
-<body>
-<x-dc>
-<helmet>
-<style>
-body{margin:0}
-</style>
-</helmet>
-<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center">
-<svg viewBox="0 0 200 170" width="100%" height="100%" role="img" aria-label="Brick walk-up on its lot">
-<ellipse cx="100" cy="134" rx="80" ry="34" fill="{{c.shadow}}" opacity="0.35"></ellipse>
-<polygon points="100,98 172,132 100,166 28,132" fill="{{c.lawn}}"></polygon>
-<polygon points="100,140 136,122 136,128 100,146" fill="{{c.path}}"></polygon>
-<ellipse cx="100" cy="146" rx="40" ry="14" fill="#ffcf7a" opacity="{{glowA}}"></ellipse>
-<ellipse cx="146" cy="118" rx="18" ry="8" fill="#ffd98c" opacity="{{glowB}}"></ellipse>
-<polygon points="56,118 100,140 100,60 56,38" fill="{{c.wallL}}"></polygon>
-<polygon points="100,140 144,118 144,38 100,60" fill="{{c.wallR}}"></polygon>
-<polygon points="56,118 100,140 100,132 56,110" fill="{{c.shopL}}"></polygon>
-<polygon points="100,140 144,118 144,110 100,132" fill="{{c.shopR}}"></polygon>
-<polygon points="52,36 100,60 148,36 100,12" fill="{{c.roof}}"></polygon>
-<polygon points="52,36 100,60 100,63 52,39" fill="{{c.cornice}}"></polygon>
-<polygon points="100,60 148,36 148,39 100,63" fill="{{c.corniceR}}"></polygon>
-<polygon points="60,52 66,55 66,67 60,64" fill="{{c.w1}}"></polygon>
-<polygon points="72,58 78,61 78,73 72,70" fill="{{c.w2}}"></polygon>
-<polygon points="84,64 90,67 90,79 84,76" fill="{{c.w1}}"></polygon>
-<polygon points="60,72 66,75 66,87 60,84" fill="{{c.w2}}"></polygon>
-<polygon points="72,78 78,81 78,93 72,90" fill="{{c.w1}}"></polygon>
-<polygon points="84,84 90,87 90,99 84,96" fill="{{c.w1}}"></polygon>
-<polygon points="60,92 66,95 66,107 60,104" fill="{{c.w1}}"></polygon>
-<polygon points="72,98 78,101 78,113 72,110" fill="{{c.w2}}"></polygon>
-<polygon points="84,104 90,107 90,119 84,116" fill="{{c.w1}}"></polygon>
-<polygon points="108,64 114,61 114,73 108,76" fill="{{c.w3}}"></polygon>
-<polygon points="120,58 126,55 126,67 120,70" fill="{{c.w4}}"></polygon>
-<polygon points="132,52 138,49 138,61 132,64" fill="{{c.w3}}"></polygon>
-<polygon points="108,84 114,81 114,93 108,96" fill="{{c.w4}}"></polygon>
-<polygon points="120,78 126,75 126,87 120,90" fill="{{c.w3}}"></polygon>
-<polygon points="132,72 138,69 138,81 132,84" fill="{{c.w3}}"></polygon>
-<polygon points="108,104 114,101 114,113 108,116" fill="{{c.w3}}"></polygon>
-<polygon points="120,98 126,95 126,107 120,110" fill="{{c.w4}}"></polygon>
-<polygon points="132,92 138,89 138,101 132,104" fill="{{c.w3}}"></polygon>
-<polygon points="58,108 100,129 100,123 58,102" fill="{{c.awning}}"></polygon>
-<polygon points="100,129 142,108 142,102 100,123" fill="{{c.awningR}}"></polygon>
-<rect x="80" y="10" width="14" height="14" fill="{{c.tank}}"></rect>
-<ellipse cx="87" cy="10" rx="7" ry="3" fill="{{c.tankTop}}"></ellipse>
-<polygon points="78,10 87,2 96,10" fill="{{c.tankRoof}}"></polygon>
-<rect x="149" y="100" width="2" height="22" fill="#64748b"></rect>
-<circle cx="150" cy="99" r="3" fill="{{c.lamp}}"></circle>
-<circle cx="40" cy="126" r="11" fill="{{c.tree}}"></circle>
-<circle cx="37" cy="122" r="6" fill="{{c.treeHi}}"></circle>
-<circle cx="160" cy="138" r="9" fill="{{c.tree}}"></circle>
-<circle cx="157" cy="135" r="5" fill="{{c.treeHi}}"></circle>
-</svg>
-</div>
-</x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"night":{"editor":"boolean","default":true},"$preview":{"width":240,"height":180}}'>
-class Component extends DCLogic {
-  renderVals() {
-    const night = this.props.night ?? true;
-    const day = {
-      shadow: '#3a4658', lawn: '#8fc9a8', path: '#eef1f4', wallL: '#9a6459', wallR: '#7a504e',
-      shopL: '#5c4040', shopR: '#4a3434', roof: '#6b4a45', cornice: '#b98378', corniceR: '#94675e',
-      w1: '#bfe3ee', w2: '#a9d4e2', w3: '#8fb7c6', w4: '#7fa7b6', awning: '#2fa79a', awningR: '#23887e',
-      tank: '#9a7b5c', tankTop: '#b39272', tankRoof: '#6b5442', lamp: '#fde68a', tree: '#2f8f74', treeHi: '#5fb894'
-    };
-    const dark = {
-      shadow: '#050a16', lawn: '#2c5a4c', path: '#6f7d99', wallL: '#5d3f4a', wallR: '#46303d',
-      shopL: '#ffcf7a', shopR: '#e9b562', roof: '#3b2d3f', cornice: '#7a5664', corniceR: '#5f4250',
-      w1: '#ffcf7a', w2: '#3a4664', w3: '#f2bd68', w4: '#2e3853', awning: '#1f6f69', awningR: '#185a55',
-      tank: '#5a4a48', tankTop: '#6d5a57', tankRoof: '#3f3433', lamp: '#fff4d6', tree: '#1d4f45', treeHi: '#2c6b5c'
-    };
-    return { c: night ? dark : day, glowA: night ? 0.28 : 0, glowB: night ? 0.35 : 0 };
-  }
-}
-</script>
-</body>
+  <head>
+    <meta charset="utf-8" />
+    <title>Hero building</title>
+    <script src="./support.js"></script>
+  </head>
+  <body>
+    <x-dc>
+      <helmet>
+        <style>
+          body {
+            margin: 0;
+          }
+        </style>
+      </helmet>
+      <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center">
+        <svg
+          viewBox="0 0 200 170"
+          width="100%"
+          height="100%"
+          role="img"
+          aria-label="Brick walk-up on its lot"
+        >
+          <ellipse cx="100" cy="134" rx="80" ry="34" fill="{{c.shadow}}" opacity="0.35"></ellipse>
+          <polygon points="100,98 172,132 100,166 28,132" fill="{{c.lawn}}"></polygon>
+          <polygon points="100,140 136,122 136,128 100,146" fill="{{c.path}}"></polygon>
+          <ellipse cx="100" cy="146" rx="40" ry="14" fill="#ffcf7a" opacity="{{glowA}}"></ellipse>
+          <ellipse cx="146" cy="118" rx="18" ry="8" fill="#ffd98c" opacity="{{glowB}}"></ellipse>
+          <polygon points="56,118 100,140 100,60 56,38" fill="{{c.wallL}}"></polygon>
+          <polygon points="100,140 144,118 144,38 100,60" fill="{{c.wallR}}"></polygon>
+          <polygon points="56,118 100,140 100,132 56,110" fill="{{c.shopL}}"></polygon>
+          <polygon points="100,140 144,118 144,110 100,132" fill="{{c.shopR}}"></polygon>
+          <polygon points="52,36 100,60 148,36 100,12" fill="{{c.roof}}"></polygon>
+          <polygon points="52,36 100,60 100,63 52,39" fill="{{c.cornice}}"></polygon>
+          <polygon points="100,60 148,36 148,39 100,63" fill="{{c.corniceR}}"></polygon>
+          <polygon points="60,52 66,55 66,67 60,64" fill="{{c.w1}}"></polygon>
+          <polygon points="72,58 78,61 78,73 72,70" fill="{{c.w2}}"></polygon>
+          <polygon points="84,64 90,67 90,79 84,76" fill="{{c.w1}}"></polygon>
+          <polygon points="60,72 66,75 66,87 60,84" fill="{{c.w2}}"></polygon>
+          <polygon points="72,78 78,81 78,93 72,90" fill="{{c.w1}}"></polygon>
+          <polygon points="84,84 90,87 90,99 84,96" fill="{{c.w1}}"></polygon>
+          <polygon points="60,92 66,95 66,107 60,104" fill="{{c.w1}}"></polygon>
+          <polygon points="72,98 78,101 78,113 72,110" fill="{{c.w2}}"></polygon>
+          <polygon points="84,104 90,107 90,119 84,116" fill="{{c.w1}}"></polygon>
+          <polygon points="108,64 114,61 114,73 108,76" fill="{{c.w3}}"></polygon>
+          <polygon points="120,58 126,55 126,67 120,70" fill="{{c.w4}}"></polygon>
+          <polygon points="132,52 138,49 138,61 132,64" fill="{{c.w3}}"></polygon>
+          <polygon points="108,84 114,81 114,93 108,96" fill="{{c.w4}}"></polygon>
+          <polygon points="120,78 126,75 126,87 120,90" fill="{{c.w3}}"></polygon>
+          <polygon points="132,72 138,69 138,81 132,84" fill="{{c.w3}}"></polygon>
+          <polygon points="108,104 114,101 114,113 108,116" fill="{{c.w3}}"></polygon>
+          <polygon points="120,98 126,95 126,107 120,110" fill="{{c.w4}}"></polygon>
+          <polygon points="132,92 138,89 138,101 132,104" fill="{{c.w3}}"></polygon>
+          <polygon points="58,108 100,129 100,123 58,102" fill="{{c.awning}}"></polygon>
+          <polygon points="100,129 142,108 142,102 100,123" fill="{{c.awningR}}"></polygon>
+          <rect x="80" y="10" width="14" height="14" fill="{{c.tank}}"></rect>
+          <ellipse cx="87" cy="10" rx="7" ry="3" fill="{{c.tankTop}}"></ellipse>
+          <polygon points="78,10 87,2 96,10" fill="{{c.tankRoof}}"></polygon>
+          <rect x="149" y="100" width="2" height="22" fill="#64748b"></rect>
+          <circle cx="150" cy="99" r="3" fill="{{c.lamp}}"></circle>
+          <circle cx="40" cy="126" r="11" fill="{{c.tree}}"></circle>
+          <circle cx="37" cy="122" r="6" fill="{{c.treeHi}}"></circle>
+          <circle cx="160" cy="138" r="9" fill="{{c.tree}}"></circle>
+          <circle cx="157" cy="135" r="5" fill="{{c.treeHi}}"></circle>
+        </svg>
+      </div>
+    </x-dc>
+    <script
+      type="text/x-dc"
+      data-dc-script
+      data-props='{"night":{"editor":"boolean","default":true},"$preview":{"width":240,"height":180}}'
+    >
+      class Component extends DCLogic {
+        renderVals() {
+          const night = this.props.night ?? true;
+          const day = {
+            shadow: '#3a4658', lawn: '#8fc9a8', path: '#eef1f4', wallL: '#9a6459', wallR: '#7a504e',
+            shopL: '#5c4040', shopR: '#4a3434', roof: '#6b4a45', cornice: '#b98378', corniceR: '#94675e',
+            w1: '#bfe3ee', w2: '#a9d4e2', w3: '#8fb7c6', w4: '#7fa7b6', awning: '#2fa79a', awningR: '#23887e',
+            tank: '#9a7b5c', tankTop: '#b39272', tankRoof: '#6b5442', lamp: '#fde68a', tree: '#2f8f74', treeHi: '#5fb894'
+          };
+          const dark = {
+            shadow: '#050a16', lawn: '#2c5a4c', path: '#6f7d99', wallL: '#5d3f4a', wallR: '#46303d',
+            shopL: '#ffcf7a', shopR: '#e9b562', roof: '#3b2d3f', cornice: '#7a5664', corniceR: '#5f4250',
+            w1: '#ffcf7a', w2: '#3a4664', w3: '#f2bd68', w4: '#2e3853', awning: '#1f6f69', awningR: '#185a55',
+            tank: '#5a4a48', tankTop: '#6d5a57', tankRoof: '#3f3433', lamp: '#fff4d6', tree: '#1d4f45', treeHi: '#2c6b5c'
+          };
+          return { c: night ? dark : day, glowA: night ? 0.28 : 0, glowB: night ? 0.35 : 0 };
+        }
+      }
+    </script>
+  </body>
 </html>

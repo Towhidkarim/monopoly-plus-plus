@@ -1,131 +1,422 @@
 <!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<title>Menu and help</title>
-<script src="./support.js"></script>
-</head>
-<body>
-<x-dc>
-<helmet>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=DM+Sans:wght@400;500;700&amp;family=Manrope:wght@400;600;800&amp;family=Sora:wght@600;700&amp;display=swap" rel="stylesheet">
-<style>
-body{margin:0}
-</style>
-</helmet>
-<div style="position: relative; width: 1440px; height: 900px; overflow: hidden; background: #0a1222; color: #f4ede2; font-family: 'Manrope', system-ui, sans-serif">
-<img src="/_blob/282b5fd59a8a364586baba3721257d1f" alt="The board at night" style="position: absolute; left: 230px; top: 90px; width: 980px; height: 833px; object-fit: contain">
-<div aria-hidden="true" style="position: absolute; inset: 0; background: rgba(6,10,20,0.66)"></div>
-<div style="position: absolute; left: 0; top: 0">
-<dc-import name="Hud" active="you" menu-open="{{true}}" hint-size="1440px,96px"></dc-import>
-</div>
+  <head>
+    <meta charset="utf-8" />
+    <title>Menu and help</title>
+    <script src="./support.js"></script>
+  </head>
+  <body>
+    <x-dc>
+      <helmet>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=DM+Sans:wght@400;500;700&amp;family=Manrope:wght@400;600;800&amp;family=Sora:wght@600;700&amp;display=swap"
+          rel="stylesheet"
+        />
+        <style>
+          body {
+            margin: 0;
+          }
+        </style>
+      </helmet>
+      <div
+        style="
+          position: relative;
+          width: 1440px;
+          height: 900px;
+          overflow: hidden;
+          background: #0a1222;
+          color: #f4ede2;
+          font-family: 'Manrope', system-ui, sans-serif;
+        "
+      >
+        <img
+          src="/_blob/282b5fd59a8a364586baba3721257d1f"
+          alt="The board at night"
+          style="position: absolute; left: 230px; top: 90px; width: 980px; height: 833px; object-fit: contain"
+        />
+        <div aria-hidden="true" style="position: absolute; inset: 0; background: rgba(6, 10, 20, 0.66)"></div>
+        <div style="position: absolute; left: 0; top: 0">
+          <dc-import name="Hud" active="you" menu-open="{{true}}" hint-size="1440px,96px"></dc-import>
+        </div>
 
-<article role="dialog" aria-label="How to play" style="position: absolute; left: 60px; top: 120px; width: 900px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); background: #fbf8f1; color: #1f2a3d; border-radius: 20px; box-shadow: 0 30px 70px rgba(2,6,16,0.7), 0 3px 0 #e4dccb; font-family: 'DM Sans', sans-serif; overflow: hidden">
-<div style="padding: 30px 30px 28px; display: flex; flex-direction: column; gap: 14px; border-right: 2px solid #ece4d2; box-shadow: inset -14px 0 20px -18px rgba(60,40,10,0.35)">
-<span style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 13px; font-weight: 800; letter-spacing: 0.22em; text-transform: uppercase; color: #9a7322">Rulebook</span>
-<h2 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-size: 34px; font-weight: 800">How to play</h2>
-<sc-for list="{{rules}}" as="r" hint-placeholder-count="5">
-<div style="display: flex; gap: 12px">
-<span style="flex: none; width: 28px; height: 28px; border-radius: 50%; background: #1f2a3d; color: #fbf8f1; font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center">{{r.n}}</span>
-<span style="display: flex; flex-direction: column; gap: 2px">
-<span style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 16px; font-weight: 800">{{r.title}}</span>
-<span style="font-size: 13px; line-height: 1.45; color: #3d4757">{{r.body}}</span>
-</span>
-</div>
-</sc-for>
-</div>
-<div style="position: relative; padding: 30px 30px 28px; display: flex; flex-direction: column; gap: 12px">
-<button type="button" aria-label="Close help" style="position: absolute; right: 18px; top: 18px; width: 36px; height: 36px; border-radius: 10px; border: 1px solid #e4dccb; background: transparent; display: flex; align-items: center; justify-content: center"><svg width="12" height="12" viewBox="0 0 14 14" aria-hidden="true"><path d="M2 2 L12 12 M12 2 L2 12" stroke="#1f2a3d" stroke-width="1.8" stroke-linecap="round"></path></svg></button>
-<span style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 13px; font-weight: 800; letter-spacing: 0.22em; text-transform: uppercase; color: #9a7322">Shortcuts</span>
-<div style="display: flex; flex-direction: column; gap: 7px">
-<sc-for list="{{keys}}" as="k" hint-placeholder-count="11">
-<div style="display: flex; align-items: center; gap: 12px; padding-bottom: 7px; border-bottom: 1px dashed #e7dfcd">
-<span style="width: 74px; display: flex; gap: 4px">
-<sc-for list="{{k.caps}}" as="c" hint-placeholder-count="1">
-<span style="min-width: 22px; height: 26px; padding: 0 7px; box-sizing: border-box; border-radius: 6px; background: #ffffff; border: 1px solid #d8cfbb; box-shadow: 0 3px 0 #d8cfbb; display: flex; align-items: center; justify-content: center; font-family: 'Sora', sans-serif; font-size: 12px; font-weight: 700">{{c}}</span>
-</sc-for>
-</span>
-<span style="font-size: 13px; color: #3d4757">{{k.what}}</span>
-</div>
-</sc-for>
-</div>
-</div>
-</article>
+        <article
+          role="dialog"
+          aria-label="How to play"
+          style="
+            position: absolute;
+            left: 60px;
+            top: 120px;
+            width: 900px;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            background: #fbf8f1;
+            color: #1f2a3d;
+            border-radius: 20px;
+            box-shadow:
+              0 30px 70px rgba(2, 6, 16, 0.7),
+              0 3px 0 #e4dccb;
+            font-family: 'DM Sans', sans-serif;
+            overflow: hidden;
+          "
+        >
+          <div
+            style="
+              padding: 30px 30px 28px;
+              display: flex;
+              flex-direction: column;
+              gap: 14px;
+              border-right: 2px solid #ece4d2;
+              box-shadow: inset -14px 0 20px -18px rgba(60, 40, 10, 0.35);
+            "
+          >
+            <span
+              style="
+                font-family: 'Bricolage Grotesque', sans-serif;
+                font-size: 13px;
+                font-weight: 800;
+                letter-spacing: 0.22em;
+                text-transform: uppercase;
+                color: #9a7322;
+              "
+              >Rulebook</span
+            >
+            <h2
+              style="
+                margin: 0;
+                font-family: 'Bricolage Grotesque', sans-serif;
+                font-size: 34px;
+                font-weight: 800;
+              "
+            >
+              How to play
+            </h2>
+            <sc-for list="{{rules}}" as="r" hint-placeholder-count="5">
+              <div style="display: flex; gap: 12px">
+                <span
+                  style="
+                    flex: none;
+                    width: 28px;
+                    height: 28px;
+                    border-radius: 50%;
+                    background: #1f2a3d;
+                    color: #fbf8f1;
+                    font-family: 'Sora', sans-serif;
+                    font-size: 13px;
+                    font-weight: 700;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                  "
+                  >{{r.n}}</span
+                >
+                <span style="display: flex; flex-direction: column; gap: 2px">
+                  <span
+                    style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 16px; font-weight: 800"
+                    >{{r.title}}</span
+                  >
+                  <span style="font-size: 13px; line-height: 1.45; color: #3d4757">{{r.body}}</span>
+                </span>
+              </div>
+            </sc-for>
+          </div>
+          <div
+            style="
+              position: relative;
+              padding: 30px 30px 28px;
+              display: flex;
+              flex-direction: column;
+              gap: 12px;
+            "
+          >
+            <button
+              type="button"
+              aria-label="Close help"
+              style="
+                position: absolute;
+                right: 18px;
+                top: 18px;
+                width: 36px;
+                height: 36px;
+                border-radius: 10px;
+                border: 1px solid #e4dccb;
+                background: transparent;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+              "
+            >
+              <svg width="12" height="12" viewBox="0 0 14 14" aria-hidden="true">
+                <path
+                  d="M2 2 L12 12 M12 2 L2 12"
+                  stroke="#1f2a3d"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                ></path>
+              </svg>
+            </button>
+            <span
+              style="
+                font-family: 'Bricolage Grotesque', sans-serif;
+                font-size: 13px;
+                font-weight: 800;
+                letter-spacing: 0.22em;
+                text-transform: uppercase;
+                color: #9a7322;
+              "
+              >Shortcuts</span
+            >
+            <div style="display: flex; flex-direction: column; gap: 7px">
+              <sc-for list="{{keys}}" as="k" hint-placeholder-count="11">
+                <div
+                  style="
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    padding-bottom: 7px;
+                    border-bottom: 1px dashed #e7dfcd;
+                  "
+                >
+                  <span style="width: 74px; display: flex; gap: 4px">
+                    <sc-for list="{{k.caps}}" as="c" hint-placeholder-count="1">
+                      <span
+                        style="
+                          min-width: 22px;
+                          height: 26px;
+                          padding: 0 7px;
+                          box-sizing: border-box;
+                          border-radius: 6px;
+                          background: #ffffff;
+                          border: 1px solid #d8cfbb;
+                          box-shadow: 0 3px 0 #d8cfbb;
+                          display: flex;
+                          align-items: center;
+                          justify-content: center;
+                          font-family: 'Sora', sans-serif;
+                          font-size: 12px;
+                          font-weight: 700;
+                        "
+                        >{{c}}</span
+                      >
+                    </sc-for>
+                  </span>
+                  <span style="font-size: 13px; color: #3d4757">{{k.what}}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </article>
 
-<section aria-label="Menu" style="position: absolute; right: 20px; top: 72px; width: 330px; display: flex; flex-direction: column; gap: 4px; padding: 14px; border-radius: 22px; background: #121c33; border: 1px solid rgba(255,214,150,0.16); box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 28px 60px rgba(2,6,16,0.65)">
-<span style="padding: 4px 6px 8px; font-size: 12px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: #a8b1c4">Game</span>
-<div style="display: flex; flex-direction: column; gap: 8px; padding: 8px 6px">
-<span style="font-size: 14px; font-weight: 700">Animation speed</span>
-<span style="display: flex; gap: 3px; padding: 3px; border-radius: 12px; background: #0a1222">
-<sc-for list="{{speeds}}" as="s" hint-placeholder-count="4">
-<button type="button" aria-pressed="{{s.on}}" style="flex: 1; height: 32px; border-radius: 9px; border: 0; background: {{s.bg}}; color: {{s.ink}}; font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 700">{{s.label}}</button>
-</sc-for>
-</span>
-</div>
-<div style="display: flex; flex-direction: column; gap: 8px; padding: 8px 6px">
-<span style="font-size: 14px; font-weight: 700">Sky</span>
-<span style="display: flex; gap: 3px; padding: 3px; border-radius: 12px; background: #0a1222">
-<sc-for list="{{skies}}" as="s" hint-placeholder-count="3">
-<button type="button" aria-pressed="{{s.on}}" style="flex: 1; height: 32px; border-radius: 9px; border: 0; background: {{s.bg}}; color: {{s.ink}}; font-family: 'Manrope', sans-serif; font-size: 13px; font-weight: 800">{{s.label}}</button>
-</sc-for>
-</span>
-</div>
-<sc-for list="{{toggles}}" as="t" hint-placeholder-count="4">
-<label style="display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 6px">
-<span style="display: flex; flex-direction: column"><span style="font-size: 14px; font-weight: 700">{{t.label}}</span><span style="font-size: 11px; color: #a8b1c4">{{t.hint}}</span></span>
-<span aria-hidden="true" style="position: relative; flex: none; width: 44px; height: 26px; border-radius: 13px; background: {{t.track}}"><span style="position: absolute; top: 3px; left: {{t.knob}}px; width: 20px; height: 20px; border-radius: 50%; background: #fbf8f1; box-shadow: 0 2px 4px rgba(0,0,0,0.35)"></span></span>
-<input type="checkbox" checked="{{t.on}}" aria-label="{{t.label}}" style="position: absolute; opacity: 0; width: 1px; height: 1px">
-</label>
-</sc-for>
-<div style="display: flex; align-items: center; gap: 10px; padding: 9px 6px">
-<span style="font-size: 14px; font-weight: 700; width: 64px">Volume</span>
-<span style="position: relative; flex: 1; height: 6px; border-radius: 3px; background: rgba(255,255,255,0.1)"><span style="position: absolute; left: 0; top: 0; bottom: 0; width: 70%; border-radius: 3px; background: #f5b54a"></span><span style="position: absolute; left: 70%; top: -6px; width: 18px; height: 18px; margin-left: -9px; border-radius: 50%; background: #fbf8f1; box-shadow: 0 2px 4px rgba(0,0,0,0.35)"></span></span>
-</div>
-<div style="height: 1px; margin: 6px 0; background: rgba(255,214,150,0.1)"></div>
-<button type="button" style="height: 42px; border-radius: 12px; border: 1px solid rgba(255,214,150,0.16); background: transparent; color: #f4ede2; font-family: 'Manrope', sans-serif; font-size: 14px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px">Game log <span style="font-size: 11px; padding: 1px 6px; border-radius: 5px; background: #fbf8f1; color: #1f2a3d; box-shadow: 0 2px 0 #c9c1ae">L</span></button>
-<button type="button" style="height: 42px; border-radius: 12px; border: 0; background: transparent; color: #fda4af; font-family: 'Manrope', sans-serif; font-size: 14px; font-weight: 800">Quit to new game…</button>
-</section>
-</div>
-</x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
-class Component extends DCLogic {
-  renderVals() {
-    const seg = (labels, on) => labels.map((label) => ({ label, on: label === on, bg: label === on ? '#f5b54a' : 'transparent', ink: label === on ? '#1c1205' : '#a8b1c4' }));
-    const tog = (label, hint, on) => ({ label, hint, on, track: on ? '#f5b54a' : 'rgba(255,255,255,0.14)', knob: on ? 21 : 3 });
-    return {
-      rules: [
-        { n: '1', title: 'Goal', body: 'Own the most valuable city when the rounds run out, or be the last one standing.' },
-        { n: '2', title: 'Your turn', body: 'Roll, move, then buy what you land on or send it to auction.' },
-        { n: '3', title: 'Rent and sets', body: 'Own a whole color set to double rent and start building houses, then hotels.' },
-        { n: '4', title: 'Raising money', body: 'Short on cash? Sell houses or mortgage property. Mortgaged lots earn no rent.' },
-        { n: '5', title: 'Any time', body: 'Build, mortgage and trade even on other players’ turns.' }
-      ],
-      keys: [
-        { caps: ['Space'], what: 'Roll, end turn or continue' },
-        { caps: ['B', 'A'], what: 'Buy or auction' },
-        { caps: ['P', 'U'], what: 'Pay the fine or use a free card' },
-        { caps: ['C'], what: 'My city' },
-        { caps: ['T'], what: 'Trade' },
-        { caps: ['Y', 'N'], what: 'Accept or decline an offer' },
-        { caps: ['M'], what: 'Sound on or off' },
-        { caps: ['L'], what: 'Game log' },
-        { caps: ['S'], what: 'Skip animations' },
-        { caps: ['?'], what: 'This help' },
-        { caps: ['Esc'], what: 'Close the top panel' }
-      ],
-      speeds: seg(['1×', '2×', '4×', 'Instant'], '1×'),
-      skies: seg(['Auto', 'Day', 'Night'], 'Auto'),
-      toggles: [
-        tog('Fast bots', 'Bots decide without pausing', false),
-        tog('Reduced motion', 'No shake, confetti or flying coins', false),
-        tog('City life', 'Cars and trains in the city', true),
-        tog('Offers from bots', 'Bots may propose deals to you', true),
-        tog('Sound', 'Effects and music', true)
-      ]
-    };
-  }
-}
-</script>
-</body>
+        <section
+          aria-label="Menu"
+          style="
+            position: absolute;
+            right: 20px;
+            top: 72px;
+            width: 330px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding: 14px;
+            border-radius: 22px;
+            background: #121c33;
+            border: 1px solid rgba(255, 214, 150, 0.16);
+            box-shadow:
+              inset 0 1px 0 rgba(255, 255, 255, 0.08),
+              0 28px 60px rgba(2, 6, 16, 0.65);
+          "
+        >
+          <span
+            style="
+              padding: 4px 6px 8px;
+              font-size: 12px;
+              font-weight: 800;
+              letter-spacing: 0.14em;
+              text-transform: uppercase;
+              color: #a8b1c4;
+            "
+            >Game</span
+          >
+          <div style="display: flex; flex-direction: column; gap: 8px; padding: 8px 6px">
+            <span style="font-size: 14px; font-weight: 700">Animation speed</span>
+            <span style="display: flex; gap: 3px; padding: 3px; border-radius: 12px; background: #0a1222">
+              <sc-for list="{{speeds}}" as="s" hint-placeholder-count="4">
+                <button
+                  type="button"
+                  aria-pressed="{{s.on}}"
+                  style="flex: 1; height: 32px; border-radius: 9px; border: 0; background: {{s.bg}}; color: {{s.ink}}; font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 700"
+                >
+                  {{s.label}}
+                </button>
+              </sc-for>
+            </span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px; padding: 8px 6px">
+            <span style="font-size: 14px; font-weight: 700">Sky</span>
+            <span style="display: flex; gap: 3px; padding: 3px; border-radius: 12px; background: #0a1222">
+              <sc-for list="{{skies}}" as="s" hint-placeholder-count="3">
+                <button
+                  type="button"
+                  aria-pressed="{{s.on}}"
+                  style="flex: 1; height: 32px; border-radius: 9px; border: 0; background: {{s.bg}}; color: {{s.ink}}; font-family: 'Manrope', sans-serif; font-size: 13px; font-weight: 800"
+                >
+                  {{s.label}}
+                </button>
+              </sc-for>
+            </span>
+          </div>
+          <sc-for list="{{toggles}}" as="t" hint-placeholder-count="4">
+            <label
+              style="
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 10px;
+                padding: 9px 6px;
+              "
+            >
+              <span style="display: flex; flex-direction: column"
+                ><span style="font-size: 14px; font-weight: 700">{{t.label}}</span
+                ><span style="font-size: 11px; color: #a8b1c4">{{t.hint}}</span></span
+              >
+              <span
+                aria-hidden="true"
+                style="position: relative; flex: none; width: 44px; height: 26px; border-radius: 13px; background: {{t.track}}"
+                ><span
+                  style="position: absolute; top: 3px; left: {{t.knob}}px; width: 20px; height: 20px; border-radius: 50%; background: #fbf8f1; box-shadow: 0 2px 4px rgba(0,0,0,0.35)"
+                ></span
+              ></span>
+              <input
+                type="checkbox"
+                checked="{{t.on}}"
+                aria-label="{{t.label}}"
+                style="position: absolute; opacity: 0; width: 1px; height: 1px"
+              />
+            </label>
+          </sc-for>
+          <div style="display: flex; align-items: center; gap: 10px; padding: 9px 6px">
+            <span style="font-size: 14px; font-weight: 700; width: 64px">Volume</span>
+            <span
+              style="
+                position: relative;
+                flex: 1;
+                height: 6px;
+                border-radius: 3px;
+                background: rgba(255, 255, 255, 0.1);
+              "
+              ><span
+                style="
+                  position: absolute;
+                  left: 0;
+                  top: 0;
+                  bottom: 0;
+                  width: 70%;
+                  border-radius: 3px;
+                  background: #f5b54a;
+                "
+              ></span
+              ><span
+                style="
+                  position: absolute;
+                  left: 70%;
+                  top: -6px;
+                  width: 18px;
+                  height: 18px;
+                  margin-left: -9px;
+                  border-radius: 50%;
+                  background: #fbf8f1;
+                  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.35);
+                "
+              ></span
+            ></span>
+          </div>
+          <div style="height: 1px; margin: 6px 0; background: rgba(255, 214, 150, 0.1)"></div>
+          <button
+            type="button"
+            style="
+              height: 42px;
+              border-radius: 12px;
+              border: 1px solid rgba(255, 214, 150, 0.16);
+              background: transparent;
+              color: #f4ede2;
+              font-family: 'Manrope', sans-serif;
+              font-size: 14px;
+              font-weight: 800;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 8px;
+            "
+          >
+            Game log
+            <span
+              style="
+                font-size: 11px;
+                padding: 1px 6px;
+                border-radius: 5px;
+                background: #fbf8f1;
+                color: #1f2a3d;
+                box-shadow: 0 2px 0 #c9c1ae;
+              "
+              >L</span
+            >
+          </button>
+          <button
+            type="button"
+            style="
+              height: 42px;
+              border-radius: 12px;
+              border: 0;
+              background: transparent;
+              color: #fda4af;
+              font-family: 'Manrope', sans-serif;
+              font-size: 14px;
+              font-weight: 800;
+            "
+          >
+            Quit to new game…
+          </button>
+        </section>
+      </div>
+    </x-dc>
+    <script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+      class Component extends DCLogic {
+        renderVals() {
+          const seg = (labels, on) => labels.map((label) => ({ label, on: label === on, bg: label === on ? '#f5b54a' : 'transparent', ink: label === on ? '#1c1205' : '#a8b1c4' }));
+          const tog = (label, hint, on) => ({ label, hint, on, track: on ? '#f5b54a' : 'rgba(255,255,255,0.14)', knob: on ? 21 : 3 });
+          return {
+            rules: [
+              { n: '1', title: 'Goal', body: 'Own the most valuable city when the rounds run out, or be the last one standing.' },
+              { n: '2', title: 'Your turn', body: 'Roll, move, then buy what you land on or send it to auction.' },
+              { n: '3', title: 'Rent and sets', body: 'Own a whole color set to double rent and start building houses, then hotels.' },
+              { n: '4', title: 'Raising money', body: 'Short on cash? Sell houses or mortgage property. Mortgaged lots earn no rent.' },
+              { n: '5', title: 'Any time', body: 'Build, mortgage and trade even on other players’ turns.' }
+            ],
+            keys: [
+              { caps: ['Space'], what: 'Roll, end turn or continue' },
+              { caps: ['B', 'A'], what: 'Buy or auction' },
+              { caps: ['P', 'U'], what: 'Pay the fine or use a free card' },
+              { caps: ['C'], what: 'My city' },
+              { caps: ['T'], what: 'Trade' },
+              { caps: ['Y', 'N'], what: 'Accept or decline an offer' },
+              { caps: ['M'], what: 'Sound on or off' },
+              { caps: ['L'], what: 'Game log' },
+              { caps: ['S'], what: 'Skip animations' },
+              { caps: ['?'], what: 'This help' },
+              { caps: ['Esc'], what: 'Close the top panel' }
+            ],
+            speeds: seg(['1×', '2×', '4×', 'Instant'], '1×'),
+            skies: seg(['Auto', 'Day', 'Night'], 'Auto'),
+            toggles: [
+              tog('Fast bots', 'Bots decide without pausing', false),
+              tog('Reduced motion', 'No shake, confetti or flying coins', false),
+              tog('City life', 'Cars and trains in the city', true),
+              tog('Offers from bots', 'Bots may propose deals to you', true),
+              tog('Sound', 'Effects and music', true)
+            ]
+          };
+        }
+      }
+    </script>
+  </body>
 </html>
