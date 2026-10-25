@@ -4,7 +4,7 @@ import type { PieceKind } from '@skyline/board'
 import { groupColor, groupName } from '../../spaceInfo.ts'
 import { useCardEnv, useLotPortrait, useReducedMotion } from './cardEnv.tsx'
 import { CardStage, Stamp } from './cardMotion.tsx'
-import { familyOf } from './deed.ts'
+import { inkOn, rgba, familyOf } from './deed.ts'
 import { fmtMoney } from './format.ts'
 import { PieceIcon } from './icons.tsx'
 
@@ -18,18 +18,6 @@ const SKY_DAY = '#dcebe3'
 const SKY_NIGHT = '#16213a'
 const STRIPES = (n: number) =>
   `repeating-linear-gradient(135deg, rgba(255,255,255,0.14) 0 ${n}px, rgba(255,255,255,0) ${n}px ${n * 2}px)`
-
-const rgba = (hex: string, a: number) => {
-  const n = parseInt(hex.slice(1), 16)
-  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`
-}
-
-/** Dark ink on light bands, white on deep ones. */
-function inkOn(hex: string): string {
-  const n = parseInt(hex.slice(1), 16)
-  const lum = (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255
-  return lum > 0.5 ? '#0b2a3a' : '#ffffff'
-}
 
 /** Who owns the card's space: their seat color and piece (the token emblem on the card). */
 export interface DeedOwner {

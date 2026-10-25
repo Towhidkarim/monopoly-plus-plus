@@ -74,3 +74,34 @@ export function PieceIcon({
     </svg>
   )
 }
+
+/** 16px tag glyph ("For sale"). */
+export function TagIcon({ size = 16, color = 'currentColor' }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" aria-hidden="true">
+      <path
+        d="M2 8 V2 H8 L15 9 L9 15 Z"
+        fill="none"
+        stroke={color}
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <circle cx="5.5" cy="5.5" r="1.3" fill={color} />
+    </svg>
+  )
+}
+
+/** 16px gavel glyph ("Auction"). */
+export function GavelIcon({ size = 16, color = 'currentColor' }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" aria-hidden="true">
+      <path
+        d="M3 9 L9 3 M6 12 L12 6 M5 7 L9 11 M10 12 L14 16 M1 15 H8"
+        fill="none"
+        stroke={color}
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}

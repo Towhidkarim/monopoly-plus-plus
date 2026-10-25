@@ -199,7 +199,8 @@ export function GameOver({ snap, store, onQuit }: { snap: Snapshot; store: GameS
 const SHORTCUTS: [string, string][] = [
   ['Space', 'Main action: roll, end turn, continue'],
   ['B / A', 'Buy / auction the space you landed on'],
-  ['P / U', 'Pay the Lockup fine / use a free card'],
+  ['1 2 3 4', 'Auction: raise by +10 / +25 / +50 / bid the list price'],
+  ['P / U', 'Pay the Lockup fine / use a free card (P also passes in an auction)'],
   ['C', 'Open or close My city'],
   ['T', 'Propose a trade'],
   ['Y / N', 'Accept / decline an offer'],

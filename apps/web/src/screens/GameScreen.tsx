@@ -12,6 +12,7 @@ import type { GameStore, Snapshot } from '../game/store.ts'
 import { spaceInfo } from '../spaceInfo.ts'
 import { ActionDock } from './game/ActionDock.tsx'
 import { AuctionPanel } from './game/AuctionPanel.tsx'
+import { bidAction, raiseOptions } from './game/auctionBids.ts'
 import { BuyMoment } from './game/BuyMoment.tsx'
 import { DebtPanel } from './game/DebtPanel.tsx'
 import { BoardHandleContext } from './game/cardEnv.tsx'
@@ -86,6 +87,8 @@ export function GameScreen({ store, onQuit }: { store: GameStore; onQuit: () => 
 
   const turn = turnView(snap, store)
   const viewer = snap.viewer
+  // A decision is open: buy, auction, debt or an incoming offer, or the trade composer.
+  const focus = turn.moment !== null || trade !== null
   const viewerId = viewer !== null ? snap.state.players[viewer]!.id : null
   const cityBadge =
     viewerId && store.seatKind(viewerId) === 'human' ? buildableGroups(snap.state, viewerId) : 0
@@ -182,20 +185,31 @@ export function GameScreen({ store, onQuit }: { store: GameStore; onQuit: () => 
               onMenu={() => setMenu((v) => !v)}
             />
             <TurnBanner snap={snap} store={store} turn={turn} />
-            <LeftColumn
-              snap={snap}
-              store={store}
-              selected={selected}
-              onCity={() => setCityOpen(true)}
-              onDeselect={() => select(null)}
-            />
-            {!cityOpen && (
-              <ActivityFeed
+            {/* Focus mode: during a decision the side panels slide away so nothing overlaps it. */}
+            <div
+              className={`absolute inset-0 transition-[opacity,translate] duration-300 ease-out ${focus ? '-translate-x-4 opacity-0' : ''}`}
+              {...(focus ? { inert: true } : {})}
+            >
+              <LeftColumn
                 snap={snap}
                 store={store}
-                showLog={showLog}
-                onToggleLog={() => setShowLog((v) => !v)}
+                selected={selected}
+                onCity={() => setCityOpen(true)}
+                onDeselect={() => select(null)}
               />
+            </div>
+            {!cityOpen && (
+              <div
+                className={`absolute inset-0 transition-[opacity,translate] duration-300 ease-out ${focus ? 'translate-x-4 opacity-0' : ''}`}
+                {...(focus ? { inert: true } : {})}
+              >
+                <ActivityFeed
+                  snap={snap}
+                  store={store}
+                  showLog={showLog}
+                  onToggleLog={() => setShowLog((v) => !v)}
+                />
+              </div>
             )}
             <ActionDock
               snap={snap}
@@ -208,7 +222,7 @@ export function GameScreen({ store, onQuit }: { store: GameStore; onQuit: () => 
             />
             <CalloutLayer store={store} />
             <AuctionPanel snap={snap} store={store} turn={turn} />
-            <BuyMoment snap={snap} turn={turn} onCity={() => setCityOpen(true)} />
+            <BuyMoment snap={snap} store={store} turn={turn} onCity={() => setCityOpen(true)} />
             <DebtPanel snap={snap} store={store} turn={turn} />
             <OfferPanel snap={snap} store={store} turn={turn} onCounter={setTrade} />
             <CardPopup snap={snap} store={store} />
@@ -285,13 +299,24 @@ export function GameScreen({ store, onQuit }: { store: GameStore; onQuit: () => 
   )
 }
 
-/** B and A answer the buy moment; Y and N answer an offer. */
+/**
+ * B and A answer the buy moment; Y and N answer an offer; in an auction 1 to 3 raise by the
+ * steps (4 bids the list price while it is still above the high bid) and P passes.
+ */
 function momentKey(turn: TurnView, key: string, store: GameStore): (() => void) | undefined {
   const offer = turn.offer
   if (turn.moment === 'offer' && offer && (key === 'y' || key === 'n')) {
     const to = store.getSnapshot().state.players[offer.to]!.id
     const type = key === 'y' ? 'ACCEPT_TRADE' : 'REJECT_TRADE'
     return () => void store.dispatch(to, { type, tradeId: offer.id })
+  }
+  if (turn.moment === 'auction') {
+    const a = store.getSnapshot().state.pending
+    if (a?.kind !== 'auction' || !turn.canAct) return undefined
+    if (key === 'p') return () => turn.act({ type: 'PASS_BID' })
+    const cash = store.getSnapshot().state.players[turn.actorSeat]!.cash
+    const raise = raiseOptions(a.highBid, SPACES[a.space]!.price, cash).find((r) => r.key === key)
+    return raise ? () => turn.act(bidAction(raise.amount)) : undefined
   }
   if (turn.moment !== 'buy') return undefined
   const type = key === 'b' ? 'BUY' : key === 'a' ? 'DECLINE_BUY' : null

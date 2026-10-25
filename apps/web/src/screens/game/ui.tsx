@@ -74,12 +74,15 @@ export function TokenAvatar({
   piece,
   size = 34,
   halo,
+  shadow,
   className = '',
 }: {
   color: string
   piece: PieceKind
   size?: number
   halo?: string | undefined
+  /** Replaces the default box-shadow (for example a glowing ring). */
+  shadow?: string
   className?: string
 }) {
   return (
@@ -89,7 +92,7 @@ export function TokenAvatar({
         width: size,
         height: size,
         background: color,
-        boxShadow: `inset 0 -3px 0 rgba(0,0,0,0.18)${halo ? `, 0 0 0 2px ${halo}` : ''}`,
+        boxShadow: shadow ?? `inset 0 -3px 0 rgba(0,0,0,0.18)${halo ? `, 0 0 0 2px ${halo}` : ''}`,
       }}
     >
       <PieceIcon piece={piece} size={Math.round(size * 0.59)} />

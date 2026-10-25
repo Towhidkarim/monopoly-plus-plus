@@ -48,3 +48,15 @@ export function setProgress(s: GameState, seat: number, index: number) {
           : held.map((i) => `${s.players[s.owner[i]!]!.name} owns ${SPACES[i]!.name}`).join(', ') + '.'
   return { total: family.length, mine, note, name: familyName(index), color: familyColor(index) }
 }
+
+export const rgba = (hex: string, a: number) => {
+  const n = parseInt(hex.slice(1), 16)
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`
+}
+
+/** Dark ink on light bands, white on deep ones. */
+export function inkOn(hex: string): string {
+  const n = parseInt(hex.slice(1), 16)
+  const lum = (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255
+  return lum > 0.5 ? '#0b2a3a' : '#ffffff'
+}
