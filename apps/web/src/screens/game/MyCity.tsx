@@ -21,7 +21,9 @@ import { useReducedMotion } from './cardEnv.tsx'
 import { useDialogFocus } from './useDialogFocus.ts'
 import { BuildIcon, Icon, MedalIcon, SkylineIcon, StarIcon } from './icons.tsx'
 import { DeedCard } from './TitleDeed.tsx'
-import { Btn, DeedSwatch, TickingMoney, FX, FX_BRIGHT, FX_GHOST } from './ui.tsx'
+import { DeedSwatch, TickingMoney, FX, FX_BRIGHT, FX_GHOST } from './ui.tsx'
+import { ARMED, ConfirmBar, ConfirmBtn } from './ConfirmBtn.tsx'
+import { useConfirmPress } from './useConfirmPress.ts'
 import { fmtMoney } from './format.ts'
 
 interface Family {
@@ -336,16 +338,19 @@ function SetSection({
                 : buildBlocker(levels, anyMortgaged, SPACES[f.spaces[0]!]!.houseCost)
             }
           />
-          <Btn
+          <ConfirmBtn
             disabled={sell.actions.length === 0}
-            onClick={() => store.run(id, sell.actions)}
+            onConfirm={() => store.run(id, sell.actions)}
             title={
               sell.actions.length ? `Sell one level for +${fmtMoney(sell.amount)}` : 'No buildings to sell'
             }
-            className="h-11.5 rounded-[14px]"
+            armedLabel={`${sell.actions.length > 1 ? `Sell ${sell.actions.length}` : 'Sell'}? +${fmtMoney(sell.amount)}`}
+            armedAriaLabel={`Press again to sell ${sell.actions.length > 1 ? `${sell.actions.length} levels` : 'one level'} in ${f.name} for ${sell.amount}`}
+            idleClass="border-line bg-transparent text-ink enabled:hover:bg-white/5"
+            className="h-11.5 gap-2 rounded-[14px] px-4 text-sm"
           >
             Sell
-          </Btn>
+          </ConfirmBtn>
         </div>
       )}
 
@@ -431,14 +436,17 @@ function SetSection({
                       Lift −{fmtMoney(unmortgageCost(s, i))}
                     </RowBtn>
                   ) : (
-                    <RowBtn
-                      tone="teal"
+                    <ConfirmBtn
                       disabled={!can(mortgage)}
-                      onClick={() => act(mortgage)}
+                      onConfirm={() => act(mortgage)}
                       title={can(mortgage) ? undefined : 'Sell the buildings in this set first'}
+                      armedLabel={`Mortgage? +${fmtMoney(mortgageValue(i))}`}
+                      armedAriaLabel={`Press again to mortgage ${sp.name} for ${mortgageValue(i)}`}
+                      idleClass="border-teal/45 bg-teal/8 text-teal enabled:hover:bg-teal/15"
+                      className="h-9 shrink-0 rounded-[10px] px-3 text-[13px]"
                     >
                       Mortgage +{fmtMoney(mortgageValue(i))}
-                    </RowBtn>
+                    </ConfirmBtn>
                   ))}
               </div>
             )
@@ -498,7 +506,7 @@ function RowBtn({
   onClick: () => void
   disabled?: boolean
   title?: string | undefined
-  tone: 'teal' | 'gold'
+  tone: 'gold'
 }) {
   return (
     <button
@@ -509,7 +517,7 @@ function RowBtn({
       }}
       disabled={disabled}
       title={title}
-      className={`h-9 shrink-0 rounded-[10px] border px-3 text-[13px] font-extrabold tabular-nums ${FX_BRIGHT} disabled:pointer-events-none disabled:opacity-35 ${tone === 'teal' ? 'border-teal/45 bg-teal/8 text-teal enabled:hover:bg-teal/15' : 'border-accent/50 bg-accent/10 text-gold enabled:hover:bg-accent/20'}`}
+      className={`h-9 shrink-0 rounded-[10px] border px-3 text-[13px] font-extrabold tabular-nums ${FX_BRIGHT} disabled:pointer-events-none disabled:opacity-35 ${tone === 'gold' ? 'border-accent/50 bg-accent/10 text-gold enabled:hover:bg-accent/20' : ''}`}
     >
       {children}
     </button>
@@ -535,43 +543,53 @@ function LotStepper({
   onSell: () => void
 }) {
   const what = level >= HOTEL - 1 ? 'a hotel' : 'a house'
+  const sellWhat = level >= HOTEL ? 'the hotel' : 'a house'
+  const refund = fmtMoney(cost / 2)
+  const sell = useConfirmPress(onSell, { enabled: canSell })
   const btn = `flex size-7 items-center justify-center rounded-lg text-sm font-extrabold ${FX_BRIGHT} disabled:opacity-30`
   return (
     <div className="flex items-center gap-1 rounded-[10px] border border-line/70 bg-panel-2/80 p-0.5">
       <button
         type="button"
         disabled={!canSell}
-        onClick={() => {
-          sound.play('ui.click')
-          onSell()
-        }}
+        {...sell.bind}
+        onClick={sell.press}
         title={
-          canSell
-            ? `Sell ${level >= HOTEL ? 'the hotel' : 'a house'} on ${name} for +${fmtMoney(cost / 2)}`
-            : `Nothing to sell on ${name} yet (sell evenly)`
+          sell.armed
+            ? undefined
+            : canSell
+              ? `Sell ${sellWhat} on ${name} for +${refund}`
+              : `Nothing to sell on ${name} yet (sell evenly)`
         }
-        aria-label={`Sell one level on ${name}`}
-        className={`${btn} text-ink-muted enabled:hover:bg-white/8 enabled:hover:text-ink`}
-      >
-        −
-      </button>
-      <button
-        type="button"
-        disabled={!canBuild}
-        onClick={() => {
-          sound.play('ui.click')
-          onBuild()
-        }}
-        title={
-          canBuild
-            ? `Build ${what} on ${name} for ${fmtMoney(cost)}`
-            : `Can't build on ${name} now (build evenly, or not enough cash)`
+        aria-label={
+          sell.armed
+            ? `Press again to sell ${sellWhat} on ${name} for ${cost / 2}`
+            : `Sell one level on ${name}`
         }
-        aria-label={`Build ${what} on ${name}, ${fmtMoney(cost)}`}
-        className={`${btn} bg-accent/15 text-gold enabled:hover:bg-accent/25`}
+        className={`relative overflow-hidden ${sell.armed ? `confirm-nudge h-7 rounded-lg border px-2 text-[12px] font-extrabold whitespace-nowrap tabular-nums ${FX_BRIGHT} ${ARMED}` : `${btn} text-ink-muted enabled:hover:bg-white/8 enabled:hover:text-ink`}`}
       >
-        +
+        {sell.armed ? `Sell? +${refund}` : '−'}
+        {sell.armed && <ConfirmBar ms={2500} />}
       </button>
+      {!sell.armed && (
+        <button
+          type="button"
+          disabled={!canBuild}
+          onClick={() => {
+            sound.play('ui.click')
+            onBuild()
+          }}
+          title={
+            canBuild
+              ? `Build ${what} on ${name} for ${fmtMoney(cost)}`
+              : `Can't build on ${name} now (build evenly, or not enough cash)`
+          }
+          aria-label={`Build ${what} on ${name}, ${fmtMoney(cost)}`}
+          className={`${btn} bg-accent/15 text-gold enabled:hover:bg-accent/25`}
+        >
+          +
+        </button>
+      )}
     </div>
   )
 }

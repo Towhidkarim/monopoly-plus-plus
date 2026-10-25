@@ -7,6 +7,7 @@ import type { LogEntry } from '../../game/log.ts'
 import { cssHex, spaceInfo } from '../../spaceInfo.ts'
 import { activeRow, familyOf } from './deed.ts'
 import { DiceTray } from './DiceTray.tsx'
+import { ConfirmBtn } from './ConfirmBtn.tsx'
 import { Icon } from './icons.tsx'
 import { DeedCard } from './TitleDeed.tsx'
 import { Btn, Eyebrow, Kbd, Panel, TokenAvatar, FX } from './ui.tsx'
@@ -208,15 +209,36 @@ function SelectedSpace({
         )}
         {options.length > 0 && (
           <div className="mt-2.5 flex flex-wrap gap-2">
-            {options.map((a) => (
-              <Btn
-                key={a.type}
-                onClick={() => void store.dispatch(owner!.id, a)}
-                className="px-3 py-1.5 text-xs"
-              >
-                {label(a)}
-              </Btn>
-            ))}
+            {options.map((a) =>
+              a.type === 'SELL_BUILDING' || a.type === 'MORTGAGE' ? (
+                <ConfirmBtn
+                  key={a.type}
+                  onConfirm={() => void store.dispatch(owner!.id, a)}
+                  armedLabel={
+                    a.type === 'MORTGAGE'
+                      ? `Mortgage? +${fmtMoney(mortgageValue(index))}`
+                      : `Sell? +${fmtMoney(sp.houseCost / 2)}`
+                  }
+                  armedAriaLabel={
+                    a.type === 'MORTGAGE'
+                      ? `Press again to mortgage ${sp.name} for ${mortgageValue(index)}`
+                      : `Press again to sell ${p.houses[index] === 5 ? 'the hotel' : 'a house'} on ${sp.name} for ${sp.houseCost / 2}`
+                  }
+                  idleClass="border-line bg-transparent text-ink enabled:hover:bg-white/5"
+                  className="rounded-xl px-3 py-1.5 text-xs"
+                >
+                  {label(a)}
+                </ConfirmBtn>
+              ) : (
+                <Btn
+                  key={a.type}
+                  onClick={() => void store.dispatch(owner!.id, a)}
+                  className="px-3 py-1.5 text-xs"
+                >
+                  {label(a)}
+                </Btn>
+              ),
+            )}
           </div>
         )}
         {mine && (

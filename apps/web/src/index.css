@@ -356,3 +356,42 @@
     scrollbar-color: rgba(255, 214, 150, 0.28) transparent;
   }
 }
+
+/* Press-again confirmation (D37): a bar that drains over --confirm-ms, and one gentle nudge on arming. */
+@keyframes confirm-drain {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+@keyframes confirm-nudge {
+  0% {
+    transform: none;
+  }
+  40% {
+    transform: scale(1.07);
+  }
+  100% {
+    transform: none;
+  }
+}
+.confirm-bar {
+  transform-origin: left center;
+  animation: confirm-drain var(--confirm-ms, 2500ms) linear forwards;
+}
+.confirm-nudge {
+  animation: confirm-nudge 220ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+/* Reduced motion: no nudge; the bar stays full while the timer runs. */
+:root[data-reduced-motion='true'] .confirm-bar,
+:root[data-reduced-motion='true'] .confirm-nudge {
+  animation-name: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .confirm-bar,
+  .confirm-nudge {
+    animation-name: none;
+  }
+}
