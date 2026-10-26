@@ -24,7 +24,6 @@ Restate each step's acceptance criteria and the files it touches before writing 
 
 ## Loose ends
 
-- Old flat-dice screenshots in `docs/screenshots/dice-*.png` are untracked; replace them with 3D dice shots or delete them.
 - D38 open items: throwing from the active player's side, white tray dice to match the 3D dice.
 - Learned bots are planned last: `docs/LEARNED_BOTS.md`.
 
