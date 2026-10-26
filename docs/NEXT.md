@@ -17,8 +17,8 @@ The multiplayer plan is settled and recorded in `docs/DECISIONS.md` D40; the ste
 ### Next steps
 
 1. Done: Step 1, `packages/protocol` (D41). Versions checked 2026-10-26, all maintained and compatible: valibot 1.5.0 (added), hono 4.13, @cloudflare/vite-plugin 1.65 (peer vite ^8), wrangler 4.153, @tanstack/react-router 1.170.
-2. Next: Step 2: `packages/room` with tests (fake connections: join, reconnect, hidden info, out-of-turn bids, timers, checksums).
-3. Then the Cloudflare adapter, the client transport and lobby, reconnect, and bot seats, one step per commit.
+2. Done: Step 2, `packages/room` (`RoomCore`, D42), tested with the fake ports in `packages/room/src/testkit.ts`.
+3. Next: Step 3, the Cloudflare adapter (`apps/server`): Hono routes, the room Durable Object mapping sockets, the alarm and `ctx.storage.sql` onto the ports, and Cloudflare's Vite plugin in `pnpm dev`. Then the client transport and lobby, reconnect, and bot seats, one step per commit.
 
 Restate each step's acceptance criteria and the files it touches before writing code.
 
