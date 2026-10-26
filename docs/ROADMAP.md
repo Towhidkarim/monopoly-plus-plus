@@ -153,13 +153,15 @@ Acceptance: every engine action is reachable through the UI; all pending-decisio
 
 ## Milestone 9: Online multiplayer
 
-1. `packages/protocol`: message types, versioning, validation (zod or hand-rolled).
-2. `apps/server`: Cloudflare Worker + Durable Object per room; join, ready, start; authoritative `reduce`; broadcast events with sequence numbers; server-side timers emit `TIMEOUT`.
-3. Client network adapter implementing the same `dispatch` interface; lobby with room codes.
-4. Reconnect via sequence numbers and snapshot; presented state resync with `board.sync`.
-5. Hidden info handling (clients get `observe()` views; deck order stays server-side).
-6. Server-side bot seats; replace disconnected players with bots optionally.
-7. (spike, optional) P2P host-authoritative WebRTC using the same protocol.
+Plan: DECISIONS.md D40 (Hono on one Cloudflare Worker, a SQLite-backed Durable Object per room, a portable `RoomCore`, room codes as invites).
+
+1. `packages/protocol`: message types, versioning, Valibot validation shared by client and server.
+2. `packages/room`: `RoomCore` behind `Connection`, `RoomStore` and `Scheduler` ports; seats, lobby, ready and start; authoritative `reduce`; events with sequence numbers; `observe()` per player (hidden info stays in the room); timers as `TIMEOUT`; per-turn saving: actions not events, one checkpoint row per turn. Tested in plain Vitest with fake connections.
+3. `apps/server`: Hono routes (`POST /api/rooms`, `GET /api/rooms/:code`, the socket upgrade) and the room Durable Object (hibernating sockets, alarms, SQLite) as a thin adapter; Cloudflare's Vite plugin in `pnpm dev`; one deploy with the static app.
+4. Client: network transport behind the same `dispatch` interface; TanStack Router with `/r/:code`; Play online (create, join by code), lobby (seats, bots, settings, ready, copy invite link).
+5. Reconnect via sequence numbers and snapshot (seat token in `localStorage`); presented state resync with `board.sync`; dev-mode view checksums at turn ends.
+6. Bot seats in the room; optional bot takeover of disconnected seats; host handover; room expiry and creation rate limit.
+7. (spike, optional) P2P host-authoritative WebRTC, or a Node adapter, using the same protocol.
 
 Acceptance: four browsers play a full game through a room; refreshing a tab mid-game rejoins correctly; invalid actions are rejected server-side; two clients never diverge (state checksum compared at turn ends in dev mode).
 
@@ -184,7 +186,7 @@ Acceptance: search bot beats tuned heuristic bot at a statistically meaningful r
 ## Later: "++" and learned bots
 
 - New mechanics as rule modules: city events per round, player characters, and more (to be designed).
-- Learned policy: self-play using the engine as environment, model exported for in-browser inference.
+- Learned policy: self-play using the engine as environment, model exported for in-browser inference. Plan: `docs/LEARNED_BOTS.md`.
 
 ## Cross-cutting risks and how to retire them early
 

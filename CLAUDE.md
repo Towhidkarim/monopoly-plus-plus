@@ -1,6 +1,6 @@
 # Skyline (working title): a lightweight Monopoly-style game for the browser
 
-Read this file first, then `docs/ARCHITECTURE.md`, `docs/ROADMAP.md`, `docs/DECISIONS.md`, and `docs/BOARD.md`. `docs/ART_GUIDE.md` when doing art. When docs and this file disagree, `docs/DECISIONS.md` is the latest word.
+Read this file first, then `docs/ARCHITECTURE.md`, `docs/ROADMAP.md`, `docs/DECISIONS.md`, and `docs/BOARD.md`. `docs/ART_GUIDE.md` when doing art, `docs/LEARNED_BOTS.md` when working on learned bots. When docs and this file disagree, `docs/DECISIONS.md` is the latest word.
 
 ## What we are building
 
@@ -32,7 +32,7 @@ Naming/trademark: "Monopoly", its board art, and its trade dress belong to Hasbr
 - TypeScript 7 (native compiler, strict), Vite 8, pnpm workspaces, Vitest 5. Lint: oxlint (type-aware). Format: oxfmt. No ESLint, no Prettier.
 - Pixi.js v8 for the board world, custom camera (no pixi-viewport). GSAP for choreographed timelines. A small custom spring/ticker module for continuous juice.
 - React 19 with the React Compiler for the shell. Tailwind CSS v4 for all DOM styling (tokens in one `@theme` block). Motion for shell transitions. TanStack Router (SPA) once there are multiple screens; no TanStack Start, no SSR.
-- Multiplayer: Cloudflare Workers + one Durable Object per room over WebSockets, running the same engine package (authoritative server). Optional host-authoritative WebRTC (PeerJS) as an alternative later.
+- Multiplayer: one Cloudflare Worker (Hono for the API, the SPA as static assets) + one SQLite-backed Durable Object per room over WebSockets, running the same engine package (authoritative server). Room logic is portable (`packages/room` behind ports) so a Node host can replace Cloudflare. Cloudflare's Vite plugin for dev. Valibot for validation. See DECISIONS.md D40. Optional host-authoritative WebRTC (PeerJS) as an alternative later.
 - Native wrapper later: Wails (Go) around the same static SPA build.
 - Lightweight and smooth is a requirement: 60 fps, one render loop, initial JS around 300 KB gzipped.
 - Verify current versions and plugin compatibility before adding a dependency. Do not assume.
@@ -48,6 +48,7 @@ Naming/trademark: "Monopoly", its board art, and its trade dress belong to Hasbr
     engine/      pure rules, state, events, seeded RNG, board data, tests
     bots/        bot interface, heuristic bot, simulation harness
     protocol/    shared action/event/message types for client and server
+    room/        portable game room (RoomCore): seats, sequence numbers, reduce, observe, timers; no platform APIs
     board/       Pixi board world: geometry, tiles, camera, tokens, juice, ambient (no React)
   apps/
     web/         Vite SPA: React + Tailwind shell, mounts packages/board
@@ -65,7 +66,7 @@ Packages export TypeScript source directly (no build step); each has its own `ts
 - Before writing code for a milestone, restate its acceptance criteria and list the files you will touch.
 - Write or update tests with every engine change. Run `pnpm check` before declaring work done.
 - Keep modules small. Do not add a dependency without saying why and checking it is maintained and compatible.
-- Never import from `apps/*` into `packages/*`. Dependency direction: `engine <- bots`, `engine <- protocol <- web/server`, `engine <- board <- web`.
+- Never import from `apps/*` into `packages/*`. Dependency direction: `engine <- bots`, `engine <- protocol <- web/server`, `engine, protocol, bots <- room <- server`, `engine <- board <- web`.
 - Record any notable technical decision as a new entry in `docs/DECISIONS.md`.
 - When visual output matters, save a screenshot or render to `/docs/screenshots` and inspect it against `docs/ART_GUIDE.md`.
 - Prefer procedural/SVG/code-generated art. Ask before adding binary assets, and record each asset's source and license in `docs/ASSETS.md`.

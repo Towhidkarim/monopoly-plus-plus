@@ -1,56 +1,41 @@
 # Where we left off (handoff for the next session)
 
-Updated 2026-10-25. Read this first, then `CLAUDE.md`. Delete or rewrite this file when the work below is done.
+Updated 2026-10-26. Read this first, then `CLAUDE.md`. Delete or rewrite this file when the work below is done.
 
-## Current work: Milestone 8 UI build
+## Current work: Milestone 9, online multiplayer
 
-The look is approved and recorded in `docs/DECISIONS.md` D32 (Lamplight panels + card-stock faces). The visual spec for every screen is in `docs/design/m8/` (see its README). The live design canvas: https://claude.ai/artifact/VhpgcgV3KjWtCykjq4R5Ay. The 7-step build plan is in `docs/ROADMAP.md`, Milestone 8.
+Milestone 8 is built and committed, and so are the 3D dice (D38, `88d24ce`) and the tile pass (D39, `fcdfd25`). The developer's hands-on play review of Milestone 8 can happen alongside.
 
-The developer's standing brief: improve anything you spot along the way; the game should feel fun and cozy, and the juice should show in the UI. Keep it calm (no neon; glow only on money and the active player).
+The multiplayer plan is settled and recorded in `docs/DECISIONS.md` D40; the steps are in `docs/ROADMAP.md`, Milestone 9; the overview is `docs/ARCHITECTURE.md` section 8. In short:
 
-### Done and committed
-
-| Commit | What |
-|---|---|
-| `9dc05a4` | Design sources, D32, build plan |
-| `11eb18f` | Board framing (D33): warm slab, table vignette, day/night table |
-| `3f3e701` | Step 1: theme tokens, fonts, primitives, top bar, turn ribbon, dice tray, hint, toasts, action dock |
-| `7cc7f8b` | Step 2: deeds with real lot portraits (`lotPortrait` on the board handle), event cards, card motion |
-| `249f31c` | Step 3: buy moment and auction, focus mode for decisions (D34) |
-| `ba31316` | Steps 4-5: trade table, incoming offers, raise-money bill, My city |
-| `dd8e44c` | Review fixes for 4-5 and step 6: setup, game over, menu, help, board tooltip |
-| `7d70ff4` | Custom game cursor (D35), hover and press states, board hover/drag fixes |
-| (latest) | Step 7: fit at 950×800 to 1440×900, dialog focus (D36), keyboard play, live region, reduced motion, themed scrollbars, new balloon icon |
+- Stay on the Vite + React SPA (TanStack Start was considered and rejected, see D40).
+- One Cloudflare Worker: Hono for `/api/*`, the SPA as static assets, one SQLite-backed Durable Object per room with hibernating WebSockets and alarms. Cloudflare's Vite plugin runs it in `pnpm dev`. Valibot for validation.
+- The room is the authority. Room logic is portable: `RoomCore` in `packages/room` behind `Connection`, `RoomStore` and `Scheduler` ports; `apps/server` is a thin Cloudflare adapter.
+- Room codes are the invite (`/r/<code>`), seat tokens in `localStorage`, a lobby with bots, ready and host controls.
+- Stay inside the Workers Free plan: store actions not events, one checkpoint row per turn plus an idle save, one read on wake, rooms sleep between actions (D40 "Saving").
 
 ### Next steps
 
-Milestone 8 is built. Left: the developer's hands-on play review.
+1. Step 1: `packages/protocol` messages and Valibot validation. Before adding Hono, Valibot, the Cloudflare Vite plugin, Wrangler and TanStack Router, check each one's current version, maintenance and compatibility with Vite 8, Vitest 5 and TS 7.
+2. Step 2: `packages/room` with tests (fake connections: join, reconnect, hidden info, out-of-turn bids, timers, checksums).
+3. Then the Cloudflare adapter, the client transport and lobby, reconnect, and bot seats, one step per commit.
 
-1. **3D dice, uncommitted, D38:** rounded white mesh dice, wired into the game behind the "3D dice" menu switch (on by default). Waiting for the developer's play review; then commit.
-2. Then Milestone 9, online multiplayer (see ROADMAP).
+Restate each step's acceptance criteria and the files it touches before writing code.
 
-Test URLs: trade `?demo=play&seed=7&open=trade`; debt `?demo=play&seed=17&scene=debt`; My city `?demo=play&seed=17&scene=build&open=city`; game over `?demo=play&seed=7&scene=build` (seed 7 runs to the end). For narrow checks, render the URL in a 950×800 iframe inside your own tab.
+## Loose ends
 
-Commits: plain messages, no Co-Authored-By or other attribution.
-
-Incoming offer for testing: in the dev console, with a game where you own something, run:
-
-```
-const s=skylineStore.getSnapshot().state; const mine=s.owner.indexOf(0);
-skylineStore.dispatch('p2',{type:'PROPOSE_TRADE',to:'p1',give:{spaces:[],cash:180,jailCards:0},get:{spaces:[mine],cash:0,jailCards:0}})
-```
+- Old flat-dice screenshots in `docs/screenshots/dice-*.png` are untracked; replace them with 3D dice shots or delete them.
+- D38 open items: throwing from the active player's side, white tray dice to match the 3D dice.
+- Learned bots are planned last: `docs/LEARNED_BOTS.md`.
 
 ## How we work
 
-- **Orchestrate on Opus and delegate** (the `delegate` skill). Sonnet agents build, one step per agent, with a self-contained brief that points at the `.dc.html` spec. Opus reviews every step visually in Orca, sends fixes back to the same agent, and commits each step.
-- **Lessons the briefs must repeat:**
-  - Cards must be crisp at rest: no persistent 3D transforms, no `will-change`, no `translate(-50%)` centering, and no animation fill state left on a card.
-  - Animations driven by timers or frames must reach their end state even if no frame runs.
-  - Run `pnpm fmt` and `pnpm check`.
-  - Agents running in parallel must not edit the same files.
-- **Orca review tips:**
-  - `pnpm shot <name> --page <id>` saves a screenshot to `.shots/`.
-  - Create your own tab, and never navigate the developer's `#playground` tab.
-  - Orca freezes CSS animations in a background tab, so run `orca tab switch --page <id>` before a screenshot. The first shot after a load is often mid-animation.
+- Work inline by default and keep the main context small (few, cropped screenshots; `/clear` between steps). Delegate to subagents only when it pays off (the `delegate` skill): parallel work, noisy searches, or a cheaper model for a self-contained job.
+- Commits: plain messages, no Co-Authored-By or other attribution.
+- Run `pnpm fmt` and `pnpm check` before declaring work done.
+- Orca review tips:
+  - `pnpm shot <name> --page <id>` saves a screenshot to `.shots/`; `tools/dev/tiles-shot.sh` takes tile close-ups.
+  - Create your own tab, never navigate the developer's `#playground` tab, and close yours afterwards.
+  - Orca freezes CSS animations in a background tab, so run `orca tab switch --page <id>` before a screenshot.
   - `window.skylineStore` and `skylineStore.board` are available in dev builds.
-  - To render the board only, hide the DOM UI with an eval that sets every element except the canvas to `visibility: hidden`.
+- Test URLs: trade `?demo=play&seed=7&open=trade`; debt `?demo=play&seed=17&scene=debt`; My city `?demo=play&seed=17&scene=build&open=city`; game over `?demo=play&seed=7&scene=build`.

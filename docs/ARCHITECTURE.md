@@ -219,14 +219,27 @@ Never touches the engine or event queue, except that some game events may trigge
 
 ## 8. Multiplayer
 
-Default plan: authoritative server on Cloudflare.
+The full plan, including rooms, invites and free-plan limits, is DECISIONS.md D40.
 
-- `apps/server`: Worker routes `/room/:id` to a Durable Object. The DO holds `GameState`, runs `reduce`, validates that the acting player is allowed to act, and broadcasts.
-- Protocol (`packages/protocol`): `join`, `ready`, `action`, `events` (with a monotonically increasing sequence number), `snapshot` (for reconnect), `error`, `chat`.
-- Hidden information: the server owns deck order and RNG state. Clients receive card results via events, never the deck order.
-- Reconnect: client sends last seen sequence number; server replies with missed events or a full snapshot; client calls `board.sync`.
-- Bots can run server-side (DO) or on a client, using the same `(state, playerId) => Action` interface.
-- Turn timers, AFK handling, and kick/replace-with-bot are later.
+```
+Browser ── HTTP ──> Worker (Hono)                     apps/server (Cloudflare adapter)
+                      POST /api/rooms           create a room, return code + seat token
+                      GET  /api/rooms/:code     exists? free seat?
+                      GET  /api/rooms/:code/ws  upgrade, forward to the room
+                      everything else           the static Vite app
+                            │
+                            ▼
+                     Room Durable Object ──> RoomCore (packages/room, pure TS)
+                      sockets, alarms, SQLite     seats, seq numbers, reduce,
+                      mapped onto the ports       observe() per player, timers, bots
+```
+
+- **The room is the authority.** It holds the only full `GameState`, runs `reduce` (which also rejects actions from the wrong player), and broadcasts events with a monotonically increasing sequence number. Clients never apply an action themselves.
+- **Protocol** (`packages/protocol`, validated with Valibot on both sides): `join`, `ready`, `action`, `events`, `snapshot` (for reconnect), `error`, `ping`, `chat`, and room messages for the lobby (seats, settings, host).
+- **Hidden information:** every outgoing message goes through `observe()` for its player. The room owns deck order and RNG state; clients receive card results via events, never the deck order or seed.
+- **Reconnect:** the client sends the last sequence number it saw; the room replies with missed events (kept in memory; storage holds only actions) or a full snapshot, and the client calls `board.sync`.
+- **Time and bots:** turn and auction timers and bot pacing run on the room's alarms, which feed `TIMEOUT` or a bot's `decide()` into `reduce`. A disconnected player's seat can be handed to a bot after a grace period.
+- **Portable:** `RoomCore` only talks to `Connection`, `RoomStore` and `Scheduler` ports, so a Node server (Hono on Node, `ws`, a room map) can replace Cloudflare later; the client uses a plain `WebSocket`.
 - Optional P2P (host-authoritative WebRTC via PeerJS) can share the same protocol package. Needs signaling and a TURN fallback, so it is not the default.
 - Local hotseat and vs-bots modes run the engine in-process behind the same dispatch interface, so game code never branches on mode.
 
@@ -248,7 +261,7 @@ Progression:
 2. **Heuristic bot v2:** tuned parameters (reserve, aggression, trade willingness), structured trade evaluation (value-based).
 3. **Simulation harness (`pnpm sim`):** N headless games per matchup with seeded RNG, win-rate and game-length stats. Used to tune parameters automatically (grid search or evolutionary tuning).
 4. **Search bot:** determinized Monte Carlo (sample hidden deck order, rollout with heuristic policy), time-boxed per decision.
-5. **Learned policy (stretch):** self-play with a value or policy network, using engine as the environment. Requires a fast, allocation-light engine; keep that in mind when designing state.
+5. **Learned policy (stretch):** self-play with a value or policy network, using engine as the environment. Requires a fast, allocation-light engine; keep that in mind when designing state. The training plan (imitation, value head, self-play league, personality dials, opponent modeling, shipping as ONNX) is in `docs/LEARNED_BOTS.md`.
 
 Trade negotiation: begin with structured proposals (give set A, get set B, cash delta). Bot accepts if its valuation delta exceeds a threshold. Free-form negotiation is out of scope.
 
