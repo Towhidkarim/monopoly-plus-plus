@@ -91,11 +91,13 @@ export function turnView(snap: Snapshot, store: GameStore): TurnView {
   if (!canAct) {
     const subtitle = snap.busy
       ? (snap.log[0]?.text ?? '')
-      : s.debts.length > 0
-        ? `${actor.name} must raise money.`
-        : s.pending?.kind === 'auction'
-          ? `${actor.name} is bidding.`
-          : `${actor.name} is thinking…`
+      : s.phase === 'gameOver'
+        ? ''
+        : s.debts.length > 0
+          ? `${actor.name} must raise money.`
+          : s.pending?.kind === 'auction'
+            ? `${actor.name} is bidding.`
+            : `${actor.name} is thinking…`
     return { ...base, moment, primary: null, secondary: [], subtitle }
   }
 

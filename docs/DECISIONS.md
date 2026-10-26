@@ -400,3 +400,8 @@ During a decision (buy, auction, debt, offer, trade) the left column and activit
 - **One alarm:** away deadlines join the room's single alarm. They are checked first, so a due stand-in takes a move instead of the turn timer timing it out; a handover only counts while someone could take it, so the alarm never spins.
 - **Later:** play again in the same room after a game ends; newcomers taking over a bot seat mid-game.
 **Why:** a dropped player should not stall or forfeit a long game, but whether a bot may play for them is a table choice, so it is the host's setting.
+
+## D47. Bundle size is a goal, not a limit; P2P later (2026-10-26)
+
+**Decision:** the ~300 KB gzipped initial JS figure is a goal: prefer the smaller option and lazy-load what is not needed at start, but a feature may cost bytes when it is worth it (the developer, 2026-10-26). Milestone 9 step 7 (P2P WebRTC or a Node adapter) is kept for later, not dropped.
+**Why:** the shell (React, Pixi, fonts, the 3D dice) already sits around 335 KB gzipped; treating the figure as a hard cap would block features for little gain on today's connections.

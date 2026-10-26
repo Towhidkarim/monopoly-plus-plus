@@ -165,6 +165,8 @@ Plan: DECISIONS.md D40 (Hono on one Cloudflare Worker, a SQLite-backed Durable O
 
 Acceptance: four browsers play a full game through a room; refreshing a tab mid-game rejoins correctly; invalid actions are rejected server-side; two clients never diverge (state checksum compared at turn ends in dev mode).
 
+Status 2026-10-26: steps 1 to 6 done (DECISIONS.md D41 to D46). Acceptance run on the dev server (Worker plus Durable Object): four tabs played a full Turbo game (20 rounds, 80 turns) through one room, one tab reloaded mid-game and rejoined, all four ended on the identical state with no checksum warnings, and `pnpm room:smoke` showed the room rejecting an out-of-turn action. Step 7 (P2P WebRTC or a Node adapter) is kept for later. Pending: the first real deploy (`wrangler login`, `pnpm deploy`) and a play session across real machines.
+
 ## Milestone 10: Bot v2 and search
 
 - Tune heuristic parameters using the simulation harness (grid search or evolutionary).

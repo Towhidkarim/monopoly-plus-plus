@@ -23,11 +23,16 @@ interface Active {
 export class Animator {
   /** Global speed multiplier (settings / tuning). */
   speed = 1
+  /**
+   * After a skip, tweens that choreography starts later (the rest of a step-by-step move)
+   * finish at once too, until `resume()`. Otherwise a skip only cut the current step.
+   */
+  private skipping = false
   private active: Active[] = []
 
   tween(durationMs: number, update: (p: number) => void, easing: Ease = ease.linear): Promise<void> {
     return new Promise((resolve) => {
-      if (durationMs <= 0) {
+      if (durationMs <= 0 || this.skipping) {
         update(1)
         resolve()
         return
@@ -57,7 +62,18 @@ export class Animator {
     }
   }
 
-  /** Finish everything immediately (skip animations). */
+  /** Finishes everything now, and everything started until `resume()` (skip). */
+  skip(): void {
+    this.skipping = true
+    this.finishAll()
+  }
+
+  /** Tweens animate again (the board was synced after a skip). */
+  resume(): void {
+    this.skipping = false
+  }
+
+  /** Finish everything immediately. */
   finishAll(): void {
     const all = this.active
     this.active = []

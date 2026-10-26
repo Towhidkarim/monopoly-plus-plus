@@ -34,7 +34,7 @@ Naming/trademark: "Monopoly", its board art, and its trade dress belong to Hasbr
 - React 19 with the React Compiler for the shell. Tailwind CSS v4 for all DOM styling (tokens in one `@theme` block). Motion for shell transitions. TanStack Router (SPA) once there are multiple screens; no TanStack Start, no SSR.
 - Multiplayer: one Cloudflare Worker (Hono for the API, the SPA as static assets) + one SQLite-backed Durable Object per room over WebSockets, running the same engine package (authoritative server). Room logic is portable (`packages/room` behind ports) so a Node host can replace Cloudflare. Cloudflare's Vite plugin for dev. Valibot for validation. See DECISIONS.md D40. Optional host-authoritative WebRTC (PeerJS) as an alternative later.
 - Native wrapper later: Wails (Go) around the same static SPA build.
-- Lightweight and smooth is a requirement: 60 fps, one render loop, initial JS around 300 KB gzipped.
+- Lightweight and smooth is a requirement: 60 fps, one render loop. Keep the initial JS small; around 300 KB gzipped is a goal, not a hard limit (DECISIONS.md D47).
 - Verify current versions and plugin compatibility before adding a dependency. Do not assume.
 - **For Pixi work, use the PixiJS agent skills** (`.claude/skills/pnpm-pixi.js-*`, installed by pnpm from the `pixi.js` package; start with `pixijs`). Use official docs for other libraries.
 

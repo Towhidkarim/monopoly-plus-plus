@@ -341,13 +341,14 @@ export class Board {
 
   /** Completes every running animation immediately (skip). */
   skipAnimations(): void {
-    this.animator.finishAll()
+    this.animator.skip()
     this.dice.finish()
   }
 
   /** Snaps the whole board to a game state with no animation (load, reconnect, skip). */
   sync(snap: BoardSnapshot): void {
     this.animator.finishAll()
+    this.animator.resume()
     for (let i = 0; i < 40; i++) {
       this.owners[i] = snap.owner[i] ?? null
       this.levels[i] = snap.houses[i] ?? 0
