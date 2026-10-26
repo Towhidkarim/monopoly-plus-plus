@@ -17,7 +17,7 @@ const join = { type: 'join', v: PROTOCOL_VERSION, name: 'Ada', color: 0x3b82f6 }
 describe('parseClientMessage', () => {
   it('accepts every message kind', () => {
     const messages: ClientMessage[] = [
-      { ...join, type: 'join', token: 'a'.repeat(32), lastSeq: 12 },
+      { ...join, type: 'join', token: 'a'.repeat(32), resume: { epoch: 'e1', seq: 12 } },
       { type: 'ready', ready: true },
       { type: 'action', id: 1, action: { type: 'ROLL' } },
       { type: 'chat', text: 'gl hf' },

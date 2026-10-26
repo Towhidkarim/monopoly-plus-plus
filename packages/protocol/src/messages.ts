@@ -46,8 +46,11 @@ export type ErrorCode =
   | 'replaced'
 
 export type ServerMessage =
-  /** Reply to `join`. Keep `token` (localStorage, keyed by room code) to reclaim the seat. */
-  | { type: 'welcome'; v: number; token: string; seat: number; lobby: LobbyInfo }
+  /**
+   * Reply to `join`. Keep `token` (localStorage, keyed by room code) to reclaim the seat.
+   * `epoch` names this run of the room: after a restart it changes, and held events are gone.
+   */
+  | { type: 'welcome'; v: number; token: string; seat: number; epoch: string; lobby: LobbyInfo }
   | { type: 'lobby'; lobby: LobbyInfo }
   /** Full masked state; on game start and when missed events are no longer held. */
   | { type: 'snapshot'; seq: number; view: PlayerView }
@@ -61,6 +64,11 @@ export type ServerMessage =
       actor: PlayerId
       action: Action
       events: GameEvent[]
+      /**
+       * This player's view after the action (clients cannot reduce: they have no seed).
+       * Replayed events on reconnect carry it only on the last message.
+       */
+      view?: PlayerView
       /** The sender's `action.id`, only in the copy sent to the sender. */
       replyTo?: number
     }
@@ -99,6 +107,17 @@ export function parseServerMessage(raw: unknown): ParseResult<ServerMessage> {
 
 function isServerMessage(json: unknown): json is ServerMessage {
   return typeof json === 'object' && json !== null && 'type' in json && SERVER_TYPES.has(String(json.type))
+}
+
+/**
+ * FNV-1a over the view's JSON, as hex. Room and client hash the same parsed object, so
+ * equal views give equal checksums (dev-mode divergence check, DECISIONS.md D40).
+ */
+export function viewChecksum(view: PlayerView): string {
+  const text = JSON.stringify(view)
+  let h = 0x811c9dc5
+  for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 0x01000193)
+  return (h >>> 0).toString(16).padStart(8, '0')
 }
 
 // HTTP API (apps/server).

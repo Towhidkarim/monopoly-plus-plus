@@ -278,6 +278,18 @@ importers:
         specifier: ^1.5.0
         version: 1.5.0(typescript@7.0.2)
 
+  packages/room:
+    dependencies:
+      '@skyline/bots':
+        specifier: workspace:*
+        version: link:../bots
+      '@skyline/engine':
+        specifier: workspace:*
+        version: link:../engine
+      '@skyline/protocol':
+        specifier: workspace:*
+        version: link:../protocol
+
 packages:
 
   '@babel/code-frame@7.29.7':

@@ -23,9 +23,19 @@
       "rules": {
         "react/rules-of-hooks": "error",
         "react/react-in-jsx-scope": "off",
-        "import/no-unassigned-import": ["warn", { "allow": ["**/*.css"] }],
+        "import/no-unassigned-import": [
+          "warn",
+          {
+            "allow": ["**/*.css"]
+          }
+        ],
         "react/exhaustive-deps": "warn",
-        "react/only-export-components": ["warn", { "allowConstantExport": true }]
+        "react/only-export-components": [
+          "warn",
+          {
+            "allowConstantExport": true
+          }
+        ]
       }
     },
     {
@@ -57,11 +67,26 @@
         ],
         "no-restricted-globals": [
           "error",
-          { "name": "setTimeout", "message": "No timers in the engine. Time enters as actions." },
-          { "name": "setInterval", "message": "No timers in the engine. Time enters as actions." },
-          { "name": "requestAnimationFrame", "message": "No animation in the engine." },
-          { "name": "performance", "message": "No clocks in the engine." },
-          { "name": "crypto", "message": "Use the seeded RNG in state." }
+          {
+            "name": "setTimeout",
+            "message": "No timers in the engine. Time enters as actions."
+          },
+          {
+            "name": "setInterval",
+            "message": "No timers in the engine. Time enters as actions."
+          },
+          {
+            "name": "requestAnimationFrame",
+            "message": "No animation in the engine."
+          },
+          {
+            "name": "performance",
+            "message": "No clocks in the engine."
+          },
+          {
+            "name": "crypto",
+            "message": "Use the seeded RNG in state."
+          }
         ],
         "no-restricted-properties": [
           "error",
@@ -74,6 +99,43 @@
             "object": "Date",
             "property": "now",
             "message": "No clocks in the engine. Time enters as actions."
+          }
+        ]
+      }
+    },
+    {
+      "files": ["packages/room/**/*.ts"],
+      "rules": {
+        "no-restricted-globals": [
+          "error",
+          {
+            "name": "setTimeout",
+            "message": "The room schedules through the Scheduler port."
+          },
+          {
+            "name": "setInterval",
+            "message": "The room schedules through the Scheduler port."
+          },
+          {
+            "name": "performance",
+            "message": "Time is passed in as `now`."
+          },
+          {
+            "name": "crypto",
+            "message": "Randomness comes from the Entropy port."
+          }
+        ],
+        "no-restricted-properties": [
+          "error",
+          {
+            "object": "Math",
+            "property": "random",
+            "message": "Randomness comes from the Entropy port."
+          },
+          {
+            "object": "Date",
+            "property": "now",
+            "message": "Time is passed in as `now`."
           }
         ]
       }

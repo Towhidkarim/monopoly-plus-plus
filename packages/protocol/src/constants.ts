@@ -10,3 +10,13 @@ export const MAX_SEATS = 6
  */
 export const PING = 'ping'
 export const PONG = 'pong'
+
+/** WebSocket close codes the room uses (4000-4999 is the application range). */
+export const CloseCode = {
+  versionMismatch: 4000,
+  /** The seat was opened in another tab. */
+  replaced: 4001,
+  kicked: 4002,
+  /** The room expired or was closed. */
+  closed: 4003,
+} as const

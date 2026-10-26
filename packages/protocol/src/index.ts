@@ -18,6 +18,7 @@ export {
 export {
   encode,
   parseServerMessage,
+  viewChecksum,
   type CreateRoomResponse,
   type ErrorCode,
   type LobbyInfo,

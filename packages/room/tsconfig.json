@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // No DOM, no Node: the room runs in a Durable Object, a Node server or a test.
+    "lib": ["ES2023"],
+    "types": []
+  },
+  "include": ["src"]
+}

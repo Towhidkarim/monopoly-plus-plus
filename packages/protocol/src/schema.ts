@@ -82,14 +82,17 @@ export const RoomSettingsSchema = v.strictObject({
 const name = v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(20))
 
 export const ClientMessageSchema = v.variant('type', [
-  /** First message on every socket. `token` reclaims a seat; `lastSeq` asks for missed events. */
+  /** First message on every socket. `token` reclaims a seat; `resume` asks for missed events. */
   v.strictObject({
     type: v.literal('join'),
     v: int(0, 1e6),
     name,
     color: int(0, 0xffffff),
     token: v.exactOptional(v.pipe(v.string(), v.minLength(16), v.maxLength(64))),
-    lastSeq: v.exactOptional(int(0, Number.MAX_SAFE_INTEGER)),
+    /** The `epoch` from the last `welcome` and the last `seq` seen; resends only within an epoch. */
+    resume: v.exactOptional(
+      v.strictObject({ epoch: v.pipe(v.string(), v.maxLength(64)), seq: int(0, Number.MAX_SAFE_INTEGER) }),
+    ),
   }),
   v.strictObject({ type: v.literal('ready'), ready: v.boolean() }),
   /** `id` is echoed back as `replyTo` so the sender can match errors to its own actions. */

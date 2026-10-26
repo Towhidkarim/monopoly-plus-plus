@@ -344,3 +344,15 @@ During a decision (buy, auction, debt, offer, trade) the left column and activit
 - Keep-alive is the raw strings `ping`/`pong`, not JSON, so the Durable Object's WebSocket auto-response can answer without waking the room.
 - Type-level checks fail the build if the action, bundle or house-rule schemas drift from the engine's types.
 **Why:** the room must reject bad input cheaply and the client must stay small; the compile-time checks keep one source of truth (the engine types) without code generation.
+
+## D42. RoomCore details (2026-10-26, Milestone 9 step 2)
+
+**Decision:** `packages/room` implements D40's room as `RoomCore` (pure, synchronous, one call at a time).
+- **Ports:** `Connection` (`send`, `close`, optional `bound(token)` so a hibernating host can keep the token on the socket and call `attach` on wake), `RoomStore` (`save` one row, `clear`), `Scheduler` (a single alarm, like a Durable Object's; the room multiplexes turn timer, bot pacing, idle save and expiry onto it), and a fourth port, `Entropy` (game seed and seat tokens), because the room must not make randomness itself. Time is passed in as `now`. Lint bans timers, clocks and `Math.random` in the package.
+- **Rows:** keyed by turn (0 = lobby and game start, then the engine's `turnCount + 1`). Each row holds the room snapshot plus that turn's actions; a turn end completes its row, the idle save (5 s after the last change) rewrites the current one. The latest row restores the room; row 0's seed plus all rows' actions replays the game exactly (tested).
+- **Events carry the view.** Clients cannot reduce (no seed), so each live `events` message includes that player's `observe()` view. Missed events resent on reconnect carry the view only on the last one.
+- **Epochs:** every run of a room has an `epoch` (sent in `welcome`). A reconnect sends `resume: { epoch, seq }`; events are resent only within the same epoch, otherwise the client gets a snapshot. This stops a client from silently diverging when a restarted room reuses sequence numbers after losing unsaved actions.
+- **Player ids follow seats** (`p1` is seat 0), so they survive reconnects and restores.
+- **Bots** run like `playMatch`: offers to bots are answered first, then the expected actor moves if it is a bot, one move per alarm (900 ms pacing); a rejected or empty choice falls back to `REJECT_TRADE` or `TIMEOUT`. Offers to humans keep the local game's two-round gap.
+- **Host:** the room's creation token makes its holder host; if the host leaves the lobby the next human in seat order takes over. Bots get the first unused board token color.
+**Why:** the single alarm and synchronous store match the Durable Object directly and stay trivial on Node; the epoch is the smallest fix for sequence-number reuse after a crash; sending views keeps the client free of the seed at a cost of about 2 KB per message.
