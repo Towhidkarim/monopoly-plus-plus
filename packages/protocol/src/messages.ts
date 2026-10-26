@@ -20,6 +20,8 @@ export interface SeatInfo {
   personality?: string
   /** Set once the game has started. */
   playerId?: PlayerId
+  /** A bot plays this human's seat while they are away (host setting `botTakeover`). */
+  standIn?: boolean
 }
 
 export interface LobbyInfo {

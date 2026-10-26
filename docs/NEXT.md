@@ -21,7 +21,8 @@ The multiplayer plan is settled and recorded in `docs/DECISIONS.md` D40; the ste
 3. Done: Step 3, `apps/server` (D43): Hono routes and the room Durable Object, run by the Cloudflare Vite plugin inside `pnpm dev`; `pnpm room:smoke http://localhost:5173` checks a running dev server end to end. Not deployed yet (needs `wrangler login` by the developer; then `pnpm deploy`).
 4. Done: Step 4, the client (D44): GameStore online mode, `RoomConnection`, `/online` and `/r/<code>` with the lobby. Play-tested in Orca with two tabs (`?seat=tab`) and a room bot: 63 turns, a mid-game reload, identical state hashes at the end, no checksum warnings.
 5. Done: Step 5, staying connected (D45): silence and wake detection, a clear end for gone rooms, clean resync mid-animation, reconnecting notes in the lobby.
-6. Next: Step 6: bot takeover of disconnected seats after a grace period (host setting `botTakeover`, already in the protocol), host handover during play, room expiry checks, and rejoining a finished game's room. One step per commit.
+6. Done: Step 6, players who drop out (D46): stand-in bots after a 60 s grace (host setting), host handover in play, notes beside the board. Bot seats, room expiry and the creation rate limit came with steps 2 and 3.
+7. Next: decide on step 7 (optional spike: P2P WebRTC or a Node adapter) or close Milestone 9 with its acceptance run: four browsers through a full game, a refresh mid-game, invalid actions rejected, no divergence. A first deploy (`wrangler login`, `pnpm deploy`) needs the developer. Smaller follow-ups: play again in the same room, lazy-load the online screens (bundle is 334.7 KB gzipped).
 
 Restate each step's acceptance criteria and the files it touches before writing code.
 

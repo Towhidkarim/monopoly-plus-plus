@@ -62,7 +62,10 @@ function Room({ code, profile, onExit }: { code: string; profile: Profile; onExi
     return (
       <>
         <GameScreen key={code} store={view.store} onQuit={leave} onRestart={leave} />
-        {view.status !== 'open' && <ConnectionBanner view={view} onExit={leave} />}
+        <div className="pointer-events-none fixed top-44 right-5 z-50 flex max-w-[min(420px,calc(100vw-40px))] flex-col items-end gap-2">
+          {view.status !== 'open' && <ConnectionBanner view={view} onExit={leave} />}
+          <AwayNotes lobby={view.lobby} seat={view.seat} />
+        </div>
       </>
     )
 
@@ -123,11 +126,34 @@ function Waiting({ view, code, onExit }: { view: RoomView; code: string; onExit:
   )
 }
 
+/** Beside the board (clear of the turn toast): who dropped out, and whether a bot is playing for them (DECISIONS.md D46). */
+function AwayNotes({ lobby, seat }: { lobby: LobbyInfo; seat: number | null }) {
+  const away = lobby.seats.filter((s) => s.kind === 'human' && !s.connected && s.seat !== seat)
+  return away.map((s) => (
+    <output
+      key={s.seat}
+      className="flex animate-rise items-center gap-2.5 rounded-full border border-line bg-panel/95 px-4 py-2 text-[13px] text-ink-muted shadow-panel"
+    >
+      <span className="size-2.5 rounded-full" style={{ background: cssHex(s.color) }} />
+      {s.standIn ? (
+        <span>
+          <strong className="text-ink">{s.name}</strong> dropped out · a bot plays for them until they are
+          back
+        </span>
+      ) : (
+        <span>
+          <strong className="text-ink">{s.name}</strong> lost connection
+        </span>
+      )}
+    </output>
+  ))
+}
+
 /** Over the game: reconnecting, or why the game ended for us. */
 function ConnectionBanner({ view, onExit }: { view: RoomView; onExit: () => void }) {
   const closed = view.status === 'closed'
   return (
-    <div className="pointer-events-auto fixed top-24 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-full border border-line bg-panel px-5 py-2.5 text-sm font-semibold shadow-panel">
+    <div className="pointer-events-auto flex items-center gap-3 rounded-full border border-line bg-panel px-5 py-2.5 text-sm font-semibold shadow-panel">
       <span className={`size-2 rounded-full ${closed ? 'bg-alert' : 'animate-pulse bg-accent'}`} />
       {closed
         ? ((view.error && FAREWELL[view.error.code]) ?? 'Disconnected from the room.')
@@ -222,6 +248,16 @@ function Lobby({
             </label>
           )}
         </div>
+        <label className={`flex items-center gap-2 text-sm text-ink-muted ${host ? '' : 'opacity-70'}`}>
+          <input
+            type="checkbox"
+            checked={settings.botTakeover}
+            disabled={!host}
+            onChange={(e) => setSettings({ botTakeover: e.target.checked })}
+            className="size-4 accent-[var(--color-accent)]"
+          />
+          A bot plays for anyone who drops out for a minute, until they are back
+        </label>
       </div>
 
       {view.status === 'reconnecting' && <Note>Connection lost. Reconnecting…</Note>}

@@ -122,6 +122,6 @@ export class Room extends DurableObject<Env> {
   private drop(ws: WebSocket): void {
     const conn = this.conns.get(ws)
     this.conns.delete(ws)
-    if (conn) this.core?.disconnect(conn)
+    if (conn) this.core?.disconnect(conn, Date.now())
   }
 }

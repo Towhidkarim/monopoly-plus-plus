@@ -25,16 +25,25 @@ export interface BotMove {
 export class BotSeats {
   private readonly bots: (Bot | null)[]
   private readonly rngs: BotRng[]
+  private readonly canTradeWith = (id: PlayerId): boolean => this.isBot(id) || this.mayOfferTo(id)
   private readonly lastOfferTo = new Map<PlayerId, number>()
   private state: GameState | null = null
 
   /** `personalities[i]` is the personality of game seat i, or null for a human. */
   constructor(personalities: readonly (string | null)[], seed: number) {
-    const canTradeWith = (id: PlayerId) => this.isBot(id) || this.mayOfferTo(id)
-    this.bots = personalities.map((p) =>
-      p === null ? null : createHeuristicBot(PERSONALITIES[p] ?? PERSONALITIES.balanced, { canTradeWith }),
-    )
+    this.bots = personalities.map((p) => (p === null ? null : this.create(p)))
     this.rngs = personalities.map((_, i) => botRng((seed ^ 0x5bd1e995) + i * 7919))
+  }
+
+  /** A bot stands in for a human's seat (with this personality), or hands it back (null). */
+  setStandIn(seat: number, personality: string | null): void {
+    this.bots[seat] = personality === null ? null : this.create(personality)
+  }
+
+  private create(personality: string): Bot {
+    return createHeuristicBot(PERSONALITIES[personality] ?? PERSONALITIES.balanced, {
+      canTradeWith: this.canTradeWith,
+    })
   }
 
   /** True when some bot has something to do in this state. */

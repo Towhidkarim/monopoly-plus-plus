@@ -298,6 +298,83 @@ describe('reconnect and restore', () => {
   })
 })
 
+describe('away players', () => {
+  /** Bo's moves after `from` (by sequence number), and whether a bot or a timer made them. */
+  const boMoves = (c: FakeConn, from = 0) =>
+    c
+      .all('events')
+      .filter((e) => e.actor === 'p2' && e.seq > from)
+      .map((e) => e.action.type)
+
+  it('lets a bot stand in after the grace period and hands the seat back on return', () => {
+    const { host, room, a, b } = started({ settings: { botTakeover: true, turnSeconds: 15 } })
+    room.disconnect(b, host.now)
+    expect(a.last('lobby')!.lobby.seats[1]).toMatchObject({ connected: false })
+    host.advance(room, 59_000)
+    expect(a.last('lobby')!.lobby.seats[1]!.standIn).toBeUndefined()
+    host.advance(room, 1000)
+    expect(a.last('lobby')!.lobby.seats[1]).toMatchObject({ standIn: true })
+
+    // From now on the stand-in plays Bo's turns with real moves, not timeouts.
+    const since = a.last('events')?.seq ?? 0
+    host.runUntil(room, () => boMoves(a, since).length >= 2)
+    expect(boMoves(a, since)).not.toContain('TIMEOUT')
+
+    const back = host.join(room, 'Bo', { token: b.token! })
+    expect(a.last('lobby')!.lobby.seats[1]!.standIn).toBeUndefined()
+    const seq = a.last('events')!.seq
+    host.runUntil(room, () => boMoves(a, seq).length >= 1)
+    // Bo is back but silent: only the turn timer moves for them now.
+    expect(boMoves(a, seq)).toEqual(['TIMEOUT'])
+    expect(back.last('welcome')!.seat).toBe(1)
+  })
+
+  it('leaves an away seat alone when the host did not allow bots', () => {
+    const { host, room, a, b } = started({ settings: { botTakeover: false, turnSeconds: 15 } })
+    room.disconnect(b, host.now)
+    host.runUntil(room, () => boMoves(a).length >= 2)
+    expect(boMoves(a)).toEqual(['TIMEOUT', 'TIMEOUT'])
+    expect(a.last('lobby')!.lobby.seats[1]!.standIn).toBeUndefined()
+  })
+
+  it('hands the host role to the next connected player', () => {
+    const { host, room, a, b } = started()
+    room.disconnect(a, host.now)
+    host.advance(room, 60_000)
+    expect(
+      b
+        .last('lobby')!
+        .lobby.seats.map((s) => s.host)
+        .slice(0, 2),
+    ).toEqual([false, true])
+    host.send(room, b, { type: 'lock', locked: true })
+    expect(b.last('lobby')!.lobby.locked).toBe(true)
+    // Coming back does not take the role back.
+    host.join(room, 'Ada', { token: a.token! })
+    expect(b.last('lobby')!.lobby.seats[1]!.host).toBe(true)
+  })
+
+  it('does not spin the alarm when nobody can take over', () => {
+    const { host, room, a, b } = started()
+    room.disconnect(a, host.now)
+    room.disconnect(b, host.now)
+    host.advance(room, 10 * 60_000)
+    expect(host.alarm).toBeGreaterThan(host.now)
+    expect(room.status().exists).toBe(true)
+  })
+
+  it('keeps a stand-in across a restart, until the player returns', () => {
+    const { host, room, a, b } = started({ settings: { botTakeover: true }, options: { saveDelay: 1000 } })
+    room.disconnect(b, host.now)
+    host.advance(room, 61_000)
+    const woke = RoomCore.restore(host.latest(), host.deps)
+    const ada = host.join(woke, 'Ada', { token: a.token! })
+    expect(ada.last('welcome')!.lobby.seats[1]).toMatchObject({ standIn: true, connected: false })
+    host.join(woke, 'Bo', { token: b.token! })
+    expect(ada.last('lobby')!.lobby.seats[1]!.standIn).toBeUndefined()
+  })
+})
+
 describe('upkeep', () => {
   it('sends a checksum of each view at turn ends in dev mode', () => {
     const { host, room, a } = started({ options: { checksums: true }, settings: { turnSeconds: 15 } })

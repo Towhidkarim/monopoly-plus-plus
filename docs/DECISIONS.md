@@ -390,3 +390,13 @@ During a decision (buy, auction, debt, offer, trade) the left column and activit
 - **Resync:** a snapshot during an animation skips the animation and lands exactly on the new view (tested with a board that hangs until skipped).
 - The lobby and the waiting screen show "Reconnecting…", like the in-game banner.
 **Why:** cheap, client-only rules that cover sleep, flaky networks and expired rooms without new server messages or extra Worker requests while things are healthy.
+
+## D46. Players who drop out of a running game (2026-10-26, Milestone 9 step 6)
+
+**Decision:**
+- **Away:** in a running game, a human seat whose last socket closes is marked `awaySince` (persisted with the seat). After a room restart every human counts as away until their socket is attached again. Coming back clears it.
+- **Stand-in bot:** when the host enabled `botTakeover` (lobby checkbox "A bot plays for anyone who drops out for a minute"), a seat away for 60 s (`takeoverAfter`) is played by a Balanced bot: `standIn` on the seat, shown to everyone ("Bo dropped out · a bot plays for them until they are back"). The bot answers offers and plays turns; the turn timer stops counting for that seat. It survives a room restart, and the seat goes back to the player the moment they reconnect. Without `botTakeover` an away seat is only moved by the turn timer, if one is set.
+- **Host handover in play:** a host away for the same grace period hands the role to the next connected human in seat order; coming back does not take it back.
+- **One alarm:** away deadlines join the room's single alarm. They are checked first, so a due stand-in takes a move instead of the turn timer timing it out; a handover only counts while someone could take it, so the alarm never spins.
+- **Later:** play again in the same room after a game ends; newcomers taking over a bot seat mid-game.
+**Why:** a dropped player should not stall or forfeit a long game, but whether a bot may play for them is a table choice, so it is the host's setting.

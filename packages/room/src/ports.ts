@@ -49,6 +49,10 @@ export interface SeatRecord {
   ready: boolean
   token?: string
   personality?: string
+  /** Running game: when this human's last socket closed (ms); absent while connected. */
+  awaySince?: number
+  /** A bot plays this human's seat until they return (DECISIONS.md D46). */
+  standIn?: boolean
 }
 
 export interface GameRecord {

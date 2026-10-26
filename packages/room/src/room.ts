@@ -56,6 +56,8 @@ export interface RoomOptions {
   checksums?: boolean
   /** Applied actions kept in memory for resending to reconnecting players. */
   replayBuffer?: number
+  /** Grace period before a bot stands in for an away player, or an away host hands over (ms). */
+  takeoverAfter?: number
 }
 
 export interface RoomDeps {
@@ -118,6 +120,7 @@ export class RoomCore {
       expireAfter: 24 * 60 * 60 * 1000,
       checksums: false,
       replayBuffer: 256,
+      takeoverAfter: 60_000,
       ...deps.options,
     }
   }
@@ -148,6 +151,9 @@ export class RoomCore {
     const room = new RoomCore(record.room, deps)
     const game = record.room.game
     if (game) {
+      // Nobody is connected yet: everyone counts as away until their socket comes back.
+      if (record.room.phase === 'playing')
+        for (const s of record.room.seats) if (s.kind === 'human') s.awaySince ??= record.room.lastActivity
       room.bots = room.makeBots()
       // A row for the turn in progress holds its actions so far; a turn-end row is complete.
       if (record.turn === game.state.turnCount + 1) room.turnActions = record.actions
@@ -175,6 +181,7 @@ export class RoomCore {
   attach(conn: Connection, token: string): void {
     const seat = this.room.seats.findIndex((s) => s.token === token)
     this.conns.set(conn, seat >= 0 ? seat : null)
+    if (seat >= 0) this.returned(seat, this.room.lastActivity)
   }
 
   message(conn: Connection, raw: unknown, now: number): void {
@@ -186,10 +193,14 @@ export class RoomCore {
     this.reschedule()
   }
 
-  disconnect(conn: Connection): void {
+  disconnect(conn: Connection, now: number): void {
     const seat = this.conns.get(conn)
     this.conns.delete(conn)
-    if (seat !== undefined && seat !== null) this.broadcastLobby()
+    if (seat === undefined || seat === null) return
+    const s = this.room.seats[seat]!
+    if (this.room.phase === 'playing' && s.kind === 'human' && !this.isOnline(seat)) s.awaySince = now
+    this.broadcastLobby()
+    this.reschedule()
   }
 
   /** The scheduler's alarm went off. */
@@ -197,6 +208,8 @@ export class RoomCore {
     if (this.closed) return
     this.alarmAt = null
     if (now >= this.room.lastActivity + this.opts.expireAfter) return this.expire()
+    // First, so a stand-in that is due takes a move instead of the turn timer timing it out.
+    this.checkAway(now)
     if (this.botAt !== null && now >= this.botAt) {
       this.botAt = null
       this.botStep(now)
@@ -212,6 +225,80 @@ export class RoomCore {
       if (this.dirty) this.save(false)
     }
     this.reschedule()
+  }
+
+  /**
+   * Seats away past the grace period: a bot stands in (if the host allows it), and an away
+   * host hands the role to the next connected human (DECISIONS.md D46).
+   */
+  private checkAway(now: number): void {
+    if (this.room.phase !== 'playing') return
+    let changed = false
+    this.room.seats.forEach((s, seat) => {
+      if (s.kind !== 'human' || s.awaySince === undefined || now < s.awaySince + this.opts.takeoverAfter)
+        return
+      if (s.token === this.room.hostToken) {
+        const next = this.nextHost(seat)
+        if (next >= 0) {
+          this.room.hostToken = this.room.seats[next]!.token!
+          changed = true
+        }
+      }
+      if (this.room.settings.botTakeover && !s.standIn) {
+        s.standIn = true
+        this.bots?.setStandIn(this.gameSeat(seat), 'balanced')
+        changed = true
+      }
+    })
+    if (!changed) return
+    this.dirty = true
+    this.broadcastLobby()
+    this.afterChange(now)
+  }
+
+  /** A player is back: a stand-in bot hands their seat back. */
+  private returned(seat: number, now: number): void {
+    const s = this.room.seats[seat]!
+    delete s.awaySince
+    if (!s.standIn) return
+    delete s.standIn
+    this.bots?.setStandIn(this.gameSeat(seat), null)
+    this.dirty = true
+    this.afterChange(now)
+  }
+
+  /** The next connected human after `from` in seat order, or -1. */
+  private nextHost(from: number): number {
+    const n = this.room.seats.length
+    for (let i = 1; i < n; i++) {
+      const seat = (from + i) % n
+      const s = this.room.seats[seat]!
+      if (s.kind === 'human' && s.token && this.isOnline(seat)) return seat
+    }
+    return -1
+  }
+
+  private isOnline(seat: number): boolean {
+    for (const s of this.conns.values()) if (s === seat) return true
+    return false
+  }
+
+  private gameSeat(seat: number): number {
+    return this.room.game?.players.findIndex((p) => p.id === playerId(seat)) ?? -1
+  }
+
+  /** When the next away seat needs handling (Infinity if none can be acted on). */
+  private awayDeadline(): number {
+    if (this.room.phase !== 'playing') return Infinity
+    let at = Infinity
+    this.room.seats.forEach((s, seat) => {
+      if (s.kind !== 'human' || s.awaySince === undefined) return
+      const takeover = this.room.settings.botTakeover && !s.standIn
+      // Only while someone could take over, or the alarm would fire again and again.
+      const handover = s.token === this.room.hostToken && this.nextHost(seat) >= 0
+      if (takeover || handover) at = Math.min(at, s.awaySince + this.opts.takeoverAfter)
+    })
+    return at
   }
 
   private handle(conn: Connection, msg: ClientMessage, now: number): void {
@@ -271,6 +358,7 @@ export class RoomCore {
     this.room.lastActivity = now
     const token = seats[seat]!.token!
     this.conns.set(conn, seat)
+    this.returned(seat, now)
     conn.bound?.(token)
     this.send(conn, {
       type: 'welcome',
@@ -372,7 +460,8 @@ export class RoomCore {
     }
     const s = game.state
     const secs = this.room.settings.turnSeconds
-    const human = this.room.seats[seatIndex(s.players[expectedActor(s)]!.id)]!.kind === 'human'
+    const actor = this.room.seats[seatIndex(s.players[expectedActor(s)]!.id)]!
+    const human = actor.kind === 'human' && !actor.standIn
     this.turnAt = secs > 0 && human ? now + secs * 1000 : null
     this.botAt = this.bots?.pending(s) ? now + this.opts.botDelay : null
   }
@@ -478,7 +567,8 @@ export class RoomCore {
     const game = this.room.game!
     const personalities = game.players.map((p) => {
       const seat = this.room.seats[seatIndex(p.id)]!
-      return seat.kind === 'bot' ? (seat.personality ?? 'balanced') : null
+      if (seat.kind === 'bot') return seat.personality ?? 'balanced'
+      return seat.standIn ? 'balanced' : null
     })
     return new BotSeats(personalities, game.seed)
   }
@@ -533,6 +623,7 @@ export class RoomCore {
       this.turnAt ?? Infinity,
       this.botAt ?? Infinity,
       this.saveAt ?? Infinity,
+      this.awayDeadline(),
     )
     if (at === this.alarmAt) return
     this.alarmAt = at
@@ -556,6 +647,7 @@ export class RoomCore {
         connected: s.kind === 'bot' || online.has(seat),
         host: s.kind === 'human' && s.token === hostToken,
         ...(s.personality !== undefined && { personality: s.personality }),
+        ...(s.standIn && { standIn: true }),
         ...(game?.players.some((p) => p.id === playerId(seat)) && { playerId: playerId(seat) }),
       })),
     }
