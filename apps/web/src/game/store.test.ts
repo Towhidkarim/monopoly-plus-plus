@@ -19,6 +19,43 @@ function stubBoard(): BoardPort & { played: string[] } {
   }
 }
 
+/** A stub board with 3D dice: the throw lands, pops, flies (moves may start), then finishes. */
+function diceBoard() {
+  const board = stubBoard()
+  const log: string[] = []
+  let finish = (): void => {}
+  const throwDice: NonNullable<BoardPort['throwDice']> = (o) => {
+    log.push(`throw ${o.values.join('+')}`)
+    o.onBounce?.(0.8, 0)
+    o.onBounce?.(0.4, 1)
+    o.onSettle?.({
+      values: [o.values[0], o.values[1]],
+      total: 0,
+      doubles: false,
+      screen: { x: 0, y: 0 },
+      popInMs: 0,
+    })
+    o.onFly?.()
+    return new Promise((r) => {
+      finish = () => {
+        log.push('landed in tray')
+        r({ values: [o.values[0], o.values[1]], durationMs: 0, seed: 0, tries: 1 })
+      }
+    })
+  }
+  const play = board.play
+  return {
+    ...board,
+    log,
+    throwDice,
+    land: () => finish(),
+    play: async (e: Parameters<BoardPort['play']>[0]) => {
+      log.push(e.type)
+      return play(e)
+    },
+  }
+}
+
 const seats = (kinds: ('human' | 'bot')[]) =>
   kinds.map((kind, i) => ({
     id: `p${i + 1}`,
@@ -50,6 +87,41 @@ describe('GameStore playback', () => {
     expect(snap.log.length).toBeGreaterThan(0)
     store.dispose()
   }, 120_000)
+
+  it('throws 3D dice with the engine values, moves on as they fly, and fills the tray after', async () => {
+    const store = new GameStore({ preset: 'classic', seed: 3, seats: seats(['human', 'bot']) })
+    store.setSettings({ fastBots: true, speed: 50, dice3d: true })
+    const board = diceBoard()
+    store.attach(board)
+    const fx: string[] = []
+    store.onFx((f) => fx.push(f.kind))
+    expect(store.dispatch('p1', { type: 'ROLL' })).toBeNull()
+    await vi.advanceTimersByTimeAsync(10)
+    const dice = store.getSnapshot().dice!
+    expect(board.log[0]).toBe(`throw ${dice[0]}+${dice[1]}`)
+    // The token moves while the dice are still flying to the tray; the tray waits for them.
+    expect(board.log).toContain('MOVED')
+    expect(store.getSnapshot().diceLanding).toBe(true)
+    expect(fx.filter((k) => k === 'diceHit')).toHaveLength(1)
+    expect(fx).toContain('diceSettle')
+    board.land()
+    await vi.advanceTimersByTimeAsync(2000)
+    expect(store.getSnapshot().diceLanding).toBe(false)
+    store.dispose()
+  })
+
+  it('rolls in the tray when 3D dice are off', async () => {
+    const store = new GameStore({ preset: 'classic', seed: 3, seats: seats(['human', 'bot']) })
+    store.setSettings({ fastBots: true, speed: 50, dice3d: false })
+    const board = diceBoard()
+    store.attach(board)
+    store.dispatch('p1', { type: 'ROLL' })
+    await vi.advanceTimersByTimeAsync(2000)
+    expect(board.log.some((l) => l.startsWith('throw'))).toBe(false)
+    expect(board.log).toContain('MOVED')
+    expect(store.getSnapshot().diceLanding).toBe(false)
+    store.dispose()
+  })
 
   it('waits for a human and accepts their legal actions only', async () => {
     const store = new GameStore({ preset: 'classic', seed: 3, seats: seats(['human', 'bot']) })

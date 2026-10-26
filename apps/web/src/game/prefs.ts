@@ -3,10 +3,10 @@ import type { CursorPref } from '../cursors.ts'
 
 const KEY = 'skyline.prefs'
 
-/** Player preferences that outlive a game: speed, fast bots, reduced motion, bot offers. */
+/** Player preferences that outlive a game: speed, fast bots, reduced motion, bot offers, dice. */
 export type Prefs = Pick<
   StoreSettings,
-  'speed' | 'fastBots' | 'instant' | 'reducedMotion' | 'botOffers' | 'cityLife' | 'sky' | 'cursor'
+  'speed' | 'fastBots' | 'instant' | 'reducedMotion' | 'botOffers' | 'cityLife' | 'sky' | 'cursor' | 'dice3d'
 >
 
 export function loadPrefs(): Partial<Prefs> {
@@ -21,6 +21,7 @@ export function loadPrefs(): Partial<Prefs> {
       if (typeof r.reducedMotion === 'boolean') saved.reducedMotion = r.reducedMotion
       if (typeof r.botOffers === 'boolean') saved.botOffers = r.botOffers
       if (typeof r.cityLife === 'boolean') saved.cityLife = r.cityLife
+      if (typeof r.dice3d === 'boolean') saved.dice3d = r.dice3d
       if (r.cursor === 'game' || r.cursor === 'system') saved.cursor = r.cursor satisfies CursorPref
       if (r.sky === 'auto' || r.sky === 'day' || r.sky === 'night') saved.sky = r.sky
     }

@@ -1,6 +1,7 @@
 import { Container, Graphics, Text, type Application, type FederatedPointerEvent } from 'pixi.js'
 import { GROUPS, type GameEvent } from '@skyline/engine'
 import { Animator, ease } from './anim/animator.ts'
+import { DEFAULT_THROW_AREA, DiceView, type DiceThrowOptions, type DiceThrowResult } from './dice/view.ts'
 import { project, unproject, type Pos } from './geometry/project.ts'
 import { cloneJuice, type JuiceConfig } from './juice/config.ts'
 import { Particles } from './juice/particles.ts'
@@ -101,6 +102,9 @@ export class Board {
   private readonly particles = new Particles()
   private readonly debugLayer = new Container()
   private readonly debugLines = new Graphics()
+  /** Screen-space layer above the world (crisp text such as the dice total). */
+  private readonly overlay = new Container({ eventMode: 'none' })
+  private readonly dice: DiceView
   private readonly debugLabels: Text[] = []
 
   private readonly tiles: TileView[] = []
@@ -139,12 +143,36 @@ export class Board {
     this.city = new CityView(citySeed, this.actorLayer)
     this.camera = new Camera(this.world)
     this.camera.shakeTuning = this.juice.shake
+    this.dice = new DiceView({
+      world: this.world,
+      overlay: this.overlay,
+      viewT: () => this.viewT,
+      glow: () => lightsAt(this.night),
+      reduced: () => this.tuning.reducedMotion,
+      tuning: () => this.juice.dice,
+      hitStop: (ms) => this.hitStop(ms),
+      addTrauma: (amount) => this.addTrauma(amount),
+      sparkle: (x, y, colors) => {
+        if (this.tuning.reducedMotion) return
+        this.particles.burst(x, y, {
+          shape: 'sparkle',
+          count: 16,
+          colors,
+          speed: this.juice.particles.speed * 0.7,
+          spread: Math.PI * 1.2,
+          gravity: this.juice.particles.gravity * 0.6,
+          lifeMs: this.juice.particles.lifeMs * 0.6,
+        })
+      },
+      screen: () => ({ width: this.app.screen.width, height: this.app.screen.height }),
+    })
     this.world.addChild(
       this.ground.graphics,
       this.city.base,
       this.tileLayer,
       this.shadowLayer,
       this.actorLayer,
+      this.dice.container,
       this.particles.container,
       this.debugLayer,
     )
@@ -158,7 +186,7 @@ export class Board {
     this.debugLayer.addChild(this.debugLines)
     this.debugLayer.visible = false
     this.debugLayer.eventMode = 'none'
-    app.stage.addChild(this.vignette, this.world)
+    app.stage.addChild(this.vignette, this.world, this.overlay)
     this.vignette.eventMode = 'none'
 
     app.renderer.background.color = mix(palette.tableDay, palette.table, this.night)
@@ -196,6 +224,27 @@ export class Board {
     this.hitStop(this.juice.punch.hitStopMs * s)
     this.addTrauma(this.juice.punch.trauma * s)
     this.emit({ kind: 'punch', strength: s })
+  }
+
+  /**
+   * Throws two dice onto the board that land on `values` (the engine's roll; DECISIONS.md D38).
+   * Visual only: the throw is solved ahead of time from a cosmetic seed, then played back. The
+   * dice bounce, settle, pop their total, and fly to `tray` (canvas CSS px). Resolves when they
+   * are gone; the result reports the faces read off the drawn dice.
+   */
+  throwDice(options: DiceThrowOptions): Promise<DiceThrowResult> {
+    if (options.focus) {
+      // Frame the landing area (not too close: the toss in from the edge should read).
+      const a = options.area ?? DEFAULT_THROW_AREA
+      const p = project({ col: (a.col0 + a.col1) / 2, row: (a.row0 + a.row1) / 2, z: 0 }, this.viewT)
+      this.camera.focusOn(p.x, p.y, this.juice.dice.focusZoom)
+    }
+    return this.dice.throw(options, options.speed ?? this.tuning.speed)
+  }
+
+  /** Throw area outline, release point and contact points for the dice. */
+  setDiceDebug(on: boolean): void {
+    this.dice.setDebug(on)
   }
 
   /** Freezes board motion for `ms` (skipped with reduced motion). */
@@ -293,6 +342,7 @@ export class Board {
   /** Completes every running animation immediately (skip). */
   skipAnimations(): void {
     this.animator.finishAll()
+    this.dice.finish()
   }
 
   /** Snaps the whole board to a game state with no animation (load, reconnect, skip). */
@@ -549,6 +599,7 @@ export class Board {
     this.app.ticker.remove(this.tick)
     this.app.renderer.off('resize', this.onResize)
     this.animator.finishAll()
+    this.dice.destroy()
     this.particles.destroy()
   }
 
@@ -658,6 +709,7 @@ export class Board {
       token.update(dt, t, under === null ? 0 : this.tiles[under]!.lift.value)
     }
     this.particles.update(dt)
+    this.dice.update(dt)
     this.camera.update(real)
     this.city.life.update(dt, this.viewRect())
     if (this.night !== this.nightTarget) {

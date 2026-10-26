@@ -27,6 +27,16 @@ describe('CueMapper', () => {
     expect(m.event({ type: 'DICE_ROLLED', playerId: 'p1', dice: [3, 4] })).toHaveLength(1)
   })
 
+  it('leaves dice sounds to the 3D throw: a recorded throw on touchdown, the pulse at rest', () => {
+    const m = new CueMapper(human, undefined, () => true)
+    expect(m.event({ type: 'DICE_ROLLED', playerId: 'p1', dice: [3, 3] })).toEqual([])
+    expect(m.fx({ kind: 'diceHit', intensity: 1 }).map((c) => c.sound)).toEqual(['dice.roll'])
+    const plain = m.fx({ kind: 'diceSettle', doubles: false, popInMs: 220 })
+    expect(plain).toEqual([expect.objectContaining({ sound: 'set.pulse', delay: 220 })])
+    const doubles = m.fx({ kind: 'diceSettle', doubles: true, popInMs: 220 }).map((c) => c.sound)
+    expect(doubles).toEqual(['set.pulse', 'dice.doubles'])
+  })
+
   it('chimes only when a human turn starts', () => {
     const m = new CueMapper(human)
     expect(m.event({ type: 'TURN_STARTED', playerId: 'p1', round: 1 })).toEqual([{ sound: 'turn.yours' }])

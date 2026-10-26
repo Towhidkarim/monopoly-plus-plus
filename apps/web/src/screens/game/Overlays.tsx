@@ -528,6 +528,8 @@ export function GameMenu({
   onReducedMotion,
   cityLife,
   onCityLife,
+  dice3d,
+  onDice3d,
   sky,
   onSky,
   cursor,
@@ -546,6 +548,8 @@ export function GameMenu({
   onReducedMotion: () => void
   cityLife: boolean
   onCityLife: () => void
+  dice3d: boolean
+  onDice3d: () => void
   sky: SkyPref
   onSky: (v: SkyPref) => void
   cursor: CursorPref
@@ -618,6 +622,12 @@ export function GameMenu({
           onChange={onReducedMotion}
         />
         <Switch label="City life" hint="Cars and trains in the city" on={cityLife} onChange={onCityLife} />
+        <Switch
+          label="3D dice"
+          hint="Thrown onto the board; off rolls in the tray"
+          on={dice3d}
+          onChange={onDice3d}
+        />
         <Switch
           label="Game cursor"
           hint="Off uses your system cursor"

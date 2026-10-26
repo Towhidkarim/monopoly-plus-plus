@@ -16,7 +16,11 @@ export function connectSound(
   store: GameStore,
   engine: SoundEngine = sound,
 ): { beat: (b: BoardBeat) => void; disconnect: () => void } {
-  const cues = new CueMapper((id) => store.seatKind(id) === 'human')
+  const cues = new CueMapper(
+    (id) => store.seatKind(id) === 'human',
+    undefined,
+    () => store.settings.dice3d,
+  )
   const speed = () => store.settings.speed
   let card = store.getSnapshot().card
   const offs = [

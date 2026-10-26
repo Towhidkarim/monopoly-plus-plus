@@ -4,6 +4,7 @@ import { CueMapper } from '../audio/cues.ts'
 import { playCues } from '../audio/connect.ts'
 import { cssHex, spaceInfo } from '../spaceInfo.ts'
 import { Button, Section, Slider, Toggle } from './controls.tsx'
+import { DicePanel } from './DicePanel.tsx'
 import { JuicePanel } from './JuicePanel.tsx'
 import { PLAYERS, usePlayground } from './usePlayground.ts'
 
@@ -12,6 +13,9 @@ const cues = new CueMapper(() => true)
 
 const PIPS = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅']
 
+const TABS = ['board', 'juice', 'dice'] as const
+type Tab = (typeof TABS)[number]
+
 /** Dev URL params for screenshots: ?view=top&debug=1&select=12 */
 const params = new URLSearchParams(window.location.search)
 
@@ -19,7 +23,7 @@ const params = new URLSearchParams(window.location.search)
 export function PlaygroundPanel({ handle }: { handle: BoardHandle | null }) {
   const board = handle?.board ?? null
   const pg = usePlayground(board, (e) => playCues(cues.event(e)))
-  const [tab, setTab] = useState<'board' | 'juice'>(params.get('tab') === 'juice' ? 'juice' : 'board')
+  const [tab, setTab] = useState<Tab>(() => TABS.find((t) => t === params.get('tab')) ?? 'board')
   const { setAuto } = pg
   const [tuning, setTuning] = useState<BoardTuning>(DEFAULT_TUNING)
   const [iso, setIso] = useState(params.get('view') !== 'top')
@@ -66,7 +70,7 @@ export function PlaygroundPanel({ handle }: { handle: BoardHandle | null }) {
           <span className={`font-mono text-xs ${fps >= 55 ? 'text-teal' : 'text-alert'}`}>{fps} fps</span>
         </p>
         <nav className="mt-3 flex gap-1 rounded-lg bg-white/5 p-1 text-sm">
-          {(['board', 'juice'] as const).map((t) => (
+          {TABS.map((t) => (
             <button
               key={t}
               type="button"
@@ -85,6 +89,7 @@ export function PlaygroundPanel({ handle }: { handle: BoardHandle | null }) {
         </nav>
       </header>
 
+      {tab === 'dice' && <DicePanel handle={handle} />}
       {tab === 'juice' && <JuicePanel board={board} selected={selected} playerId={PLAYERS[pg.active]!.id} />}
       {tab === 'board' && (
         <>

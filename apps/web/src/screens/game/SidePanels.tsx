@@ -64,15 +64,19 @@ export function LeftColumn({
           <DiceTray
             dice={snap.dice}
             roll={snap.diceRoll}
+            landing={snap.diceLanding}
             speed={store.settings.speed}
             reduced={store.settings.reducedMotion}
           />
           <div className="flex min-w-0 flex-1 flex-col">
             <Eyebrow className="text-ink-muted">Last roll</Eyebrow>
+            {/* While 3D dice are on the board the result is not shown here yet. */}
             <span className="font-display text-xl leading-tight font-bold">
-              {rollerName} rolled {snap.dice[0] + snap.dice[1]}
+              {snap.diceLanding
+                ? `${rollerName} ${rollerName === 'You' ? 'are' : 'is'} rolling…`
+                : `${rollerName} rolled ${snap.dice[0] + snap.dice[1]}`}
             </span>
-            {doubles && (
+            {doubles && !snap.diceLanding && (
               <span
                 key={snap.diceRoll}
                 className="mt-1 origin-left self-start animate-tag-pop rounded-full bg-accent px-2.5 py-0.5 font-display text-[11px] font-bold text-accent-ink shadow-[0_0_14px_rgba(245,181,74,0.45)]"

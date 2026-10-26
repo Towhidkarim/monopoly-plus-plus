@@ -1,5 +1,6 @@
 import { Application } from 'pixi.js'
 import { Board, type BoardCursors } from './board.ts'
+import type { DiceThrowOptions, DiceThrowResult } from './dice/view.ts'
 import { palette } from './palette.ts'
 import { LotPortraits } from './portrait.ts'
 
@@ -23,6 +24,8 @@ export interface BoardHandle {
   /** Swaps the canvas cursors live (for example when the player toggles the game cursor). */
   setCursors(cursors: Partial<BoardCursors>): void
   lotPortrait(space: number, level: number, night: boolean): Promise<string | null>
+  /** Throws the dice onto the board (same as `board.throwDice`). */
+  throwDice(options: DiceThrowOptions): Promise<DiceThrowResult>
   destroy(): void
 }
 
@@ -53,6 +56,7 @@ export async function mountBoard(host: HTMLElement, options: BoardOptions = {}):
     board,
     setCursors: (c) => board.setCursors(c),
     lotPortrait: (space, level, night) => portraits.get(space, level, night),
+    throwDice: (o) => board.throwDice(o),
     destroy() {
       portraits.destroy()
       board.destroy()

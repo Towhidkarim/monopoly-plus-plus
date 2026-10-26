@@ -13,7 +13,11 @@ import {
 import type { Board, BoardSnapshot, BoardTuning } from '@skyline/board'
 
 /** What the store needs from a board view (the Pixi Board satisfies it; tests use a stub). */
-export type BoardPort = Pick<Board, 'setPlayers' | 'sync' | 'play' | 'setTuning' | 'skipAnimations' | 'punch'>
+export type BoardPort = Pick<
+  Board,
+  'setPlayers' | 'sync' | 'play' | 'setTuning' | 'skipAnimations' | 'punch'
+> &
+  Partial<Pick<Board, 'throwDice'>>
 import {
   PERSONALITIES,
   botRng,
@@ -45,6 +49,9 @@ export type Fx =
   | { kind: 'pop'; playerId: string; delta: number }
   | { kind: 'transfer'; from: string; to: string; amount: number }
   | { kind: 'callout'; tone: 'good' | 'bad' | 'info'; title: string; detail?: string; seat?: number }
+  /** 3D dice: first touchdown (intensity 0..1), and both dice at rest. */
+  | { kind: 'diceHit'; intensity: number }
+  | { kind: 'diceSettle'; doubles: boolean; popInMs: number }
 
 /** Everything React reads. Replaced (never mutated) on every change, for useSyncExternalStore. */
 export interface Snapshot {
@@ -58,6 +65,8 @@ export interface Snapshot {
   dice: readonly [number, number] | null
   /** Increments on every roll so the dice tray can re-trigger its animation. */
   diceRoll: number
+  /** 3D dice are on the board: the tray waits for them and does not show the result yet. */
+  diceLanding: boolean
   card: CardShown | null
   /** Bot currently "thinking", for a UI hint. */
   thinking: string | null
@@ -87,6 +96,8 @@ export interface StoreSettings {
   sky: SkyPref
   /** Custom game cursor, or the system one. */
   cursor: CursorPref
+  /** Dice thrown onto the board in 3D (DECISIONS.md D38); off tumbles them in the tray. */
+  dice3d: boolean
 }
 
 /** What a trade partner thinks of a deal before it is sent (bots only; humans decide live). */
@@ -131,6 +142,7 @@ export class GameStore {
     cityLife: true,
     sky: 'auto',
     cursor: 'game',
+    dice3d: true,
   }
   private snap: Snapshot
   private readonly listeners = new Set<() => void>()
@@ -142,6 +154,8 @@ export class GameStore {
   private skipping = false
   private cardAck: (() => void) | null = null
   private board: BoardPort | null = null
+  /** Where the 3D dice fly to: the DOM dice tray in canvas CSS px (set by the game screen). */
+  private diceTray: (() => { x: number; y: number; size: number } | null) | null = null
   /** One brain per bot seat (null for humans), and its personality for trade verdicts. */
   private readonly bots: (Bot | null)[]
   private readonly botParams: (BotParams | null)[]
@@ -188,6 +202,7 @@ export class GameStore {
       log: [],
       dice: state.lastDice,
       diceRoll: 0,
+      diceLanding: false,
       card: null,
       thinking: null,
       viewer: null,
@@ -228,6 +243,10 @@ export class GameStore {
   }
 
   // ---- board --------------------------------------------------------------
+
+  setDiceTray(measure: (() => { x: number; y: number; size: number } | null) | null): void {
+    this.diceTray = measure
+  }
 
   attach(board: BoardPort | null): void {
     this.board = board
@@ -379,7 +398,7 @@ export class GameStore {
     while (this.queue.length > 0 && !this.disposed) {
       const e = this.queue.shift()!
       if (!this.skipping) await this.play(e)
-      else if (e.type === 'DICE_ROLLED') this.snap = { ...this.snap, dice: e.dice }
+      else if (e.type === 'DICE_ROLLED') this.snap = { ...this.snap, dice: e.dice, diceLanding: false }
       const line = describe(e, this.nameOf)
       this.snap = { ...this.snap, presented: applyEvent(this.snap.presented, e) }
       if (line) this.pushLog(line)
@@ -400,6 +419,7 @@ export class GameStore {
     const speed = this.settings.speed
     for (const fn of this.eventListeners) fn(e)
     if (e.type === 'DICE_ROLLED') {
+      if (this.settings.dice3d && this.board?.throwDice) return this.throwDice(e.dice, speed)
       this.set({ dice: e.dice, diceRoll: this.snap.diceRoll + 1 })
       await wait(TIMINGS.dice / speed)
       return
@@ -419,6 +439,36 @@ export class GameStore {
       this.board.setTuning(this.tuning(speed))
       await this.board.play(e)
     }
+  }
+
+  /**
+   * 3D dice: the camera frames the throw, the dice tumble onto the engine's values, the total
+   * pops, and the game moves on as the dice fly into the tray (which then shows them).
+   */
+  private async throwDice(dice: readonly [number, number], speed: number): Promise<void> {
+    const board = this.board
+    if (!board?.throwDice) return
+    this.set({ dice, diceRoll: this.snap.diceRoll + 1, diceLanding: true })
+    board.setTuning(this.tuning(speed))
+    const tray = this.diceTray?.()
+    let first = true
+    let flying!: () => void
+    const fly = new Promise<void>((r) => (flying = r))
+    const done = board
+      .throwDice({
+        values: dice,
+        speed,
+        focus: true,
+        ...(tray ? { tray } : {}),
+        onBounce: (intensity) => {
+          if (first) this.emit({ kind: 'diceHit', intensity })
+          first = false
+        },
+        onSettle: (s) => this.emit({ kind: 'diceSettle', doubles: s.doubles, popInMs: s.popInMs }),
+        onFly: flying,
+      })
+      .then(() => this.set({ diceLanding: false }))
+    await Promise.race([fly, done])
   }
 
   /** The payer's cash drops as the coins leave; the payee's rises when they land. */

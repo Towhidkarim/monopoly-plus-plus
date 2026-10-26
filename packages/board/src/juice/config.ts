@@ -65,6 +65,34 @@ export const DEFAULT_JUICE = {
     speed: 900,
     lifeMs: 1100,
   },
+  dice: {
+    /** Fall acceleration, board units per second squared (1 unit = a tile's short side). */
+    gravity: 40,
+    /** Fraction of impact speed kept on a bounce. */
+    restitution: 0.4,
+    /** Grip against the board (Coulomb friction). */
+    friction: 0.55,
+    /** Initial spin, radians per second. */
+    spin: 14,
+    /** Horizontal throw speed, board units per second. */
+    throwSpeed: 9,
+    /** Edge length of a die in board units. */
+    size: 0.62,
+    /** Edge and corner radius as a fraction of the half edge (0 = sharp). */
+    round: 0.24,
+    /** Release-to-rest window at 1x; the solver picks a throw that fits it. */
+    minMs: 1100,
+    maxMs: 1600,
+    /** Hit-stop and shake on the first hard impact. */
+    hitStopMs: 50,
+    trauma: 0.12,
+    /** Pause at rest before the total pops, how long it shows, and the flight to the tray. */
+    settleMs: 220,
+    popMs: 700,
+    flyMs: 520,
+    /** Camera zoom on the throw area in the game, relative to fitting the whole board. */
+    focusZoom: 1.7,
+  },
   camera: {
     /** Follow zoom while a token travels, relative to fitting the whole board. */
     followZoom: 1.5,

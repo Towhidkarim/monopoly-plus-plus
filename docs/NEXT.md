@@ -26,7 +26,7 @@ The developer's standing brief: improve anything you spot along the way; the gam
 
 Milestone 8 is built. Left: the developer's hands-on play review.
 
-1. **3D dice trial on `#playground`:** Pixi cubes thrown onto the board, a tumble solved backward to the engine's result, bounce clacks, hit-stop, the total pops, then the dice fly into the tray. Then into the game.
+1. **3D dice, uncommitted, D38:** rounded white mesh dice, wired into the game behind the "3D dice" menu switch (on by default). Waiting for the developer's play review; then commit.
 2. Then Milestone 9, online multiplayer (see ROADMAP).
 
 Test URLs: trade `?demo=play&seed=7&open=trade`; debt `?demo=play&seed=17&scene=debt`; My city `?demo=play&seed=17&scene=build&open=city`; game over `?demo=play&seed=7&scene=build` (seed 7 runs to the end). For narrow checks, render the URL in a 950×800 iframe inside your own tab.

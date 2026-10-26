@@ -36,7 +36,7 @@ export function Announcer({ snap, store, turn }: { snap: Snapshot; store: GameSt
           )
       } else if (fx.kind === 'transfer') {
         say.current(`${name(fx.from)} pays ${name(fx.to)} ${fmtMoney(fx.amount)}`)
-      } else {
+      } else if (fx.kind === 'callout') {
         say.current(fx.detail ? `${fx.title}. ${fx.detail}` : fx.title)
       }
     })

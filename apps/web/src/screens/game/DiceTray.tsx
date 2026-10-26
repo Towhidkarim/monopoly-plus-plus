@@ -46,12 +46,18 @@ function Die({
   value,
   index,
   animate,
+  hidden,
+  arrive,
   speed,
   reduced,
 }: {
   value: number
   index: number
   animate: boolean
+  /** A 3D die is still on the board: keep the slot, show nothing yet. */
+  hidden: boolean
+  /** A 3D die just flew in: a quick pop instead of the tumble. */
+  arrive: boolean
   speed: number
   reduced: boolean
 }) {
@@ -116,9 +122,28 @@ function Die({
     }
   }, [animate, index, reduced, speed, value])
 
+  useLayoutEffect(() => {
+    const el = body.current
+    if (!arrive || !el) return
+    const pop = el.animate(
+      reduced
+        ? [{ opacity: 0 }, { opacity: 1 }]
+        : [
+            { transform: 'scale(0.7)', opacity: 0 },
+            { transform: 'scale(1.12)', opacity: 1, offset: 0.55 },
+            { transform: 'none' },
+          ],
+      { duration: 240, delay: index * 60, easing: 'cubic-bezier(.3,.7,.4,1)', fill: 'backwards' },
+    )
+    return () => pop.cancel()
+  }, [arrive, index, reduced])
+
   const face = flicker ?? value
   return (
-    <div className="relative size-11.5" style={{ rotate: index === 0 ? '-8deg' : '6deg' }}>
+    <div
+      className={`relative size-11.5 ${hidden ? 'opacity-0' : ''}`}
+      style={{ rotate: index === 0 ? '-8deg' : '6deg' }}
+    >
       <div
         ref={shadow}
         className="absolute inset-x-1 -bottom-1.5 h-3 rounded-full bg-black/50 opacity-60 blur-[3px]"
@@ -144,20 +169,52 @@ function Die({
 export function DiceTray({
   dice,
   roll,
+  landing = false,
   speed = 1,
   reduced = false,
 }: {
   dice: readonly [number, number] | null
   /** Increments per roll; 0 means nothing was rolled in this session (show, do not throw). */
   roll: number
+  /** 3D dice are still on the board; they fly in when this turns false. */
+  landing?: boolean
   speed?: number
   reduced?: boolean
 }) {
   if (!dice) return null
+  return <Pair key={roll} dice={dice} roll={roll} landing={landing} speed={speed} reduced={reduced} />
+}
+
+function Pair({
+  dice,
+  roll,
+  landing,
+  speed,
+  reduced,
+}: {
+  dice: readonly [number, number]
+  roll: number
+  landing: boolean
+  speed: number
+  reduced: boolean
+}) {
+  // A roll that started on the board (3D) arrives with a pop; any other roll tumbles in.
+  const [thrown] = useState(landing)
+  const die = (i: 0 | 1) => (
+    <Die
+      value={dice[i]}
+      index={i}
+      animate={roll > 0 && !thrown}
+      hidden={landing}
+      arrive={thrown && !landing}
+      speed={speed}
+      reduced={reduced}
+    />
+  )
   return (
-    <div key={roll} className="pointer-events-none flex shrink-0 gap-4 px-1.5">
-      <Die value={dice[0]} index={0} animate={roll > 0} speed={speed} reduced={reduced} />
-      <Die value={dice[1]} index={1} animate={roll > 0} speed={speed} reduced={reduced} />
+    <div data-dice-tray className="pointer-events-none flex shrink-0 gap-4 px-1.5">
+      {die(0)}
+      {die(1)}
     </div>
   )
 }

@@ -27,9 +27,16 @@ export class CueMapper {
   private lastBuild = -Infinity
   private readonly now: () => number
   private readonly isHuman: (playerId: string) => boolean
+  /** 3D dice on: the throw's own effects carry the dice sounds, not the event. */
+  private readonly dice3d: () => boolean
 
-  constructor(isHuman: (playerId: string) => boolean, now: () => number = () => performance.now()) {
+  constructor(
+    isHuman: (playerId: string) => boolean,
+    now: () => number = () => performance.now(),
+    dice3d: () => boolean = () => false,
+  ) {
     this.isHuman = isHuman
+    this.dice3d = dice3d
     this.now = now
   }
 
@@ -39,6 +46,7 @@ export class CueMapper {
       case 'TURN_STARTED':
         return this.isHuman(e.playerId) ? [{ sound: 'turn.yours' }] : []
       case 'DICE_ROLLED':
+        if (this.dice3d()) return []
         return e.dice[0] === e.dice[1]
           ? [{ sound: 'dice.roll' }, { sound: 'dice.doubles', delay: (TIMINGS.dice * 0.75) / speed }]
           : [{ sound: 'dice.roll' }]
@@ -109,6 +117,12 @@ export class CueMapper {
   /** Coins tick as each one lands, climbing; the payee's pop rings the register. */
   fx(fx: Fx, speed = 1): Cue[] {
     if (fx.kind === 'pop') return [{ sound: fx.delta > 0 ? 'money.gain' : 'money.pay' }]
+    // 3D dice: one recorded throw from the first touchdown, then the total's pulse at rest.
+    if (fx.kind === 'diceHit') return [{ sound: 'dice.roll', gain: 0.7 + fx.intensity * 0.3 }]
+    if (fx.kind === 'diceSettle') {
+      const pulse: Cue = { sound: 'set.pulse', delay: fx.popInMs, gain: 0.7, pitch: fx.doubles ? 7 : 0 }
+      return fx.doubles ? [pulse, { sound: 'dice.doubles', delay: fx.popInMs + 60 / speed }] : [pulse]
+    }
     if (fx.kind !== 'transfer') return []
     const cues: Cue[] = [{ sound: 'money.pay', gain: 0.8 }]
     const count = coinCount(fx.amount)

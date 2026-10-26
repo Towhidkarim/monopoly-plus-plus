@@ -63,6 +63,7 @@ export function GameScreen({
   const [reducedMotion, setReducedMotion] = useState(store.settings.reducedMotion)
   const [botOffers, setBotOffers] = useState(store.settings.botOffers)
   const [cityLife, setCityLife] = useState(store.settings.cityLife)
+  const [dice3d, setDice3d] = useState(store.settings.dice3d)
   const [sky, setSky] = useState<SkyPref>(store.settings.sky)
   const [cursor, setCursor] = useState<CursorPref>(store.settings.cursor)
   const [trade, setTrade] = useState<(TradeDraft & { me: number }) | null>(() =>
@@ -78,11 +79,20 @@ export function GameScreen({
     // Dev console handle (and for scripted screenshots).
     if (import.meta.env.DEV) Object.assign(window, { skylineStore: store })
     store.attach(handle?.board ?? null)
+    // The 3D dice fly into the DOM tray: its center and die size in canvas CSS px.
+    store.setDiceTray(() => {
+      const tray = document.querySelector('[data-dice-tray]')
+      if (!tray || !handle) return null
+      const r = tray.getBoundingClientRect()
+      const c = handle.app.canvas.getBoundingClientRect()
+      return { x: r.left + r.width / 2 - c.left, y: r.top + r.height / 2 - c.top, size: r.height }
+    })
     handle?.board.setListeners({ select: setSelected, beat: audio.beat })
     // Frame the board between the HUD and turn banner above and the action dock below.
     handle?.board.setInsets({ top: 130, right: 0, bottom: 110, left: 0 })
     return () => {
       audio.disconnect()
+      store.setDiceTray(null)
       store.attach(null)
     }
   }, [handle, store])
@@ -134,6 +144,7 @@ export function GameScreen({
       cityLife: s.cityLife,
       sky: s.sky,
       cursor: s.cursor,
+      dice3d: s.dice3d,
     })
   }
   const changeSpeed = (v: SpeedChoice) => {
@@ -294,6 +305,12 @@ export function GameScreen({
                   store.setSettings({ reducedMotion: !reducedMotion, cityLife: reducedMotion })
                   setReducedMotion(!reducedMotion)
                   setCityLife(reducedMotion)
+                  persist()
+                }}
+                dice3d={dice3d}
+                onDice3d={() => {
+                  store.setSettings({ dice3d: !dice3d })
+                  setDice3d(!dice3d)
                   persist()
                 }}
                 cityLife={cityLife}
