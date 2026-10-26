@@ -368,3 +368,12 @@ During a decision (buy, auction, debt, offer, trade) the left column and activit
 - **Installs:** pnpm may run the install scripts of `workerd` (the local Workers runtime) and `esbuild` (`allowBuilds` in `pnpm-workspace.yaml`).
 - **Checks:** `pnpm room:smoke [baseUrl]` (`tools/dev/room-smoke.ts`) creates a room over HTTP and plays a few steps over real sockets against a dev server or a deploy.
 **Why:** one project, one deploy and one origin without TanStack Start (D40); keeping the routes and RoomCore free of Cloudflare APIs makes everything but the thin Durable Object testable in plain Vitest.
+
+## D44. The online client (2026-10-26, Milestone 9 step 4)
+
+**Decision:**
+- **Same store, online mode.** `GameStore` takes an optional `OnlineLink` (`me`, the starting view, `send`). Online, `dispatch` checks the action with the engine's new `validate()` (the pure legality check of `reduce`, which needs no hidden information and so works on the masked view) for an instant answer, then sends it; the room's confirmed `events` and view come back through `store.receive`, and play through the same animation pipeline as a local game. `store.resync(view)` handles snapshots, `store.rejected(reason)` shows a "Not allowed" callout. No local bots or saves online; the viewer is always our seat; `store.canAct(id)` replaces "is a human" wherever the UI decides whether it may act for a player.
+- **`RoomConnection`** (`apps/web/src/net`) owns the socket: join with the seat token (`localStorage` key `skyline.seat.<code>`), keep the room's token, `ping` every 25 s, reconnect with backoff (0.5 to 8 s) and `resume: { epoch, seq }`, reconnect at once on a sequence gap, stop for good after `replaced`, `kicked`, `closed` or a version mismatch. Clients never send `TIMEOUT`. Dev checksums are compared with the store's view and counted.
+- **Cosmetics everyone shares:** the city seed comes from the room code; board pieces go by seat.
+- **No TanStack Router yet.** D40 planned it for `/r/:code`, but that is the only path route and the main bundle is already over the ~300 KB target, so a small pathname switch handles `/r/<code>`. Bring the router in when there are several real screens.
+**Why:** one playback pipeline for local and online keeps the board and shell unaware of the mode (ARCHITECTURE.md section 8); checking legality locally keeps the UI's synchronous `dispatch` contract.

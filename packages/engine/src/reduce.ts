@@ -169,6 +169,16 @@ function apply(ctx: Ctx, seat: number, action: Action): void {
 }
 
 /**
+ * Whether `reduce` would accept the action, without applying it. Needs no hidden information,
+ * so it works on a masked `observe()` view (online clients check before sending).
+ */
+export function validate(state: GameState, playerId: PlayerId, action: Action): string | null {
+  const seat = seatOf(state, playerId)
+  if (seat < 0) return 'unknown player'
+  return check(state, seat, action)
+}
+
+/**
  * The engine's single entry point. Pure: returns a new state and the events describing what
  * happened, or an error (never throws for game actions).
  */

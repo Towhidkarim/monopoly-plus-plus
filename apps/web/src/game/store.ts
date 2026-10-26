@@ -5,6 +5,7 @@ import {
   expectedActor,
   observe,
   reduce,
+  validate,
   type Action,
   type GameEvent,
   type Bundle,
@@ -122,6 +123,18 @@ const TRADE_ENDS: Partial<Record<GameEvent['type'], TradeOutcome>> = {
   TRADE_VOIDED: 'withdrawn',
 }
 
+/**
+ * An online game (DECISIONS.md D40): the room is the authority. Actions go out through `send`;
+ * what the room accepted comes back through `GameStore.receive`.
+ */
+export interface OnlineLink {
+  /** This client's player id: the only seat this screen acts for and shows. */
+  me: string
+  /** The masked view the game starts (or resumes) from. */
+  view: GameState
+  send(action: Action): void
+}
+
 /** A bot makes a human at most one offer per this many rounds. */
 const OFFER_GAP_ROUNDS = 2
 
@@ -167,9 +180,11 @@ export class GameStore {
   private botTimer: ReturnType<typeof setTimeout> | null = null
   private logId = 0
   private disposed = false
+  private readonly online: OnlineLink | null
 
-  constructor(setup: GameSetup, replay: SavedGame['actions'] = []) {
+  constructor(setup: GameSetup, replay: SavedGame['actions'] = [], online: OnlineLink | null = null) {
     this.setup = setup
+    this.online = online
     Object.assign(this.settings, loadPrefs())
     this.rng = botRng(setup.seed ^ 0x5bd1e995)
     // Bots trade freely among themselves; offers to humans are occasional and can be turned off.
@@ -182,12 +197,15 @@ export class GameStore {
           ] ?? PERSONALITIES.balanced!)
         : null,
     )
-    this.bots = this.botParams.map((p) => (p ? createHeuristicBot(p, { canTradeWith }) : null))
-    let state = createGame(
-      setup.seats.map((s) => ({ id: s.id, name: s.name })),
-      setup.seed,
-      PRESETS[setup.preset],
-    )
+    // Online, bot seats are played by the room; here they only lend their names and verdicts.
+    this.bots = this.botParams.map((p) => (p && !online ? createHeuristicBot(p, { canTradeWith }) : null))
+    let state =
+      online?.view ??
+      createGame(
+        setup.seats.map((s) => ({ id: s.id, name: s.name })),
+        setup.seed,
+        PRESETS[setup.preset],
+      )
     // Rebuild a saved game by replaying its action log (deterministic).
     for (const step of replay) {
       const r = reduce(state, step.playerId, step.action)
@@ -262,25 +280,65 @@ export class GameStore {
   /** Applies an action for a player. Returns an error message if the engine rejects it. */
   dispatch(playerId: string, action: Action): string | null {
     if (this.disposed) return 'game closed'
+    if (this.online) {
+      // Checked here for an instant answer; the room checks again and has the last word.
+      if (playerId !== this.online.me) return 'not your seat'
+      const error = validate(this.snap.state, playerId, action)
+      if (!error) this.online.send(action)
+      return error
+    }
     const r = reduce(this.snap.state, playerId, action)
     if (!r.ok) return r.error
     this.actions.push({ playerId, action })
     saveGame({ version: 1, setup: this.setup, actions: this.actions })
+    this.apply(r.state, r.events)
+    return null
+  }
+
+  /**
+   * Online: events the room applied, with the view after them. Missed events replayed on a
+   * reconnect come without a view (null) until the last one.
+   */
+  receive(events: readonly GameEvent[], view: GameState | null): void {
+    if (this.disposed) return
+    this.apply(view ?? this.snap.state, events)
+  }
+
+  /** Online: jumps to a fresh view from the room (reconnect after missed events, desync). */
+  resync(view: GameState): void {
+    if (this.disposed) return
+    this.queue.length = 0
+    this.snap = { ...this.snap, state: view, viewer: this.viewerFor(view) }
+    if (this.pumping) return this.skip()
+    this.board?.sync(boardSnapshot(view))
+    this.set({ presented: presentFrom(view), busy: false, card: null })
+  }
+
+  /** Online: the room refused an action this client sent. */
+  rejected(reason: string): void {
+    this.emit({ kind: 'callout', tone: 'bad', title: 'Not allowed', detail: reason })
+  }
+
+  /** Whether this screen may act for a player: online only for our seat, locally any human. */
+  canAct(playerId: string): boolean {
+    return this.online ? playerId === this.online.me : this.seatKind(playerId) === 'human'
+  }
+
+  private apply(state: GameState, events: readonly GameEvent[]): void {
     let outcomes = this.snap.tradeOutcomes
-    for (const e of r.events) {
+    for (const e of events) {
       const ended = TRADE_ENDS[e.type]
       if (ended && 'tradeId' in e) outcomes = { ...outcomes, [e.tradeId]: ended }
       if (e.type !== 'TRADE_PROPOSED') continue
-      const offer = r.state.trades.find((t) => t.id === e.tradeId)
+      const offer = state.trades.find((t) => t.id === e.tradeId)
       if (offer)
         this.offers.set(offer.id, { from: e.from, to: e.to, summary: summarize(offer.give, offer.get) })
       if (this.seatKind(e.from) === 'bot' && this.seatKind(e.to) === 'human')
-        this.lastOfferTo.set(e.to, r.state.round)
+        this.lastOfferTo.set(e.to, state.round)
     }
-    this.snap = { ...this.snap, state: r.state, viewer: this.viewerFor(r.state), tradeOutcomes: outcomes }
-    this.queue.push(...r.events)
+    this.snap = { ...this.snap, state, viewer: this.viewerFor(state), tradeOutcomes: outcomes }
+    this.queue.push(...events)
     void this.pump()
-    return null
   }
 
   /** Dispatches a planned sequence (Build evenly, Raise money); stops at the first rejection. */
@@ -356,7 +414,7 @@ export class GameStore {
 
   /** Personality name of a bot seat ("Tycoon"), or null for humans. */
   botName(seat: number): string | null {
-    return this.bots[seat]?.name ?? null
+    return this.botParams[seat]?.name ?? null
   }
 
   seatKind(playerId: string): 'human' | 'bot' {
@@ -368,6 +426,7 @@ export class GameStore {
   }
 
   private viewerFor(s: GameState): number | null {
+    if (this.online) return this.seatIndex(this.online.me)
     const actor = s.phase === 'gameOver' ? s.current : expectedActor(s)
     if (this.setup.seats[actor]?.kind === 'human') return actor
     const prev = this.snap?.viewer
@@ -425,7 +484,7 @@ export class GameStore {
       return
     }
     if (e.type === 'CARD_DRAWN') {
-      const waiting = this.seatKind(e.playerId) === 'human'
+      const waiting = this.canAct(e.playerId)
       this.set({ card: { deck: e.deck, cardId: e.cardId, playerId: e.playerId, waiting } })
       if (waiting) await new Promise<void>((r) => (this.cardAck = r))
       else await wait(TIMINGS.botCard / speed)
