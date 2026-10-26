@@ -54,7 +54,13 @@ const SEG_OFF = 'text-ink-muted hover:bg-white/5 hover:text-ink'
 const SEG_FX =
   'transition-[background-color,color,scale] duration-200 ease-spring active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent'
 
-export function SetupScreen({ onStart }: { onStart: (setup: GameSetup, saved?: SavedGame) => void }) {
+export function SetupScreen({
+  onStart,
+  onOnline,
+}: {
+  onStart: (setup: GameSetup, saved?: SavedGame) => void
+  onOnline: () => void
+}) {
   const [saved] = useState(loadGame)
   const [preset, setPreset] = useState<PresetName>('standard')
   const [seats, setSeats] = useState<SeatSetup[]>(() => defaultSeats(4))
@@ -268,7 +274,16 @@ export function SetupScreen({ onStart }: { onStart: (setup: GameSetup, saved?: S
               Start game
             </Btn>
             <div className="flex items-center justify-between gap-3 text-xs text-ink-muted">
-              <span>Hotseat: humans take turns on this screen.</span>
+              <span>
+                Hotseat: humans take turns on this screen. Friends elsewhere?{' '}
+                <button
+                  type="button"
+                  onClick={onOnline}
+                  className="font-extrabold text-accent underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-accent"
+                >
+                  Play online
+                </button>
+              </span>
               <label className="flex items-center gap-2">
                 Dice seed
                 <input

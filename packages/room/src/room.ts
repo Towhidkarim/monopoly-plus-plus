@@ -245,7 +245,8 @@ export class RoomCore {
     const { seats, phase } = this.room
     let seat = msg.token === undefined ? -1 : seats.findIndex((s) => s.token === msg.token)
     if (seat >= 0) {
-      if (phase === 'lobby') Object.assign(seats[seat]!, { name: msg.name, color: msg.color })
+      if (phase === 'lobby')
+        Object.assign(seats[seat]!, { name: msg.name, color: this.freeColor(seat, msg.color) })
       for (const [other, s] of this.conns) {
         if (s !== seat || other === conn) continue
         this.error(other, 'replaced')
@@ -259,7 +260,13 @@ export class RoomCore {
       seat = seats.findIndex((s) => s.kind === 'empty')
       if (seat < 0) return this.error(conn, 'room_full')
       const token = isHost ? this.room.hostToken : this.entropy.token()
-      seats[seat] = { kind: 'human', name: msg.name, color: msg.color, ready: false, token }
+      seats[seat] = {
+        kind: 'human',
+        name: msg.name,
+        color: this.freeColor(seat, msg.color),
+        ready: false,
+        token,
+      }
     }
     this.room.lastActivity = now
     const token = seats[seat]!.token!
@@ -413,10 +420,7 @@ export class RoomCore {
         }
         const params = PERSONALITIES[msg.personality]
         if (!params) return this.error(conn, 'bad_message', 'unknown personality')
-        const used = new Set(
-          room.seats.filter((s, i) => s.kind !== 'empty' && i !== msg.seat).map((s) => s.color),
-        )
-        const color = TOKEN_COLORS.find((c) => !used.has(c)) ?? TOKEN_COLORS[msg.seat % TOKEN_COLORS.length]!
+        const color = this.freeColor(msg.seat, null)
         room.seats[msg.seat] = {
           kind: 'bot',
           name: params.name,
@@ -459,6 +463,15 @@ export class RoomCore {
       if (seat !== null)
         this.send(c, { type: 'snapshot', seq: 0, view: observe(room.game.state, playerId(seat)) })
     this.afterChange(now)
+  }
+
+  /** `wanted` if no other seat has it, else the first token color nobody uses. */
+  private freeColor(seat: number, wanted: number | null): number {
+    const used = new Set(
+      this.room.seats.filter((s, i) => s.kind !== 'empty' && i !== seat).map((s) => s.color),
+    )
+    if (wanted !== null && !used.has(wanted)) return wanted
+    return TOKEN_COLORS.find((c) => !used.has(c)) ?? TOKEN_COLORS[seat % TOKEN_COLORS.length]!
   }
 
   private makeBots(): BotSeats {

@@ -5,7 +5,11 @@ import type { PieceKind } from '@skyline/board'
 export interface SeatSetup {
   id: string
   name: string
-  kind: 'human' | 'bot'
+  /**
+   * `human` plays at this screen; `remote` is a human in another browser (online games, where
+   * only our own seat is `human`); `bot` is played by the engine's bots.
+   */
+  kind: 'human' | 'bot' | 'remote'
   piece: PieceKind
   color: number
   /** Bot personality (see PERSONALITIES in @skyline/bots); assigned in turn when absent. */

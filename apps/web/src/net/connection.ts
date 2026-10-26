@@ -106,7 +106,16 @@ export class RoomConnection {
     this.tokens = opts.tokens ?? localTokens
     this.token = opts.token ?? this.tokens.get(opts.code)
     if (opts.token) this.tokens.set(opts.code, opts.token)
+    if (typeof document !== 'undefined') document.addEventListener('visibilitychange', this.onVisibility)
     this.open()
+  }
+
+  /**
+   * A hidden tab gets no animation frames, so the game would queue up and replay a backlog on
+   * return; instead it skips to the current state while nobody is watching.
+   */
+  private readonly onVisibility = (): void => {
+    if (document.visibilityState === 'hidden') this.view.store?.skip()
   }
 
   subscribe = (fn: () => void): (() => void) => {
@@ -124,6 +133,7 @@ export class RoomConnection {
   close(): void {
     this.closed = true
     this.stopTimers()
+    if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', this.onVisibility)
     this.socket?.close(1000, 'left')
     this.view.store?.dispose()
     this.set({ status: 'closed' })
@@ -204,7 +214,9 @@ export class RoomConnection {
         if (!store) return
         if (m.seq !== this.seq + 1) return this.reconnect()
         this.seq = m.seq
-        return store.receive(m.events, m.view ?? null)
+        store.receive(m.events, m.view ?? null)
+        if (typeof document !== 'undefined' && document.visibilityState === 'hidden') store.skip()
+        return
       }
       case 'checksum':
         if (m.seq !== this.seq || !this.view.store) return
@@ -236,7 +248,12 @@ export class RoomConnection {
               {
                 id: s.playerId,
                 name: s.name,
-                kind: s.kind === 'bot' ? ('bot' as const) : ('human' as const),
+                kind:
+                  s.kind === 'bot'
+                    ? ('bot' as const)
+                    : s.playerId === me
+                      ? ('human' as const)
+                      : ('remote' as const),
                 piece: PIECES[s.seat % PIECES.length]!,
                 color: s.color,
                 ...(s.personality !== undefined && { personality: s.personality }),

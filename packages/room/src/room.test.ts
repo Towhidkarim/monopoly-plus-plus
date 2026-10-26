@@ -96,6 +96,20 @@ describe('lobby', () => {
     expect(new Set(bots.map((s) => s.color)).size).toBe(3)
   })
 
+  it('gives a joining player a free color when theirs is taken', () => {
+    const host = new FakeHost()
+    const { room, hostToken } = host.create()
+    const a = host.join(room, 'Ada', { token: hostToken, color: 0xfb7185 })
+    host.send(room, a, { type: 'set_bot', seat: 1, personality: 'banker' })
+    host.join(room, 'Bo', { color: 0xfb7185 })
+    const colors = a
+      .last('lobby')!
+      .lobby.seats.slice(0, 3)
+      .map((s) => s.color)
+    expect(colors[0]).toBe(0xfb7185)
+    expect(new Set(colors).size).toBe(3)
+  })
+
   it('kicks players and hands the host role on when the host leaves', () => {
     const host = new FakeHost()
     const { room, hostToken } = host.create()

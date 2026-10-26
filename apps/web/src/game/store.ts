@@ -34,7 +34,7 @@ import { applyEvent, desyncs, presentFrom, type Presented } from './presented.ts
 import { loadPrefs } from './prefs.ts'
 import type { SkyPref } from './sky.ts'
 import type { CursorPref } from '../cursors.ts'
-import { saveGame, type GameSetup, type SavedGame } from './setup.ts'
+import { saveGame, type GameSetup, type SavedGame, type SeatSetup } from './setup.ts'
 import { BIG_RENT, TIMINGS, coinsLandMs } from './timings.ts'
 
 export interface CardShown {
@@ -417,7 +417,7 @@ export class GameStore {
     return this.botParams[seat]?.name ?? null
   }
 
-  seatKind(playerId: string): 'human' | 'bot' {
+  seatKind(playerId: string): SeatSetup['kind'] {
     return this.setup.seats.find((s) => s.id === playerId)?.kind ?? 'human'
   }
 

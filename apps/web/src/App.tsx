@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react' // useEffect: hash listener
+import { useEffect, useState } from 'react' // useEffect: hash listener, room socket
 import { tokenColors } from '@skyline/board'
 import { GameStore } from './game/store.ts'
 import { SCENES, playToScene } from './game/scenes.ts'
@@ -8,6 +8,10 @@ import { SoundBoard } from './playground/SoundBoard.tsx'
 import { ArtScreen } from './playground/ArtScreen.tsx'
 import { GameScreen } from './screens/GameScreen.tsx'
 import { SetupScreen } from './screens/SetupScreen.tsx'
+import { navigate, useRoute } from './net/route.ts'
+import { closeRoom } from './net/session.ts'
+import { OnlineMenu } from './screens/online/OnlineMenu.tsx'
+import { RoomScreen } from './screens/online/RoomScreen.tsx'
 
 function useHash(): string {
   const [hash, setHash] = useState(window.location.hash)
@@ -57,11 +61,21 @@ const freshSeed = () => Math.floor(Math.random() * 1_000_000)
 
 export function App() {
   const hash = useHash()
+  const route = useRoute()
   const [store, setStore] = useState<GameStore | null>(demoStore)
+  // Browser Back out of a room closes its socket; the seat stays ours until we return.
+  useEffect(() => {
+    if (route.kind !== 'room') closeRoom()
+  }, [route.kind])
 
   if (hash === '#playground') return <PlaygroundScreen />
   if (hash === '#sounds') return <SoundBoard />
   if (hash === '#art') return <ArtScreen />
+  // Online play (DECISIONS.md D44): the room owns the game, this screen only shows it.
+  if (route.kind === 'online')
+    return <OnlineMenu onBack={() => navigate('/')} onRoom={(code) => navigate(`/r/${code}`)} />
+  if (route.kind === 'room')
+    return <RoomScreen key={route.code} code={route.code} onExit={() => navigate('/online')} />
 
   // Disposed only when the game is replaced, never in an effect cleanup (StrictMode re-runs those).
   const start = (setup: GameSetup, saved?: SavedGame) => {
@@ -82,6 +96,6 @@ export function App() {
   return store ? (
     <GameScreen key={store.setup.seed} store={store} onQuit={quit} onRestart={restart} />
   ) : (
-    <SetupScreen onStart={start} />
+    <SetupScreen onStart={start} onOnline={() => navigate('/online')} />
   )
 }
