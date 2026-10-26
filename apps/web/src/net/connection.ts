@@ -39,6 +39,8 @@ export interface ConnectionOptions {
   tokens?: TokenStore
   /** Base for the socket URL (default: this page's origin). */
   base?: string
+  /** Whether the room still exists (default: `GET /api/rooms/:code`); asked after a failed connection. */
+  roomExists?: (code: string) => Promise<boolean>
 }
 
 export type ConnectionStatus = 'connecting' | 'open' | 'reconnecting' | 'closed'
@@ -51,7 +53,7 @@ export interface RoomView {
   /** The game, once it started. */
   store: GameStore | null
   /** Why the connection closed or a request failed, for the UI. */
-  error: { code: ErrorCode; message: string } | null
+  error: { code: ErrorCode | 'not_found'; message: string } | null
 }
 
 /** Codes after which reconnecting is pointless. */
@@ -62,6 +64,10 @@ const FINAL: ReadonlySet<number> = new Set([
   CloseCode.closed,
 ])
 const PING_MS = 25_000
+/** Nothing heard for this long (not even a pong): the socket is dead even if it looks open. */
+const STALE_MS = 2 * PING_MS + 10_000
+/** How long a wake-up probe ping may take before we reconnect. */
+const PROBE_MS = 5000
 const BACKOFF_MS = [500, 1000, 2000, 4000, 8000]
 /** Board pieces by seat (the lobby picks colors, not pieces). */
 const PIECES: readonly PieceKind[] = ['taxi', 'drone', 'balloon', 'bus', 'pawn', 'taxi']
@@ -96,6 +102,9 @@ export class RoomConnection {
   private attempt = 0
   private retryTimer: ReturnType<typeof setTimeout> | null = null
   private pingTimer: ReturnType<typeof setInterval> | null = null
+  private probeTimer: ReturnType<typeof setTimeout> | null = null
+  /** When the server last sent anything (ms, `Date.now()`). */
+  private lastHeard = 0
   private closed = false
   /** Dev: view checksums that did not match (DECISIONS.md D40). */
   desyncs = 0
@@ -107,6 +116,7 @@ export class RoomConnection {
     this.token = opts.token ?? this.tokens.get(opts.code)
     if (opts.token) this.tokens.set(opts.code, opts.token)
     if (typeof document !== 'undefined') document.addEventListener('visibilitychange', this.onVisibility)
+    if (typeof window !== 'undefined') window.addEventListener('online', this.checkAlive)
     this.open()
   }
 
@@ -116,6 +126,30 @@ export class RoomConnection {
    */
   private readonly onVisibility = (): void => {
     if (document.visibilityState === 'hidden') this.view.store?.skip()
+    else this.checkAlive()
+  }
+
+  /**
+   * After the laptop slept or the network changed, a socket can look open but be dead. On
+   * return (tab visible again, back online): retry at once if a retry is pending, else probe
+   * a quiet socket with a ping and reconnect if nothing comes back.
+   */
+  readonly checkAlive = (): void => {
+    if (this.closed) return
+    if (this.retryTimer) {
+      clearTimeout(this.retryTimer)
+      this.retryTimer = null
+      this.attempt = 0
+      return this.open()
+    }
+    const socket = this.socket
+    if (socket?.readyState !== 1 || Date.now() - this.lastHeard < PING_MS || this.probeTimer) return
+    const asked = Date.now()
+    socket.send(PING)
+    this.probeTimer = setTimeout(() => {
+      this.probeTimer = null
+      if (!this.closed && this.socket === socket && this.lastHeard < asked) this.reconnect()
+    }, PROBE_MS)
   }
 
   subscribe = (fn: () => void): (() => void) => {
@@ -134,6 +168,7 @@ export class RoomConnection {
     this.closed = true
     this.stopTimers()
     if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', this.onVisibility)
+    if (typeof window !== 'undefined') window.removeEventListener('online', this.checkAlive)
     this.socket?.close(1000, 'left')
     this.view.store?.dispose()
     this.set({ status: 'closed' })
@@ -153,6 +188,7 @@ export class RoomConnection {
     this.socket = socket
     socket.onopen = () => {
       this.attempt = 0
+      this.lastHeard = Date.now()
       this.send({
         type: 'join',
         v: PROTOCOL_VERSION,
@@ -161,9 +197,13 @@ export class RoomConnection {
         ...(this.token !== null && { token: this.token }),
         ...(this.epoch !== null && this.view.store && { resume: { epoch: this.epoch, seq: this.seq } }),
       })
-      this.pingTimer = setInterval(() => socket.send(PING), PING_MS)
+      this.pingTimer = setInterval(() => {
+        if (Date.now() - this.lastHeard > STALE_MS) this.reconnect()
+        else socket.send(PING)
+      }, PING_MS)
     }
     socket.onmessage = (e) => {
+      this.lastHeard = Date.now()
       const parsed = parseServerMessage(e.data)
       if (parsed.ok) this.handle(parsed.message)
     }
@@ -173,12 +213,41 @@ export class RoomConnection {
       this.socket = null
       if (this.closed || FINAL.has(e.code)) return this.set({ status: 'closed' })
       this.set({ status: 'reconnecting' })
-      const delay = BACKOFF_MS[Math.min(this.attempt++, BACKOFF_MS.length - 1)]!
-      this.retryTimer = setTimeout(() => this.open(), delay)
+      void this.retry()
     }
   }
 
   /* oxlint-enable unicorn/prefer-add-event-listener */
+
+  /** Waits out the backoff, unless the room is gone: then it will never take us back. */
+  private async retry(): Promise<void> {
+    const delay = BACKOFF_MS[Math.min(this.attempt++, BACKOFF_MS.length - 1)]!
+    if (!(await this.exists())) {
+      if (this.closed) return
+      this.closed = true
+      this.stopTimers()
+      return this.set({
+        status: 'closed',
+        error: { code: 'not_found', message: 'This room does not exist (rooms expire after a day).' },
+      })
+    }
+    if (this.closed || this.socket || this.retryTimer) return
+    this.retryTimer = setTimeout(() => {
+      this.retryTimer = null
+      this.open()
+    }, delay)
+  }
+
+  /** Offline or a server hiccup counts as "exists": keep retrying. */
+  private async exists(): Promise<boolean> {
+    try {
+      if (this.opts.roomExists) return await this.opts.roomExists(this.code)
+      const base = this.opts.base?.replace(/^ws/, 'http') ?? window.location.origin
+      return (await fetch(`${base}/api/rooms/${this.code}`)).status !== 404
+    } catch {
+      return true
+    }
+  }
 
   /** Drops the socket and reconnects at once, resuming from the last event seen. */
   private reconnect(): void {
@@ -193,7 +262,8 @@ export class RoomConnection {
   private stopTimers(): void {
     if (this.retryTimer) clearTimeout(this.retryTimer)
     if (this.pingTimer) clearInterval(this.pingTimer)
-    this.retryTimer = this.pingTimer = null
+    if (this.probeTimer) clearTimeout(this.probeTimer)
+    this.retryTimer = this.pingTimer = this.probeTimer = null
   }
 
   private handle(m: ServerMessage): void {

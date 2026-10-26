@@ -380,3 +380,13 @@ During a decision (buy, auction, debt, offer, trade) the left column and activit
 - **Dev:** `?seat=tab` keeps the seat token and the profile per tab (sessionStorage), so one browser can play several seats.
 - **No TanStack Router yet.** D40 planned it for `/r/:code`, but that is the only path route and the main bundle is already over the ~300 KB target, so a small pathname switch handles `/r/<code>`. Bring the router in when there are several real screens.
 **Why:** one playback pipeline for local and online keeps the board and shell unaware of the mode (ARCHITECTURE.md section 8); checking legality locally keeps the UI's synchronous `dispatch` contract.
+
+## D45. Staying connected (2026-10-26, Milestone 9 step 5)
+
+**Decision:** the client decides for itself when a connection is dead, because a socket can look open after a laptop sleeps or the network changes.
+- **Silence:** the client notes when it last heard anything (the room's `pong` auto-response counts). If 60 s pass with nothing (two missed pings and slack), the 25 s ping timer reconnects instead of pinging.
+- **Wake:** when the tab becomes visible again or the browser comes back `online`, a pending retry runs at once (no waiting out the backoff); a socket that has been quiet for a ping interval gets one probe `ping` and is replaced if nothing arrives within 5 s. Probing rather than always reconnecting, because background tabs throttle timers and would otherwise reconnect on every return.
+- **Gone rooms:** after a failed connection the client asks `GET /api/rooms/:code` before retrying; a 404 ends the session with "This room does not exist" instead of retrying forever. A failed lookup (offline) counts as "exists".
+- **Resync:** a snapshot during an animation skips the animation and lands exactly on the new view (tested with a board that hangs until skipped).
+- The lobby and the waiting screen show "Reconnecting…", like the in-game banner.
+**Why:** cheap, client-only rules that cover sleep, flaky networks and expired rooms without new server messages or extra Worker requests while things are healthy.

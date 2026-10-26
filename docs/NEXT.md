@@ -20,7 +20,8 @@ The multiplayer plan is settled and recorded in `docs/DECISIONS.md` D40; the ste
 2. Done: Step 2, `packages/room` (`RoomCore`, D42), tested with the fake ports in `packages/room/src/testkit.ts`.
 3. Done: Step 3, `apps/server` (D43): Hono routes and the room Durable Object, run by the Cloudflare Vite plugin inside `pnpm dev`; `pnpm room:smoke http://localhost:5173` checks a running dev server end to end. Not deployed yet (needs `wrangler login` by the developer; then `pnpm deploy`).
 4. Done: Step 4, the client (D44): GameStore online mode, `RoomConnection`, `/online` and `/r/<code>` with the lobby. Play-tested in Orca with two tabs (`?seat=tab`) and a room bot: 63 turns, a mid-game reload, identical state hashes at the end, no checksum warnings.
-5. Next: Step 5, reconnect polish: a visible reconnecting state in the lobby, resume after the laptop sleeps, and a check that `board.sync` after a snapshot leaves no stale animation. Then Step 6 (bot takeover of disconnected seats, host handover in play, expiry), one step per commit.
+5. Done: Step 5, staying connected (D45): silence and wake detection, a clear end for gone rooms, clean resync mid-animation, reconnecting notes in the lobby.
+6. Next: Step 6: bot takeover of disconnected seats after a grace period (host setting `botTakeover`, already in the protocol), host handover during play, room expiry checks, and rejoining a finished game's room. One step per commit.
 
 Restate each step's acceptance criteria and the files it touches before writing code.
 

@@ -32,7 +32,7 @@ const TIMERS = [
 const BOTS = Object.entries(PERSONALITIES).map(([key, p]) => ({ key, name: p.name }))
 
 /** Why we are not (or no longer) in the room, in words. */
-const FAREWELL: Partial<Record<ErrorCode, string>> = {
+const FAREWELL: Partial<Record<ErrorCode | 'not_found', string>> = {
   room_full: 'This room is full.',
   room_locked: 'The host locked this room.',
   game_running: 'This game has already started.',
@@ -40,6 +40,7 @@ const FAREWELL: Partial<Record<ErrorCode, string>> = {
   kicked: 'The host removed you from the room.',
   replaced: 'You opened this room in another tab.',
   version_mismatch: 'A newer version of the game is out. Reload the page.',
+  not_found: 'This room does not exist. Rooms close after a day without play.',
 }
 
 /** `/r/<code>`: asks for a name if needed, then the lobby, then the game. */
@@ -223,6 +224,7 @@ function Lobby({
         </div>
       </div>
 
+      {view.status === 'reconnecting' && <Note>Connection lost. Reconnecting…</Note>}
       {view.error && <Note tone="alert">{FAREWELL[view.error.code] ?? view.error.message}</Note>}
 
       <div className="sticky -bottom-5 z-10 mt-auto -mr-5 -mb-5 -ml-5 flex flex-col gap-3 rounded-b-[28px] border-t border-line bg-panel px-5 pt-3 pb-5 sm:-bottom-7 sm:-mr-7 sm:-mb-7 sm:-ml-7 sm:px-7 sm:pb-7">

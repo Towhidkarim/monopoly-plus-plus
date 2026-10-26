@@ -28,6 +28,10 @@ class FakeSocket {
   push(m: ServerMessage): void {
     this.onmessage?.(new MessageEvent('message', { data: JSON.stringify(m) }))
   }
+  /** A raw frame, like the room's `pong` auto-response. */
+  pushRaw(data: string): void {
+    this.onmessage?.(new MessageEvent('message', { data }))
+  }
   drop(code = 1006): void {
     this.readyState = 3
     this.onclose?.(new CloseEvent('close', { code }))
@@ -76,7 +80,7 @@ const game = createGame(
   9,
 )
 
-function setup(tokens: Record<string, string> = {}) {
+function setup(tokens: Record<string, string> = {}, exists = true) {
   const sockets: FakeSocket[] = []
   const tokenStore: TokenStore = { get: (c) => tokens[c] ?? null, set: (c, t) => void (tokens[c] = t) }
   const conn = new RoomConnection({
@@ -84,6 +88,7 @@ function setup(tokens: Record<string, string> = {}) {
     name: 'Ada',
     color: 1,
     base: 'ws://test',
+    roomExists: async () => exists,
     tokens: tokenStore,
     openSocket: (url) => {
       const s = new FakeSocket(url)
@@ -187,14 +192,14 @@ describe('RoomConnection', () => {
     expect(last().messages()[0]).toMatchObject({ type: 'join', resume: { epoch: 'e1', seq: 0 } })
   })
 
-  it('reconnects with backoff, but not after being replaced', () => {
+  it('reconnects with backoff, but not after being replaced', async () => {
     const { conn, sockets, last, start } = setup()
     start()
     last().drop()
     expect(conn.getSnapshot().status).toBe('reconnecting')
-    vi.advanceTimersByTime(499)
+    await vi.advanceTimersByTimeAsync(499)
     expect(sockets).toHaveLength(1)
-    vi.advanceTimersByTime(1)
+    await vi.advanceTimersByTimeAsync(1)
     expect(sockets).toHaveLength(2)
 
     last().accept()
@@ -226,5 +231,57 @@ describe('RoomConnection', () => {
     conn.close()
     vi.advanceTimersByTime(100_000)
     expect(last().sent.filter((s) => s === 'ping')).toHaveLength(1)
+  })
+
+  it('reconnects when the socket goes silent, but not while pongs come back', async () => {
+    const quiet = setup()
+    quiet.last().accept()
+    await vi.advanceTimersByTimeAsync(75_000)
+    expect(quiet.sockets).toHaveLength(2)
+
+    const alive = setup()
+    alive.last().accept()
+    for (let t = 0; t < 3; t++) {
+      await vi.advanceTimersByTimeAsync(20_000)
+      alive.last().pushRaw('pong')
+    }
+    await vi.advanceTimersByTimeAsync(15_000)
+    expect(alive.sockets).toHaveLength(1)
+  })
+
+  it('probes after a sleep and reconnects only if the probe goes unanswered', async () => {
+    const dead = setup()
+    dead.last().accept()
+    vi.setSystemTime(Date.now() + 10 * 60_000) // the laptop slept: no timers ran
+    dead.conn.checkAlive()
+    expect(dead.last().sent.at(-1)).toBe('ping')
+    await vi.advanceTimersByTimeAsync(5000)
+    expect(dead.sockets).toHaveLength(2)
+
+    const fine = setup()
+    fine.last().accept()
+    vi.setSystemTime(Date.now() + 10 * 60_000)
+    fine.conn.checkAlive()
+    fine.last().pushRaw('pong')
+    await vi.advanceTimersByTimeAsync(5000)
+    expect(fine.sockets).toHaveLength(1)
+  })
+
+  it('retries at once on wake instead of waiting out the backoff', async () => {
+    const { conn, sockets, last } = setup()
+    last().accept()
+    last().drop()
+    await vi.advanceTimersByTimeAsync(100) // the room still exists; a retry is pending
+    expect(sockets).toHaveLength(1)
+    conn.checkAlive()
+    expect(sockets).toHaveLength(2)
+  })
+
+  it('stops for good when the room is gone', async () => {
+    const { conn, sockets, last } = setup({}, false)
+    last().drop()
+    await vi.advanceTimersByTimeAsync(60_000)
+    expect(sockets).toHaveLength(1)
+    expect(conn.getSnapshot()).toMatchObject({ status: 'closed', error: { code: 'not_found' } })
   })
 })
