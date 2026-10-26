@@ -169,6 +169,9 @@ Status 2026-10-26: steps 1 to 6 done (DECISIONS.md D41 to D46). Acceptance run o
 
 ## Milestone 10: Bot v2 and search
 
+Order (the developer, 2026-10-26): fun and polish come first, so Milestone 11 is done before this one (see `docs/NEXT.md`).
+
+
 - Tune heuristic parameters using the simulation harness (grid search or evolutionary).
 - Structured trade evaluation and bot-initiated trades; personalities and human-like timing.
 - Determinized Monte Carlo search bot with a per-move time budget.

@@ -11,9 +11,9 @@ Still needs the developer:
 - First deploy: `! npx wrangler login`, then `pnpm deploy`; then a real session across machines.
 - The hands-on review of Milestone 8 and the real-GPU 60 fps checks listed in the roadmap.
 
-## Next: a polish milestone (to confirm with the developer)
+## Next: fun and polish (confirmed by the developer, 2026-10-26)
 
-The roadmap has Milestone 10 (bot v2 and search) before Milestone 11 (release polish). The developer leans towards polish first, which matches the project priorities (feel and fun before stronger AI). Proposed order, one step per commit, each restated with acceptance criteria first:
+The developer wants fun prioritized: polish (Milestone 11 items) comes before Milestone 10 (bot v2 and search). When choosing between items, pick what makes playing more fun first. Order, one step per commit, each restated with acceptance criteria first:
 
 1. **Online follow-ups:** play again in the same room (back to the lobby with the same seats), the chat that the protocol already carries (a small panel or quick reactions), lazy-load the online screens.
 2. **Open items from earlier milestones:** D38 dice (throw from the active player's side, white tray dice), the React style warning below, anything from the developer's Milestone 8 review.
