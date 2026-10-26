@@ -356,3 +356,15 @@ During a decision (buy, auction, debt, offer, trade) the left column and activit
 - **Bots** run like `playMatch`: offers to bots are answered first, then the expected actor moves if it is a bot, one move per alarm (900 ms pacing); a rejected or empty choice falls back to `REJECT_TRADE` or `TIMEOUT`. Offers to humans keep the local game's two-round gap.
 - **Host:** the room's creation token makes its holder host; if the host leaves the lobby the next human in seat order takes over. Bots get the first unused board token color.
 **Why:** the single alarm and synchronous store match the Durable Object directly and stay trivial on Node; the epoch is the smallest fix for sequence-number reuse after a crash; sending views keeps the client free of the seed at a cost of about 2 KB per message.
+
+## D43. The Cloudflare adapter (2026-10-26, Milestone 9 step 3)
+
+**Decision:** `apps/server` is the one Worker, built and run from `apps/web` by `@cloudflare/vite-plugin` (`configPath: '../server/wrangler.jsonc'`), so `pnpm dev` serves the app, the API and the room Durable Objects on one origin, `pnpm build` writes `dist/client` plus the Worker, and `pnpm deploy` (`vite build && wrangler deploy`) ships both. The plugin is left out under Vitest.
+- **Routing:** static assets first with the SPA fallback (so `/r/<code>` loads the app); `run_worker_first: ["/api/*"]`, so only the API costs Worker requests.
+- **Routes** (`src/api.ts`, Hono, platform-free and tested with a fake room directory): `POST /api/rooms` (rate-limited per IP with the `ratelimits` binding, 10 a minute per location; up to five fresh codes on a collision), `GET /api/rooms/:code`, `GET /api/rooms/:code/ws` (426 unless it is an upgrade). Codes are normalized, so typed lowercase or dashed codes work.
+- **Room Durable Object** (`src/room-object.ts`, SQLite-backed): a `rows` table keyed by turn (`INSERT OR REPLACE`), one `SELECT ... ORDER BY turn DESC LIMIT 1` on wake, the alarm as the Scheduler, `crypto` as Entropy, hibernating sockets (`ctx.acceptWebSocket`, the seat token in `serializeAttachment` and rebound with `RoomCore.attach` on wake) and `ping`/`pong` as a WebSocket auto-response. Expiry calls `deleteAll()`; a later `create` on the same code starts a new room.
+- **Dev checksums** are switched on by the Vite plugin's `config` override of the `ROOM_CHECKSUMS` var in `vite dev` only.
+- **Types:** `@cloudflare/workers-types` (Wrangler's peer) instead of a generated `worker-configuration.d.ts`; the `Env` interface is written by hand next to the Durable Object.
+- **Installs:** pnpm may run the install scripts of `workerd` (the local Workers runtime) and `esbuild` (`allowBuilds` in `pnpm-workspace.yaml`).
+- **Checks:** `pnpm room:smoke [baseUrl]` (`tools/dev/room-smoke.ts`) creates a room over HTTP and plays a few steps over real sockets against a dev server or a deploy.
+**Why:** one project, one deploy and one origin without TanStack Start (D40); keeping the routes and RoomCore free of Cloudflare APIs makes everything but the thin Durable Object testable in plain Vitest.

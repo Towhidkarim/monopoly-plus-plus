@@ -75,13 +75,15 @@ Packages export TypeScript source directly (no build step); each has its own `ts
 ## Commands
 
 ```
-pnpm dev          # run the web app (http://localhost:5173)
-pnpm build        # production build of the web app
+pnpm dev          # run the web app, API and room Durable Objects (http://localhost:5173)
+pnpm build        # production build of the web app and the Worker
+pnpm deploy       # build and deploy app + Worker to Cloudflare (after `wrangler login`)
 pnpm test         # run all tests (Vitest projects)
 pnpm typecheck    # tsc (TS 7) across packages
 pnpm lint         # oxlint --type-aware
 pnpm fmt          # oxfmt (write); pnpm fmt:check to verify
 pnpm check        # fmt:check + lint + typecheck + test; run before declaring work done
 pnpm assets:audio # rebuild sound packs from tools/assets/audio (after changing sound files)
+pnpm room:smoke   # end-to-end online room check against a running server: pnpm room:smoke http://localhost:5173
 pnpm sim          # bot matchups: pnpm sim --bots heuristic,random,random,random --games 1000 (--fuzz for random-play invariants)
 ```

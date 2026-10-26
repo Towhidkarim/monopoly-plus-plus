@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "pnpm --filter @skyline/web dev",
     "build": "pnpm --filter @skyline/web build",
+    "deploy": "pnpm --filter @skyline/web deploy",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc -p tsconfig.json && pnpm -r --parallel typecheck",
@@ -16,7 +17,8 @@
     "sim": "pnpm --filter @skyline/bots sim",
     "assets:audio": "node tools/assets/pack-audio.ts",
     "shot": "node tools/dev/shot.ts",
-    "shot:headless": "node tools/dev/headless.ts"
+    "shot:headless": "node tools/dev/headless.ts",
+    "room:smoke": "node tools/dev/room-smoke.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",

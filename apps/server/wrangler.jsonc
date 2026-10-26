@@ -1,0 +1,24 @@
+// The one Worker: the web app as static assets, /api/* through Hono, a Durable Object per room
+// (DECISIONS.md D40, D43). Built and run by @cloudflare/vite-plugin from apps/web.
+{
+  "$schema": "../web/node_modules/wrangler/config-schema.json",
+  "name": "skyline",
+  "main": "./src/index.ts",
+  "compatibility_date": "2026-10-13",
+  "assets": {
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"],
+  },
+  "durable_objects": {
+    "bindings": [{ "name": "ROOMS", "class_name": "Room" }],
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }],
+  "ratelimits": [
+    // Room creation per IP: 10 a minute per Cloudflare location.
+    { "name": "CREATE_LIMIT", "namespace_id": "1001", "simple": { "limit": 10, "period": 60 } },
+  ],
+  "vars": {
+    // "1" sends view checksums at turn ends; the Vite dev server turns it on.
+    "ROOM_CHECKSUMS": "0",
+  },
+}

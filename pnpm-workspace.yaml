@@ -2,6 +2,14 @@ packages:
   - packages/*
   - apps/*
   - tools/*
+minimumReleaseAgeExclude:
+  - '@cloudflare/workers-types@5.20261026.1'
+  - miniflare@5.20261023.0-beta
+  - wrangler@4.153.0
 permissions:
   pixi.js:
     skills: true
+# Install scripts allowed: workerd downloads the Workers runtime, esbuild its binary (wrangler).
+allowBuilds:
+  esbuild: true
+  workerd: true
