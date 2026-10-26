@@ -333,3 +333,14 @@ During a decision (buy, auction, debt, offer, trade) the left column and activit
   - **Upkeep:** a room deletes its storage after about 24 hours without activity (an alarm), and the code can be reused. Room creation is rate-limited per IP.
 - **Later, on top of the same design:** spectators, public room lists and matchmaking (a directory Durable Object or D1), accounts and friends, and the optional WebRTC host.
 **Why:** turn-based play needs one referee, and the engine is already a pure, deterministic reducer that emits events, so the room is a thin shell around it. TanStack Start was considered and rejected: its server functions are request-and-response and do not help with the live socket, which is most of the work; server rendering fights a canvas game (Pixi, audio, local preferences); it adds runtime weight against the ~300 KB budget; and it would mean migrating the Milestone 8 shell. The one-project, one-deploy benefit comes from Cloudflare's Vite plugin instead. Revisit Start if server-rendered pages (a landing page, shareable replays, accounts) arrive. The ports keep Cloudflare replaceable.
+
+## D41. Wire format details (2026-10-26, Milestone 9 step 1)
+
+**Decision:** `packages/protocol` holds the wire format (Valibot 1.5).
+- Client messages (`join`, `ready`, `action`, `chat`, `leave`, and the host's `set_bot`, `kick`, `settings`, `lock`, `start`) are strict Valibot schemas; `parseClientMessage` never throws, rejects anything over 8 KB before parsing, and names the failing field. Clients cannot send `TIMEOUT`; only the room's timers do.
+- The protocol version is checked once, in `join` and `welcome`, not on every message.
+- Room messages are plain types, built by the trusted room; the client checks only the envelope (`parseServerMessage`), so a full `GameState` schema never ships in the bundle.
+- `events` carries the actor and the action, and `replyTo` (the sender's action id) only in the sender's copy.
+- Keep-alive is the raw strings `ping`/`pong`, not JSON, so the Durable Object's WebSocket auto-response can answer without waking the room.
+- Type-level checks fail the build if the action, bundle or house-rule schemas drift from the engine's types.
+**Why:** the room must reject bad input cheaply and the client must stay small; the compile-time checks keep one source of truth (the engine types) without code generation.

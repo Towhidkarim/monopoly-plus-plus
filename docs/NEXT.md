@@ -16,8 +16,8 @@ The multiplayer plan is settled and recorded in `docs/DECISIONS.md` D40; the ste
 
 ### Next steps
 
-1. Step 1: `packages/protocol` messages and Valibot validation. Before adding Hono, Valibot, the Cloudflare Vite plugin, Wrangler and TanStack Router, check each one's current version, maintenance and compatibility with Vite 8, Vitest 5 and TS 7.
-2. Step 2: `packages/room` with tests (fake connections: join, reconnect, hidden info, out-of-turn bids, timers, checksums).
+1. Done: Step 1, `packages/protocol` (D41). Versions checked 2026-10-26, all maintained and compatible: valibot 1.5.0 (added), hono 4.13, @cloudflare/vite-plugin 1.65 (peer vite ^8), wrangler 4.153, @tanstack/react-router 1.170.
+2. Next: Step 2: `packages/room` with tests (fake connections: join, reconnect, hidden info, out-of-turn bids, timers, checksums).
 3. Then the Cloudflare adapter, the client transport and lobby, reconnect, and bot seats, one step per commit.
 
 Restate each step's acceptance criteria and the files it touches before writing code.
