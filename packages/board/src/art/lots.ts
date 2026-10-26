@@ -77,32 +77,65 @@ export function drawLot(
   }
 }
 
-/** Empty lot: gravel, a shrub or two, and a little "for sale" sign. */
+/**
+ * Empty lot for sale: a mown lawn inside a low curb, a hedge and a shrub at the back, and a
+ * "for sale" board on two posts at the front corner (the one nearest the camera).
+ */
 function forSale(p: Paint, lot: Lot, rng: () => number) {
   const s = p.style
-  const l = inset(lot, 0.05)
-  flat(p, l.col0, l.row0, l.col1, l.row1, lot.z + 0.003, mix(s.ground, s.park, 0.35))
-  const sc = l.col0 + (l.col1 - l.col0) * 0.68
-  const sr = l.row1 - 0.08
+  const l = inset(lot, 0.035)
+  const z = lot.z
+  // Lawn with mowing stripes along the longer side.
+  const along = l.col1 - l.col0 >= l.row1 - l.row0
+  const lawn = mix(s.park, s.ground, 0.22)
+  const n = 6
+  for (let i = 0; i < n; i++) {
+    const a = i / n
+    const b = (i + 1) / n
+    const r = along
+      ? {
+          col0: l.col0 + (l.col1 - l.col0) * a,
+          col1: l.col0 + (l.col1 - l.col0) * b,
+          row0: l.row0,
+          row1: l.row1,
+        }
+      : {
+          row0: l.row0 + (l.row1 - l.row0) * a,
+          row1: l.row0 + (l.row1 - l.row0) * b,
+          col0: l.col0,
+          col1: l.col1,
+        }
+    flat(p, r.col0, r.row0, r.col1, r.row1, z + 0.003, i % 2 ? lawn : mix(lawn, 0xffffff, 0.12))
+  }
+  // Hedge along the back edges and a round shrub in the back corner.
+  const hedge = pick(rng, s.trees)
+  box(p, { col0: l.col0, row0: l.row0, col1: l.col1, row1: l.row0 + 0.05, z0: z, z1: z + 0.05 }, hedge)
+  box(p, { col0: l.col0, row0: l.row0 + 0.05, col1: l.col0 + 0.05, row1: l.row1, z0: z, z1: z + 0.05 }, hedge)
+  blob(p, l.col0 + 0.1, l.row0 + 0.12, z + 0.06, 0.06, pick(rng, s.trees))
+  // The sign: two posts and a white board with a colored header, facing the camera.
+  const sc = l.col1 - 0.16
+  const sr = l.row1 - 0.07
+  for (const dc of [-0.07, 0.07])
+    box(
+      p,
+      {
+        col0: sc + dc - 0.009,
+        row0: sr - 0.009,
+        col1: sc + dc + 0.009,
+        row1: sr + 0.009,
+        z0: z,
+        z1: z + 0.2,
+      },
+      0x94a3b8,
+    )
+  const board = { col0: sc - 0.1, row0: sr + 0.009, col1: sc + 0.1, row1: sr + 0.022 }
+  box(p, { ...board, z0: z + 0.09, z1: z + 0.21 }, 0xf8fafc)
   box(
     p,
-    { col0: sc - 0.008, row0: sr - 0.008, col1: sc + 0.008, row1: sr + 0.008, z0: lot.z, z1: lot.z + 0.13 },
-    0xe2e8f0,
-  )
-  box(
-    p,
-    {
-      col0: sc - 0.07,
-      row0: sr + 0.008,
-      col1: sc + 0.07,
-      row1: sr + 0.02,
-      z0: lot.z + 0.07,
-      z1: lot.z + 0.15,
-    },
+    { ...board, row0: board.row1, row1: board.row1 + 0.002, z0: z + 0.175, z1: z + 0.21 },
     pick(rng, s.accents),
   )
-  blob(p, l.col0 + 0.12, l.row0 + 0.14, lot.z + 0.05, 0.06, pick(rng, s.trees))
-  blob(p, l.col0 + 0.25, l.row0 + 0.1, lot.z + 0.04, 0.045, pick(rng, s.trees))
+  box(p, { ...board, row0: board.row1, row1: board.row1 + 0.002, z0: z + 0.115, z1: z + 0.13 }, 0x94a3b8)
 }
 
 /** Street-level awning in the owner's color on the lit facade. */

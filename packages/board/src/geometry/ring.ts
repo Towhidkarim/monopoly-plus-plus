@@ -165,17 +165,39 @@ export function stripV(fp: Footprint): readonly [number, number] {
   return outerFaces(fp) ? [0.02, STRIP] : [1 - STRIP, 0.98]
 }
 
-/** The building lot of a side tile, as a board rectangle (between the strip and the far edge). */
-export function lotRect(fp: Footprint): { col0: number; row0: number; col1: number; row1: number } {
-  const [v0, v1] = outerFaces(fp) ? [STRIP + 0.05, 0.74] : [0.15, 1 - STRIP - 0.05]
-  const a = tilePoint(fp, 0.06, v0)
-  const b = tilePoint(fp, 0.94, v1)
+/** Height of the paved lot pad on side tiles (buildings and props stand on it). */
+export const LOT_Z = 0.012
+
+/**
+ * The building lot's `v` range on a side tile, as [edge next to the pieces, far edge]: props that
+ * people use (a platform, a kiosk door) go on the near side.
+ */
+export function lotV(fp: Footprint): readonly [number, number] {
+  return outerFaces(fp) ? [STRIP + 0.05, 0.74] : [1 - STRIP - 0.05, 0.15]
+}
+
+/** A tile-local (u, v) rectangle as a board rectangle. */
+export function uvRect(
+  fp: Footprint,
+  u0: number,
+  v0: number,
+  u1: number,
+  v1: number,
+): { col0: number; row0: number; col1: number; row1: number } {
+  const a = tilePoint(fp, u0, v0)
+  const b = tilePoint(fp, u1, v1)
   return {
     col0: Math.min(a.col, b.col),
     row0: Math.min(a.row, b.row),
     col1: Math.max(a.col, b.col),
     row1: Math.max(a.row, b.row),
   }
+}
+
+/** The building lot of a side tile, as a board rectangle (between the strip and the far edge). */
+export function lotRect(fp: Footprint): { col0: number; row0: number; col1: number; row1: number } {
+  const [near, far] = lotV(fp)
+  return uvRect(fp, 0.06, near, 0.94, far)
 }
 
 /**

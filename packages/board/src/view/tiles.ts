@@ -3,10 +3,11 @@ import { SPACES } from '@skyline/engine'
 import { Spring } from '../anim/spring.ts'
 import type { Lot } from '../art/buildings.ts'
 import { drawLot, type Family } from '../art/lots.ts'
-import { NIGHT, lightsAt, nightTint } from '../art/paint.ts'
+import { drawSpecial, type Special } from '../art/specials.ts'
+import { NIGHT, lightsAt, mix, nightTint } from '../art/paint.ts'
 import { BOARD_STYLE } from '../art/style.ts'
 import { projectPoly, zScale } from '../geometry/project.ts'
-import { lotRect, ringFootprint, tilePoint, type Footprint } from '../geometry/ring.ts'
+import { LOT_Z, lotRect, ringFootprint, tilePoint, uvRect, type Footprint } from '../geometry/ring.ts'
 import { groupColors, palette, shade } from '../palette.ts'
 import { disc, isoBox, rect } from './draw.ts'
 
@@ -31,7 +32,7 @@ export const GROUP_FAMILY: readonly Family[] = [
 ]
 
 /** The building plot: the part of a property tile behind the pieces' standing strip (ring.ts). */
-export const lotOf = (fp: Footprint): Lot => ({ ...lotRect(fp), z: 0 })
+export const lotOf = (fp: Footprint): Lot => ({ ...lotRect(fp), z: LOT_Z })
 
 /** How far a building fades while it would cover pieces on the neighboring tile. */
 const VEIL = 0.55
@@ -93,6 +94,8 @@ export class TileView {
   private readonly rim = new Graphics()
   private readonly fp: Footprint
   private readonly family: Family | null
+  /** The prop on a non-property side tile (station, pylon, coins, cards, chest). */
+  private readonly special: Special | null
   readonly lift = new Spring(0, 260, 18)
   hovered = false
   selected = false
@@ -113,10 +116,14 @@ export class TileView {
     this.container.zIndex = this.fp.col0 + this.fp.row0
     const space = SPACES[index]!
     this.family = space.kind === 'property' ? GROUP_FAMILY[space.group]! : null
+    this.special = specialOf(index)
     this.rim.alpha = 0
     this.container.addChild(this.base, this.decoG, this.rim)
     this.tower.addChild(this.building, this.buildingLights, this.buildingBeacons)
-    if (this.family) {
+    if (this.fp.corner) {
+      // Corner props keep to the back edges, behind the pieces standing on the corner.
+      this.tower.zIndex = this.fp.col0 + this.fp.row0 + 0.6
+    } else if (this.family || this.special) {
       const lot = lotRect(this.fp)
       this.tower.zIndex = (lot.col0 + lot.col1 + lot.row0 + lot.row1) / 2
     }
@@ -212,6 +219,8 @@ export class TileView {
         owner,
         this.index * 131 + 17,
       )
+    } else if (this.special) {
+      drawSpecial({ g: b, lights, t, style: BOARD_STYLE, beacons }, fp, this.special, this.index)
     }
     this.baseAlpha = mortgaged ? 0.55 : 1
     this.setNight(this.night)
@@ -304,10 +313,22 @@ export class TileView {
 
 /** Quad in tile-local (u along edge, v outer->inner) coordinates, flattened to screen. */
 function quad(fp: Footprint, u0: number, v0: number, u1: number, v1: number, t: number): number[] {
+  return quadZ(fp, u0, v0, u1, v1, 0, t)
+}
+
+function quadZ(
+  fp: Footprint,
+  u0: number,
+  v0: number,
+  u1: number,
+  v1: number,
+  z: number,
+  t: number,
+): number[] {
   return projectPoly(
     [tilePoint(fp, u0, v0), tilePoint(fp, u1, v0), tilePoint(fp, u1, v1), tilePoint(fp, u0, v1)].map((p) => ({
       ...p,
-      z: 0,
+      z,
     })),
     t,
   )
@@ -320,89 +341,70 @@ function polyUV(fp: Footprint, uv: readonly (readonly [number, number])[], t: nu
   )
 }
 
-function discUV(fp: Footprint, u: number, v: number, r: number, t: number): number[] {
-  const c = tilePoint(fp, u, v)
-  return disc(c.col, c.row, r, 0, t)
+/** The prop for a non-property side tile, by its space kind. */
+function specialOf(index: number): Special | null {
+  switch (SPACES[index]!.kind) {
+    case 'railroad':
+      return 'railroad'
+    case 'utility':
+      return index === 12 ? 'electric' : 'water'
+    case 'tax':
+      return 'tax'
+    case 'chance':
+      return 'chance'
+    case 'chest':
+      return 'chest'
+    case 'jail':
+      return 'lockup'
+    case 'goToJail':
+      return 'goToLockup'
+    case 'parking':
+      return 'park'
+    default:
+      return null
+  }
+}
+
+/** Paving under a side tile's lot, with a low curb, so its building or prop stands on a plot. */
+function lotPad(g: Graphics, fp: Footprint, t: number): void {
+  const pad = mix(palette.tileTop, 0x94a3b8, 0.16)
+  isoBox(
+    g,
+    { ...lotRect(fp), z0: 0, z1: LOT_Z },
+    { top: pad, left: shade(pad, 0.82), right: shade(pad, 0.9) },
+    t,
+  )
 }
 
 function drawIcon(g: Graphics, index: number, fp: Footprint, t: number): void {
   const space = SPACES[index]!
+  if (!fp.corner && space.kind !== 'property' && specialOf(index)) {
+    lotPad(g, fp, t)
+    return
+  }
   switch (space.kind) {
     case 'property': {
+      lotPad(g, fp, t)
+      // The group band is a raised curb in the group color along the city edge.
       const color = groupColors[space.group]!
-      g.poly(quad(fp, 0.05, 0.76, 0.95, 0.96, t)).fill(color)
+      const BAND = 0.024
+      isoBox(
+        g,
+        { ...uvRect(fp, 0.04, 0.78, 0.96, 0.97), z0: 0, z1: BAND },
+        { top: color, left: shade(color, 0.72), right: shade(color, 0.84) },
+        t,
+      )
       // Pattern marks so groups never depend on color alone.
       const marks = (space.group % 4) + 1
       for (let i = 0; i < marks; i++) {
         const u = (i + 1) / (marks + 1)
+        const c = tilePoint(fp, u, 0.875)
         // Dark and large enough to tell groups apart in grayscale (Milestone 6 acceptance).
-        if (space.group < 4) g.poly(discUV(fp, u, 0.86, 0.06, t)).fill(shade(color, 0.38))
-        else g.poly(quad(fp, u - 0.055, 0.8, u + 0.055, 0.92, t)).fill(shade(color, 0.38))
+        if (space.group < 4) g.poly(disc(c.col, c.row, 0.055, BAND, t)).fill(shade(color, 0.38))
+        else g.poly(quadZ(fp, u - 0.05, 0.82, u + 0.05, 0.93, BAND, t)).fill(shade(color, 0.38))
       }
       break
     }
-    case 'railroad':
-      for (let i = 0; i < 6; i++) {
-        const u = 0.12 + i * 0.152
-        g.poly(quad(fp, u - 0.025, 0.3, u + 0.025, 0.7, t)).fill(0x94a3b8)
-      }
-      g.poly(quad(fp, 0.04, 0.38, 0.96, 0.42, t)).fill(palette.rail)
-      g.poly(quad(fp, 0.04, 0.58, 0.96, 0.62, t)).fill(palette.rail)
-      break
-    case 'utility':
-      if (index === 12) {
-        g.poly(
-          polyUV(
-            fp,
-            [
-              [0.58, 0.18],
-              [0.36, 0.52],
-              [0.5, 0.52],
-              [0.42, 0.84],
-              [0.66, 0.46],
-              [0.52, 0.46],
-            ],
-            t,
-          ),
-        ).fill(palette.amber)
-      } else {
-        g.poly(discUV(fp, 0.5, 0.6, 0.2, t)).fill(palette.sky)
-        g.poly(
-          polyUV(
-            fp,
-            [
-              [0.32, 0.56],
-              [0.5, 0.18],
-              [0.68, 0.56],
-            ],
-            t,
-          ),
-        ).fill(palette.sky)
-      }
-      break
-    case 'tax':
-      g.poly(discUV(fp, 0.5, 0.5, 0.3, t)).fill(palette.amber)
-      g.poly(discUV(fp, 0.5, 0.5, 0.2, t)).fill(shade(palette.amber, 0.8))
-      break
-    case 'chance':
-      g.poly(
-        polyUV(
-          fp,
-          [
-            [0.5, 0.15],
-            [0.85, 0.5],
-            [0.5, 0.85],
-            [0.15, 0.5],
-          ],
-          t,
-        ),
-      ).fill(palette.indigo)
-      g.poly(discUV(fp, 0.5, 0.5, 0.1, t)).fill(palette.tileTop)
-      break
-    case 'chest':
-      g.poly(quad(fp, 0.2, 0.3, 0.8, 0.72, t)).fill(palette.teal)
-      g.poly(quad(fp, 0.2, 0.46, 0.8, 0.52, t)).fill(shade(palette.teal, 0.7))
-      break
     case 'go':
       // Start stripe plus a big arrow pointing along the walking direction (toward Jail).
       g.poly(
@@ -421,21 +423,41 @@ function drawIcon(g: Graphics, index: number, fp: Footprint, t: number): void {
         ),
       ).fill(palette.alert)
       break
-    case 'jail':
-      g.poly(quad(fp, 0.42, 0.42, 0.95, 0.95, t)).fill(palette.slabLeft)
-      for (let i = 1; i <= 4; i++) {
-        const u = 0.42 + i * 0.106
-        g.poly(quad(fp, u - 0.015, 0.45, u + 0.015, 0.92, t)).fill(0xcbd5e1)
-      }
+    case 'jail': {
+      // The cell yard: darker concrete behind a painted line; visitors stand in front.
+      const w = fp.col1 - fp.col0
+      const yard = mix(palette.cornerTop, 0x64748b, 0.25)
+      g.poly(rect(fp.col0 + GAP, fp.row0 + GAP, fp.col0 + 0.5 * w, fp.row0 + 0.5 * w, 0, t)).fill(yard)
+      g.poly(rect(fp.col0 + 0.5 * w, fp.row0 + GAP, fp.col0 + 0.52 * w, fp.row0 + 0.52 * w, 0.001, t)).fill(
+        0xfacc15,
+      )
+      g.poly(rect(fp.col0 + GAP, fp.row0 + 0.5 * w, fp.col0 + 0.52 * w, fp.row0 + 0.52 * w, 0.001, t)).fill(
+        0xfacc15,
+      )
       break
-    case 'parking':
-      g.poly(discUV(fp, 0.38, 0.4, 0.3, t)).fill(0x2dd4bf)
-      g.poly(discUV(fp, 0.62, 0.55, 0.26, t)).fill(0x14b8a6)
-      g.poly(discUV(fp, 0.4, 0.66, 0.2, t)).fill(0x5eead4)
+    }
+    case 'parking': {
+      // Lawn over the corner with a light path ring around the middle.
+      const w = fp.col1 - fp.col0
+      const c = { col: fp.col0 + w / 2, row: fp.row0 + w / 2 }
+      const lawn = mix(BOARD_STYLE.park, BOARD_STYLE.ground, 0.22)
+      g.poly(rect(fp.col0 + GAP * 2, fp.row0 + GAP * 2, fp.col1 - GAP * 2, fp.row1 - GAP * 2, 0, t)).fill(
+        lawn,
+      )
+      g.poly(disc(c.col, c.row, w * 0.36, 0.001, t, 40)).fill(BOARD_STYLE.parkPath)
+      g.poly(disc(c.col, c.row, w * 0.28, 0.002, t, 40)).fill(mix(lawn, 0xffffff, 0.08))
       break
-    case 'goToJail':
-      g.poly(discUV(fp, 0.5, 0.5, 0.42, t)).fill(palette.alert)
-      g.poly(quad(fp, 0.22, 0.45, 0.78, 0.55, t)).fill(0xf8fafc)
+    }
+    case 'goToJail': {
+      // A painted no-entry mark in the middle; the booth and gate stand at the back.
+      const w = fp.col1 - fp.col0
+      const c = { col: fp.col0 + w * 0.56, row: fp.row0 + w * 0.56 }
+      g.poly(disc(c.col, c.row, w * 0.24, 0, t, 32)).fill(palette.alert)
+      g.poly(disc(c.col, c.row, w * 0.19, 0.001, t, 32)).fill(palette.cornerTop)
+      g.poly(disc(c.col, c.row, w * 0.16, 0.002, t, 32)).fill(palette.alert)
+      const bar = 0.025 * w
+      g.poly(rect(c.col - w * 0.11, c.row - bar, c.col + w * 0.11, c.row + bar, 0.003, t)).fill(0xf8fafc)
       break
+    }
   }
 }
