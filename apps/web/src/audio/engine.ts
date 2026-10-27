@@ -194,6 +194,12 @@ export class SoundEngine {
   /** Changes on every settings or sound board edit (for useSyncExternalStore). */
   getVersion = (): number => this.version
 
+  /**
+   * The settings as a useSyncExternalStore snapshot (a new object on every change). Read it
+   * through the hook, never `sound.settings` in render: the React Compiler caches that read.
+   */
+  getSettings = (): SoundSettings => this.settings
+
   private notify(): void {
     this.version++
     for (const fn of this.listeners) fn()

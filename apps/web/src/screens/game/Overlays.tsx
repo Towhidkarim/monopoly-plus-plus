@@ -561,8 +561,7 @@ export function GameMenu({
   onClose: () => void
 }) {
   usePanelSound()
-  useSyncExternalStore(sound.subscribe, sound.getVersion)
-  const audio = sound.settings
+  const audio = useSyncExternalStore(sound.subscribe, sound.getSettings)
   const [confirm, setConfirm] = useState(false)
   const dialog = useDialogFocus()
   return (

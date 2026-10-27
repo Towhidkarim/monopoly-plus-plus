@@ -25,7 +25,7 @@ export function SoundBoard() {
   useSyncExternalStore(sound.subscribe, sound.getVersion)
   const [open, setOpen] = useState<SoundId | null>(null)
   const [copied, setCopied] = useState(false)
-  const s = sound.settings
+  const s = useSyncExternalStore(sound.subscribe, sound.getSettings)
 
   const copy = () => {
     void navigator.clipboard?.writeText(sound.exportOverrides()).then(() => {

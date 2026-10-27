@@ -34,8 +34,7 @@ export function Hud({
   const p = snap.presented
   const limit = snap.state.config.roundLimit
   const solo = store.setup.seats.filter((x) => x.kind === 'human').length === 1
-  useSyncExternalStore(sound.subscribe, sound.getVersion)
-  const muted = sound.settings.muted
+  const { muted } = useSyncExternalStore(sound.subscribe, sound.getSettings)
   return (
     <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start gap-4 bg-linear-to-b from-table via-table/80 to-transparent px-5 pt-4 pb-8">
       <div className="pointer-events-auto flex shrink-0 flex-col gap-2 min-[1100px]:w-50">
