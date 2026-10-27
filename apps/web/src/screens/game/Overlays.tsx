@@ -21,6 +21,7 @@ import { useReducedMotion } from './cardEnv.tsx'
 import { useDialogFocus } from './useDialogFocus.ts'
 import { CardStage, Stamp } from './cardMotion.tsx'
 import { Confetti } from './Confetti.tsx'
+import { WorthChart } from './WorthChart.tsx'
 import { Icon } from './icons.tsx'
 import { SPEEDS, type SpeedChoice } from './format.ts'
 import { Btn, Eyebrow, Kbd, Money, Panel, TokenAvatar } from './ui.tsx'
@@ -363,8 +364,116 @@ export function GameOver({
             </Btn>
           </div>
         </Panel>
+
+        <GameStory snap={snap} store={store} />
       </div>
     </div>
+  )
+}
+
+/**
+ * How the game went: net worth by round (with the winner's turning point) and a stats table.
+ * Rebuilt from the action log, so it is exact; absent online (the log lives in the room).
+ */
+function GameStory({ snap, store }: { snap: Snapshot; store: GameStore }) {
+  const results = store.results()
+  if (!results || results.rounds.length < 2) return null
+  const s = snap.state
+  const seats = store.setup.seats
+  const winner = s.players[s.winner]!
+  const series = s.players.map((p, seat) => ({
+    name: p.name,
+    color: cssHex(seats[seat]!.color),
+    values: results.worth.map((row) => row[seat] ?? 0),
+  }))
+  const order = s.players
+    .map((p, seat) => ({ p, seat }))
+    .toSorted((a, b) => (results.worth.at(-1)![b.seat] ?? 0) - (results.worth.at(-1)![a.seat] ?? 0))
+  return (
+    <Panel className="flex w-[896px] max-w-full animate-rise flex-col gap-4 rounded-3xl p-6 shadow-panel-lg [animation-delay:260ms] [animation-fill-mode:backwards]">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <Eyebrow className="text-ink-muted">How the game went</Eyebrow>
+        <span className="text-sm text-ink-muted">
+          {results.turningPoint === null ? (
+            <>
+              <strong className="text-ink">{winner.name}</strong> led from the start.
+            </>
+          ) : (
+            <>
+              <strong className="text-ink">{winner.name}</strong> took the lead for good in round{' '}
+              <strong className="text-accent">{results.turningPoint}</strong>.
+            </>
+          )}
+        </span>
+      </div>
+      <WorthChart series={series} rounds={results.rounds} mark={results.turningPoint} />
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[560px] text-left text-sm">
+          <caption className="sr-only">Game statistics per player</caption>
+          <thead>
+            <tr className="text-[11px] tracking-[0.1em] text-ink-muted uppercase">
+              <th scope="col" className="py-1.5 font-bold">
+                Player
+              </th>
+              <th scope="col" className="py-1.5 text-right font-bold">
+                Rent in
+              </th>
+              <th scope="col" className="py-1.5 text-right font-bold">
+                Rent out
+              </th>
+              <th scope="col" className="py-1.5 text-right font-bold">
+                Bought
+              </th>
+              <th scope="col" className="py-1.5 text-right font-bold">
+                Built
+              </th>
+              <th scope="col" className="py-1.5 text-right font-bold">
+                Trades
+              </th>
+              <th scope="col" className="py-1.5 pl-4 font-bold">
+                Best earner
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {order.map(({ p, seat }) => {
+              const st = results.stats[seat]!
+              return (
+                <tr key={p.id} className="border-t border-line/60">
+                  <th scope="row" className="py-2 font-extrabold">
+                    <span className="flex items-center gap-2">
+                      <span
+                        className="size-2.5 rounded-full"
+                        style={{ background: cssHex(seats[seat]!.color) }}
+                      />
+                      {p.name}
+                    </span>
+                  </th>
+                  <td className="py-2 text-right font-bold text-teal tabular-nums">
+                    <Money value={st.rentCollected} />
+                  </td>
+                  <td className="py-2 text-right text-ink-muted tabular-nums">
+                    <Money value={st.rentPaid} />
+                  </td>
+                  <td className="py-2 text-right tabular-nums">{st.bought}</td>
+                  <td className="py-2 text-right tabular-nums">{st.built}</td>
+                  <td className="py-2 text-right tabular-nums">{st.trades}</td>
+                  <td className="py-2 pl-4 text-ink-muted">
+                    {st.bestSpace ? (
+                      <>
+                        {SPACES[st.bestSpace.space]!.name} · <Money value={st.bestSpace.rent} />
+                      </>
+                    ) : (
+                      '—'
+                    )}
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    </Panel>
   )
 }
 
@@ -381,6 +490,7 @@ const SHORTCUTS: [string[], string][] = [
   [['M'], 'Sound on or off'],
   [['L'], 'Game log'],
   [['S'], 'Skip animations'],
+  [['F'], 'Skip to your turn'],
   [['?'], 'This help'],
   [['Esc'], 'Close the top panel, clear the selected tile'],
 ]

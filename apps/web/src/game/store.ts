@@ -35,6 +35,7 @@ import { loadPrefs } from './prefs.ts'
 import type { SkyPref } from './sky.ts'
 import type { CursorPref } from '../cursors.ts'
 import { saveGame, type GameSetup, type SavedGame, type SeatSetup } from './setup.ts'
+import { gameResults, type GameResults } from './results.ts'
 import { BIG_RENT, TIMINGS, coinsLandMs } from './timings.ts'
 
 export interface CardShown {
@@ -369,6 +370,20 @@ export class GameStore {
   /** Closes a card that is waiting for its human drawer. */
   ackCard(): void {
     this.cardAck?.()
+  }
+
+  /**
+   * The game's story for the results screen: net worth by round and per-seat stats, from a
+   * replay of the action log (game/results.ts). Null online, where the log lives in the room.
+   */
+  results(): GameResults | null {
+    if (this.online) return null
+    const start = createGame(
+      this.setup.seats.map((s) => ({ id: s.id, name: s.name })),
+      this.setup.seed,
+      PRESETS[this.setup.preset],
+    )
+    return gameResults(start, this.actions)
   }
 
   /** Fast-forward possible: a local game (online bots play on the server) with a human seat. */

@@ -474,3 +474,9 @@ During a decision (buy, auction, debt, offer, trade) the left column and activit
 - Rate-limited: one bot at most every 4 s and the table at most every 1.2 s for minor moments; sets, trades, jail and bankruptcy always speak. Driven by `onEvent`, so nothing is said while skipping or fast-forwarding.
 - Shown as a small card-colored bubble with a tail under the bot's HUD card for 2.6 s; `aria-hidden` (the log and announcer already say what happened), never over the board's center, no input.
 - UI flavor uses Math.random (allowed outside the engine).
+
+## D59. Results screen: how the game went (2026-10-28)
+
+- Under the certificate and standings, a "How the game went" panel: net worth by round for every player (a 2px line each in the player's color, direct name labels at the line ends, a hover crosshair with every player's value that round), the winner's turning point (the first round of their final, unbroken lead) as a dashed rule and a sentence, and a stats table (rent in, rent out, bought, built, trades, best earning space). The axis spans the data in round steps, not from zero (trends, not magnitudes).
+- `gameResults(start, actions)` (`apps/web/src/game/results.ts`, tested on a full bot game) replays the action log through the engine, so the story is exact and needs no live tracking; `GameStore.results()` rebuilds the first state from the setup. Absent online, where the log lives in the room.
+- Chart colors are the players' token colors on purpose (a player's color is their identity everywhere). They pass the dataviz validator's CVD separation and contrast checks but sit above its lightness band, and the white seat reads as gray; identity therefore never rests on color alone: every line is labelled and the table names each player. Help lists F (skip to your turn). Screenshot: `docs/screenshots/results-story.png`.
