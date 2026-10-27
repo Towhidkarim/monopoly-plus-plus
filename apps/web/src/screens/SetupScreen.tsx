@@ -3,6 +3,7 @@ import { PIECES, tokenColors, type PieceKind } from '@skyline/board'
 import type { PresetName } from '@skyline/engine'
 import { loadGame, type GameSetup, type SavedGame, type SeatSetup } from '../game/setup.ts'
 import { cssHex } from '../spaceInfo.ts'
+import { Icon } from './game/icons.tsx'
 import { Btn, Eyebrow, TokenAvatar } from './game/ui.tsx'
 import { SetupBackdrop } from './SetupBackdrop.tsx'
 
@@ -259,31 +260,33 @@ export function SetupScreen({
 
           {/* Sticky: Start game stays visible however short the window is. */}
           <div className="sticky -bottom-5 z-10 sm:-bottom-7 mt-auto -mr-5 -mb-5 -ml-5 flex flex-col gap-3 rounded-b-[28px] border-t border-line bg-panel px-5 pt-3 pb-5 sm:-mr-7 sm:-mb-7 sm:-ml-7 sm:px-7 sm:pb-7">
-            <Btn
-              kind="primary"
-              onClick={() =>
-                onStart({
-                  preset,
-                  seed,
-                  citySeed,
-                  seats: seats.map((s) => ({ ...s, name: s.name.trim() || s.id })),
-                })
-              }
-              className="h-16 rounded-[18px] text-xl shadow-gold-lg [@media(max-height:860px)]:h-14"
-            >
-              Start game
-            </Btn>
+            {/* Two ways to play, side by side: here on one screen, or with friends elsewhere. */}
+            <div className="flex gap-2.5">
+              <Btn
+                kind="primary"
+                onClick={() =>
+                  onStart({
+                    preset,
+                    seed,
+                    citySeed,
+                    seats: seats.map((s) => ({ ...s, name: s.name.trim() || s.id })),
+                  })
+                }
+                className="h-16 flex-1 rounded-[18px] text-xl shadow-gold-lg [@media(max-height:860px)]:h-14"
+              >
+                Start game
+              </Btn>
+              <Btn
+                onClick={onOnline}
+                title="Play with friends on their own devices"
+                className="h-16 gap-2 rounded-[18px] border-line px-5 text-base [@media(max-height:860px)]:h-14"
+              >
+                <Icon name="globe" size={18} />
+                Play online
+              </Btn>
+            </div>
             <div className="flex items-center justify-between gap-3 text-xs text-ink-muted">
-              <span>
-                Hotseat: humans take turns on this screen. Friends elsewhere?{' '}
-                <button
-                  type="button"
-                  onClick={onOnline}
-                  className="font-extrabold text-accent underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-accent"
-                >
-                  Play online
-                </button>
-              </span>
+              <span>Hotseat: everyone here takes turns on this screen.</span>
               <label className="flex items-center gap-2">
                 Dice seed
                 <input
