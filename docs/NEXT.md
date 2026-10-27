@@ -11,6 +11,17 @@ Still needs the developer:
 - First deploy: `! npx wrangler login`, then `pnpm deploy`; then a real session across machines.
 - The hands-on review of Milestone 8 and the real-GPU 60 fps checks listed in the roadmap.
 
+## In progress: UX and gameplay batch (developer's list, 2026-10-28)
+
+One step per commit, restate acceptance criteria first. Done: 1 landing odds (D54, rents only after review), 2 recap card (D55), 7 bot trade proposals (D53, merged from a Sonnet worktree agent). Next, in order:
+
+3. Buy advice: one line on the buy and auction screens ("Completes your set, rent x2", "Blocks Nova's set", "Pays back in about N visits").
+4. "Skip to my turn": one button that fast-forwards bot turns until a local human must act.
+5. Game length in setup: short / standard / long (start cash, round limit, pre-dealt properties).
+6. Bot characters: style from `PERSONALITIES` (bots package), name, avatar and short speech bubbles at moments (rent, buys, sets, trades).
+8. Results screen overhaul: net-worth graph over the game, best property, rent collected, turning point. No replays or achievements for now.
+9. Polish: mobile portrait layout, persistence and PWA install, online "play again" in the same room and chat or reactions, for-sale sign wobble and pop, music ducking under big moments, D38 dice items, the React background/backgroundImage warning.
+
 ## Done 2026-10-28: juice and atmosphere pass
 
 D48 raised for-sale lots dressed per district; D49 paper cards; D50 moments (rent approach warning, breathing active piece, bidding-war heartbeat, bankrupt beat); D51 code-generated city ambience. Waiting on the developer: a feel review of all four in real play, and a background music track (CC0) to wire in. Not done yet: the for-sale sign wobbling on hover and popping off when bought.
