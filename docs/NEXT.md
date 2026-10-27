@@ -13,14 +13,12 @@ Still needs the developer:
 
 ## In progress: UX and gameplay batch (developer's list, 2026-10-28)
 
-One step per commit, restate acceptance criteria first. Done: 1 landing odds (D54, rents only after review), 2 recap card (D55), 7 bot trade proposals (D53, merged from a Sonnet worktree agent). Next, in order:
+One step per commit, restate acceptance criteria first. Done: 1 landing odds (D54, rents only after review), 2 recap card (D55), 3 buy advice (D56), 4 skip to my turn (D57), 6 bot speech bubbles (D58), 7 bot trade proposals (D53), 8 results screen (D59). Left:
 
-3. Buy advice: one line on the buy and auction screens ("Completes your set, rent x2", "Blocks Nova's set", "Pays back in about N visits").
-4. "Skip to my turn": one button that fast-forwards bot turns until a local human must act.
 5. Game length in setup: short / standard / long (start cash, round limit, pre-dealt properties).
-6. Bot characters: style from `PERSONALITIES` (bots package), name, avatar and short speech bubbles at moments (rent, buys, sets, trades).
-8. Results screen overhaul: net-worth graph over the game, best property, rent collected, turning point. No replays or achievements for now.
-9. Polish: mobile portrait layout, persistence and PWA install, online "play again" in the same room and chat or reactions, for-sale sign wobble and pop, music ducking under big moments, D38 dice items, the React background/backgroundImage warning.
+9. Polish (mobile layout waits for the mobile pass): persistence and PWA install, online "play again" in the same room and chat or reactions, for-sale sign wobble and pop, music ducking under big moments, D38 dice items, the React background/backgroundImage warning.
+
+Testing note: Orca throttles background tabs (no animation frames), so scripted play stalls on board animations unless the tab is in front; use `instant` for flow tests (events still reach `onApplied`), and turn CSS animations off before screenshots of panels with entrance animations.
 
 ## Done 2026-10-28: juice and atmosphere pass
 
