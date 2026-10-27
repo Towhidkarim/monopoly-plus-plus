@@ -80,7 +80,10 @@ export class LotPortraits {
     lights.visible = n > 0
     beacons.visible = n > 0
     try {
-      const b = root.getLocalBounds().rectangle
+      // Framed on the building (and a hotel's beacon), not its lights: at night the window glow and
+      // the light spilling onto the ground reach far past it and shrank the building into a corner.
+      const b = building.getLocalBounds().rectangle.clone()
+      if (level === 5) b.enlarge(beacons.getLocalBounds().rectangle)
       const frame = new Rectangle(
         Math.floor(b.x) - PAD,
         Math.floor(b.y) - PAD,
