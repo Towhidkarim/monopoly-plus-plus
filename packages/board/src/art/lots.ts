@@ -89,19 +89,16 @@ export function drawLot(
  */
 function forSale(p: Paint, lot: Lot, rng: () => number, family: Family, tint: number | null) {
   const s = p.style
-  const l = inset(lot, 0.05)
+  // Set well inside the lot, so the tile frames the plot instead of the plot filling the tile.
+  const l = inset(lot, 0.09)
   const w = l.col1 - l.col0
   const d = l.row1 - l.row0
   // Lot-relative position: u along col, v along row; 1 is the front (toward the camera).
   const at = (u: number, v: number) => ({ col: l.col0 + w * u, row: l.row0 + d * v })
   const tinted = (c: number, k: number) => (tint === null ? c : mix(c, tint, k))
   const lawn = tinted(mix(s.park, s.ground, 0.18), 0.12)
-  const ground =
-    family === 'brick'
-      ? tinted(0xc9c2b4, 0.1)
-      : family === 'modern'
-        ? tinted(mix(s.sidewalk, s.ground, 0.7), 0.04)
-        : lawn
+  // Only lawns take the group tint: tinted gravel or paving reads as a colored rug.
+  const ground = family === 'brick' ? 0xb4b6b0 : family === 'modern' ? mix(s.sidewalk, s.ground, 0.7) : lawn
   const top = l.z + 0.025
   // The plot: a thin slab whose front faces show, so it reads as raised land.
   box(p, { ...l, z0: l.z, z1: top }, ground)
@@ -144,6 +141,13 @@ function plotSurface(p: Paint, l: Lot, z: number, family: Family, ground: number
         z + 0.001,
         i % 2 ? mix(ground, 0x000000, 0.12) : light(ground, 0.25),
       )
+    }
+    // A few weeds pushing through.
+    const weeds = 2 + Math.floor(rng() * 3)
+    for (let i = 0; i < weeds; i++) {
+      const c = l.col0 + 0.06 + rng() * (w - 0.12)
+      const r = l.row0 + 0.06 + rng() * (d - 0.12)
+      blob(p, c, r, z + 0.02, 0.03 + rng() * 0.015, mix(p.style.trees[0]!, p.style.park, 0.4))
     }
     return
   }

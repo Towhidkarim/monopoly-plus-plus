@@ -166,7 +166,7 @@ export function stripV(fp: Footprint): readonly [number, number] {
 }
 
 /** Height of the paved lot pad on side tiles (buildings and props stand on it). */
-export const LOT_Z = 0.012
+export const LOT_Z = 0.02
 
 /**
  * The building lot's `v` range on a side tile, as [edge next to the pieces, far edge]: props that

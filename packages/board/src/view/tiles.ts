@@ -420,9 +420,12 @@ function specialOf(index: number): Special | null {
   }
 }
 
-/** Paving under a side tile's lot, with a low curb, so its building or prop stands on a plot. */
+/**
+ * Paving under a side tile's lot, with a low curb, so its building or prop stands on a plot.
+ * Lighter than the tile around it: a raised surface catches light; a darker one reads as a dip.
+ */
 function lotPad(g: Graphics, fp: Footprint, t: number): void {
-  const pad = mix(palette.tileTop, 0x94a3b8, 0.16)
+  const pad = mix(palette.tileTop, 0xffffff, 0.45)
   isoBox(
     g,
     { ...lotRect(fp), z0: 0, z1: LOT_Z },
