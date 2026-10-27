@@ -54,6 +54,7 @@ export function WorthChart({
 
   return (
     <div className="relative">
+      {/* oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- an inline SVG chart is labelled with role="img" */}
       <svg viewBox={`0 0 ${W} ${H}`} className="block w-full" role="img" aria-label="Net worth by round">
         {ticks.map((t) => (
           <g key={t}>

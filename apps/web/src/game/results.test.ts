@@ -37,10 +37,8 @@ describe('gameResults', () => {
     // The winner leads at the end, and from the turning point on.
     const last = r.worth.at(-1)!
     expect(last.every((v, seat) => seat === w || v < last[w]!)).toBe(true)
-    if (r.turningPoint !== null) {
-      const from = r.rounds.indexOf(r.turningPoint)
-      for (const row of r.worth.slice(from))
-        expect(row.every((v, seat) => seat === w || v < row[w]!)).toBe(true)
-    }
+    const from = r.turningPoint === null ? 0 : r.rounds.indexOf(r.turningPoint)
+    const leads = r.worth.slice(from).every((row) => row.every((v, seat) => seat === w || v < row[w]!))
+    expect(leads).toBe(true)
   })
 })
