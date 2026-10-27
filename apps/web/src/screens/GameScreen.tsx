@@ -231,6 +231,7 @@ export function GameScreen({
     if (key === 't' && openTrade) return press(openTrade)
     if (key === 'l') return press(() => setShowLog((v) => !v))
     if (key === 's') return press(() => store.skip())
+    if (key === 'f' && !turn.human) return press(() => store.skipToHuman())
     if (key === 'm') return press(() => sound.setSettings({ muted: !sound.settings.muted }))
     const hit =
       momentKey(turn, key, store) ?? turn.secondary.find((c) => c.hotkey?.toLowerCase() === key)?.run

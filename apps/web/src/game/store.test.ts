@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { checkInvariants } from '@skyline/engine'
+import { checkInvariants, expectedActor } from '@skyline/engine'
 import { presentFrom } from './presented.ts'
 import { GameStore, type BoardPort } from './store.ts'
 
@@ -120,6 +120,22 @@ describe('GameStore playback', () => {
     expect(board.log.some((l) => l.startsWith('throw'))).toBe(false)
     expect(board.log).toContain('MOVED')
     expect(store.getSnapshot().diceLanding).toBe(false)
+    store.dispose()
+  })
+
+  it('fast-forwards bot turns without thinking time and stops when the human must act', async () => {
+    const store = new GameStore({ preset: 'classic', seed: 5, seats: seats(['bot', 'bot', 'human']) })
+    store.setSettings({ speed: 1 })
+    store.attach(stubBoard())
+    store.skipToHuman()
+    expect(store.getSnapshot().fastForward).toBe(true)
+    // Normal pacing (think time plus animations) would take many seconds for two bot turns.
+    await vi.advanceTimersByTimeAsync(300)
+    const snap = store.getSnapshot()
+    expect(snap.fastForward).toBe(false)
+    const s = snap.state
+    expect(expectedActor(s) === 2 || s.trades.some((t) => t.to === 2)).toBe(true)
+    expect(snap.presented).toEqual(presentFrom(s))
     store.dispose()
   })
 

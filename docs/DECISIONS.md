@@ -462,3 +462,8 @@ During a decision (buy, auction, debt, offer, trade) the left column and activit
 
 - `buyAdvice(state, seat, space, price)` (`apps/web/src/game/advice.ts`, unit-tested) gives at most two lines, most telling first: completes your set (rent doubles, you can build), blocks one rival from completing a set, station count and rent per visit, utility multiplier; then either a cash warning (short of the price, or under ₵150 left) or "pays for itself after about N visits" (rent with this space added, utilities at a roll of 7).
 - Shown under the set card on the buy screen and under the set note in the auction (priced at the current high bid, for the viewer). The old "This completes your set!" note gives way to the advice line so nothing repeats.
+
+## D57. Skip to my turn (2026-10-28)
+
+- While a bot plays in a local game, the action dock offers "To my turn" (F). `GameStore.skipToHuman()` sets `fastForward`: playback skips every animation (as the instant setting does), bot thinking time is 0, and a bot already waiting goes at once. It ends by itself when no bot has anything to do, which means a human here must act (their turn, a bid, an offer to answer, a debt) or the game is over; normal pacing resumes and the recap card (D55, fed by `onApplied`) summarizes what was skipped.
+- Not offered online: bots there run in the room, and other people's turns are theirs.

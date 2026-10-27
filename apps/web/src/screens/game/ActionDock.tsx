@@ -80,22 +80,39 @@ export function ActionDock({
         ) : (
           <div className="flex h-[66px] min-w-64 items-center justify-center gap-3 rounded-[18px] bg-panel-2 px-6 text-sm text-ink-muted">
             <span className="size-2 animate-pulse rounded-full bg-ink-muted" />
-            {turn.human
-              ? turn.moment === 'auction'
-                ? 'Your bid is open above'
-                : snap.busy
-                  ? 'Playing…'
-                  : 'Waiting…'
-              : `${snap.presented.players[turn.actorSeat]?.name} is playing`}
-            {snap.busy && (
+            {snap.fastForward
+              ? 'Skipping to your turn…'
+              : turn.human
+                ? turn.moment === 'auction'
+                  ? 'Your bid is open above'
+                  : snap.busy
+                    ? 'Playing…'
+                    : 'Waiting…'
+                : `${snap.presented.players[turn.actorSeat]?.name} is playing`}
+            {!turn.human && !snap.fastForward && store.canFastForward ? (
               <button
                 type="button"
-                onClick={() => store.skip()}
-                title="Skip animations (S)"
-                className={`flex items-center gap-1 rounded-lg px-2 py-1 font-bold text-ink ${FX} enabled:hover:bg-white/10`}
+                onClick={() => store.skipToHuman()}
+                title="Skip the bots' turns until you have to act (F)"
+                className={`flex items-center gap-1.5 rounded-lg px-2 py-1 font-bold text-ink ${FX} enabled:hover:bg-white/10`}
               >
-                <Icon name="skip" size={14} /> Skip
+                <Icon name="skip" size={14} /> To my turn
+                <span className="rounded-md bg-card px-1.5 py-px font-sans text-[10px] font-extrabold text-card-ink shadow-keycap">
+                  F
+                </span>
               </button>
+            ) : (
+              snap.busy &&
+              !snap.fastForward && (
+                <button
+                  type="button"
+                  onClick={() => store.skip()}
+                  title="Skip animations (S)"
+                  className={`flex items-center gap-1 rounded-lg px-2 py-1 font-bold text-ink ${FX} enabled:hover:bg-white/10`}
+                >
+                  <Icon name="skip" size={14} /> Skip
+                </button>
+              )
             )}
           </div>
         )}

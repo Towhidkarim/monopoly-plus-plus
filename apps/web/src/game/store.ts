@@ -71,6 +71,8 @@ export interface Snapshot {
   card: CardShown | null
   /** Bot currently "thinking", for a UI hint. */
   thinking: string | null
+  /** Fast-forwarding bot turns until a human here must act (skipToHuman). */
+  fastForward: boolean
   /**
    * Seat whose point of view the shell shows (My city, hints): the human the game is waiting
    * on, else the last such human. Null when no human is seated.
@@ -227,6 +229,7 @@ export class GameStore {
       diceLanding: false,
       card: null,
       thinking: null,
+      fastForward: false,
       viewer: null,
       tradeOutcomes: {},
     }
@@ -368,6 +371,27 @@ export class GameStore {
     this.cardAck?.()
   }
 
+  /** Fast-forward possible: a local game (online bots play on the server) with a human seat. */
+  get canFastForward(): boolean {
+    return !this.online && this.setup.seats.some((x) => x.kind === 'human')
+  }
+
+  /**
+   * Plays bot turns with no animation and no thinking time until a human on this screen has to
+   * act (their turn, a bid, an offer to answer, a debt), then normal play resumes.
+   */
+  skipToHuman(): void {
+    if (!this.canFastForward || this.snap.presented.over) return
+    this.set({ fastForward: true })
+    this.skip()
+    // A bot already waiting out its thinking time goes now.
+    if (this.botTimer) {
+      clearTimeout(this.botTimer)
+      this.botTimer = null
+    }
+    this.scheduleBot()
+  }
+
   /** Jump to the end of all pending animations (skip). */
   skip(): void {
     if (!this.pumping) return
@@ -466,7 +490,7 @@ export class GameStore {
   private async pump(): Promise<void> {
     if (this.pumping) return
     this.pumping = true
-    if (this.settings.instant) this.skipping = true
+    if (this.settings.instant || this.snap.fastForward) this.skipping = true
     this.set({ busy: true })
     while (this.queue.length > 0 && !this.disposed) {
       const e = this.queue.shift()!
@@ -637,11 +661,17 @@ export class GameStore {
   private scheduleBot(): void {
     if (this.botTimer || this.disposed || this.pumping || !this.board) return
     const seat = this.botToAct(this.snap.state)
-    if (seat === null) return
+    if (seat === null) {
+      // No bot to play: a human must act (or the game is over), so fast-forward ends here.
+      if (this.snap.fastForward) this.set({ fastForward: false })
+      return
+    }
     this.set({ thinking: this.snap.state.players[seat]!.id })
-    const delay = this.settings.fastBots
-      ? TIMINGS.botFast
-      : TIMINGS.botThink + this.rng() * TIMINGS.botThinkJitter
+    const delay = this.snap.fastForward
+      ? 0
+      : this.settings.fastBots
+        ? TIMINGS.botFast
+        : TIMINGS.botThink + this.rng() * TIMINGS.botThinkJitter
     this.botTimer = setTimeout(() => {
       this.botTimer = null
       this.set({ thinking: null })
