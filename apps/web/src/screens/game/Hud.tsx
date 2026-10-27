@@ -23,6 +23,7 @@ export function Hud({
   onSpeed,
   onHelp,
   onMenu,
+  barks = {},
 }: {
   snap: Snapshot
   store: GameStore
@@ -30,6 +31,8 @@ export function Hud({
   onSpeed: () => void
   onHelp: () => void
   onMenu: () => void
+  /** Bot lines showing now, by player id (`key` restarts the pop for a new line). */
+  barks?: Readonly<Record<string, { text: string; key: number }>>
 }) {
   const p = snap.presented
   const limit = snap.state.config.roundLimit
@@ -162,6 +165,17 @@ export function Hud({
                   aria-hidden="true"
                   className="absolute inset-x-4 -bottom-px h-[3px] rounded-[3px] bg-accent shadow-[0_0_12px_rgba(245,181,74,0.7)]"
                 />
+              )}
+              {barks[pl.id] && (
+                // A bot's line, popping out under its card (decoration: the log says what happened).
+                <span
+                  key={barks[pl.id]!.key}
+                  aria-hidden="true"
+                  className="pointer-events-none absolute top-full left-1/2 z-10 mt-2.5 -translate-x-1/2 origin-top animate-pop rounded-[14px] bg-card px-3 py-1.5 font-card-body text-[13px] font-semibold whitespace-nowrap text-card-ink shadow-[0_8px_18px_rgba(2,6,16,0.45)]"
+                >
+                  <span className="absolute -top-1.5 left-1/2 size-3 -translate-x-1/2 rotate-45 rounded-[2px] bg-card" />
+                  <span className="relative">{barks[pl.id]!.text}</span>
+                </span>
               )}
             </div>
           )

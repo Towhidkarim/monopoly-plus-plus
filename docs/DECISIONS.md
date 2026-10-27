@@ -467,3 +467,10 @@ During a decision (buy, auction, debt, offer, trade) the left column and activit
 
 - While a bot plays in a local game, the action dock offers "To my turn" (F). `GameStore.skipToHuman()` sets `fastForward`: playback skips every animation (as the instant setting does), bot thinking time is 0, and a bot already waiting goes at once. It ends by itself when no bot has anything to do, which means a human here must act (their turn, a bid, an offer to answer, a debt) or the game is over; normal pacing resumes and the recap card (D55, fed by `onApplied`) summarizes what was skipped.
 - Not offered online: bots there run in the room, and other people's turns are theirs.
+
+## D58. Bot speech bubbles (2026-10-28)
+
+- Bots react out loud to moments, in the voice of their personality (`BotParams.name`: Balanced, Banker, Tycoon, Shark): paying or collecting rent (25+; 100+ always), buying or winning an auction, completing a set, trades (the bot that accepted answers), going to the Lockup, bankruptcy, and now and then payday. Lines live in `apps/web/src/game/barks.ts` (`BarkMapper`, unit-tested).
+- Rate-limited: one bot at most every 4 s and the table at most every 1.2 s for minor moments; sets, trades, jail and bankruptcy always speak. Driven by `onEvent`, so nothing is said while skipping or fast-forwarding.
+- Shown as a small card-colored bubble with a tail under the bot's HUD card for 2.6 s; `aria-hidden` (the log and announcer already say what happened), never over the board's center, no input.
+- UI flavor uses Math.random (allowed outside the engine).

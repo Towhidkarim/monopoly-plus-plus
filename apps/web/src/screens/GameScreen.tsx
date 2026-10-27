@@ -12,6 +12,7 @@ import { cityOf } from '../game/setup.ts'
 import { applyCursorPref, type CursorPref } from '../cursors.ts'
 import { landingOdds } from '../game/odds.ts'
 import { RecapTracker, type Recap } from '../game/recap.ts'
+import { BarkMapper } from '../game/barks.ts'
 import { skyLevel, type SkyPref } from '../game/sky.ts'
 import type { GameStore } from '../game/store.ts'
 import { ActionDock } from './game/ActionDock.tsx'
@@ -32,6 +33,9 @@ import { CardPopup, GameMenu, GameOver, HelpOverlay } from './game/Overlays.tsx'
 import { ActivityFeed, LeftColumn } from './game/SidePanels.tsx'
 import { TurnBanner } from './game/TurnBanner.tsx'
 import { turnView, type TurnView } from './game/turn.ts'
+
+/** How long a bot's speech bubble stays up. */
+const BARK_MS = 2600
 
 /**
  * Text fields keep every key. A focused button keeps Enter (keyboard activation) but not Space:
@@ -87,6 +91,37 @@ export function GameScreen({
       const r = tracker.push(e)
       if (e.type === 'TURN_STARTED') setRecap(r)
     })
+  }, [store])
+
+  // Bot lines in speech bubbles under their cards, in step with the animation (game/barks.ts).
+  const [barks, setBarks] = useState<Record<string, { text: string; key: number }>>({})
+  useEffect(() => {
+    const styleOf = (id: string) => {
+      const seat = store.setup.seats.findIndex((x) => x.id === id)
+      return store.setup.seats[seat]?.kind === 'bot' ? (store.botName(seat) ?? 'Balanced') : null
+    }
+    const mapper = new BarkMapper(styleOf)
+    const timers = new Set<ReturnType<typeof setTimeout>>()
+    let key = 0
+    const off = store.onEvent((e) => {
+      const bark = mapper.event(e)
+      if (!bark) return
+      const k = ++key
+      setBarks((b) => ({ ...b, [bark.playerId]: { text: bark.text, key: k } }))
+      const t = setTimeout(() => {
+        timers.delete(t)
+        setBarks((b) => {
+          if (b[bark.playerId]?.key !== k) return b
+          const { [bark.playerId]: _, ...rest } = b
+          return rest
+        })
+      }, BARK_MS)
+      timers.add(t)
+    })
+    return () => {
+      off()
+      for (const t of timers) clearTimeout(t)
+    }
   }, [store])
 
   const ambience = useRef<CityAmbience | null>(null)
@@ -276,6 +311,7 @@ export function GameScreen({
               onSpeed={() => changeSpeed(SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length]!)}
               onHelp={() => setHelp(true)}
               onMenu={() => setMenu((v) => !v)}
+              barks={barks}
             />
             <Announcer snap={snap} store={store} turn={turn} />
             <TurnBanner snap={snap} store={store} turn={turn} cityOpen={cityOpen} />
