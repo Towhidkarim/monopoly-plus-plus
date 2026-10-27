@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { PIECES, tokenColors, type PieceKind } from '@skyline/board'
 import type { PresetName } from '@skyline/engine'
 import { loadGame, type GameSetup, type SavedGame, type SeatSetup } from '../game/setup.ts'
@@ -54,31 +54,6 @@ const SEG_OFF = 'text-ink-muted hover:bg-white/5 hover:text-ink'
 const SEG_FX =
   'transition-[background-color,color,scale] duration-200 ease-spring active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent'
 
-/**
- * The saved game, read again whenever this page is actually shown. Edge prerenders pages while a
- * URL is typed and browsers restore pages from the back/forward cache: either can show a page that
- * looked for a save before the last game's moves were written, which hid "Continue".
- */
-function useSavedGame(): SavedGame | null {
-  const [saved, setSaved] = useState(loadGame)
-  useEffect(() => {
-    const reread = () => {
-      if (document.visibilityState === 'visible') setSaved(loadGame())
-    }
-    document.addEventListener('prerenderingchange', reread)
-    document.addEventListener('visibilitychange', reread)
-    window.addEventListener('pageshow', reread)
-    window.addEventListener('focus', reread)
-    return () => {
-      document.removeEventListener('prerenderingchange', reread)
-      document.removeEventListener('visibilitychange', reread)
-      window.removeEventListener('pageshow', reread)
-      window.removeEventListener('focus', reread)
-    }
-  }, [])
-  return saved
-}
-
 export function SetupScreen({
   onStart,
   onOnline,
@@ -86,7 +61,7 @@ export function SetupScreen({
   onStart: (setup: GameSetup, saved?: SavedGame) => void
   onOnline: () => void
 }) {
-  const saved = useSavedGame()
+  const [saved] = useState(loadGame)
   const [preset, setPreset] = useState<PresetName>('standard')
   const [seats, setSeats] = useState<SeatSetup[]>(() => defaultSeats(4))
   const [seed, setSeed] = useState(randomSeed)
