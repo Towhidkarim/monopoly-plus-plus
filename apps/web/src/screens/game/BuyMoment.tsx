@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
+import { buyAdvice } from '../../game/advice.ts'
+import { AdviceLines } from './AdviceLines.tsx'
 import { SPACES, type Action } from '@skyline/engine'
 import type { GameStore, Snapshot } from '../../game/store.ts'
 import { cssHex } from '../../spaceInfo.ts'
@@ -209,14 +211,13 @@ export function BuyMoment({
                   )
                 })}
               </div>
-              {set.note && (
-                <div
-                  className={`text-[13px] leading-snug ${set.mine === set.total ? 'font-semibold text-gold' : 'text-ink-muted'}`}
-                >
-                  {set.note}
-                </div>
+              {/* Who holds the rest; completing the set is said by the advice below. */}
+              {set.note && set.mine < set.total && (
+                <div className="text-[13px] leading-snug text-ink-muted">{set.note}</div>
               )}
             </div>
+
+            <AdviceLines advice={buyAdvice(s, shown.seat, space, sp.price)} className="px-1" />
 
             <div className="flex flex-col gap-2.5">
               <Btn

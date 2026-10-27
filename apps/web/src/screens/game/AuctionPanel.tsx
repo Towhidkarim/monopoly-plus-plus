@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
+import { buyAdvice } from '../../game/advice.ts'
+import { AdviceLines } from './AdviceLines.tsx'
 import { SPACES } from '@skyline/engine'
 import type { GameState } from '@skyline/engine'
 import type { GameStore, Snapshot } from '../../game/store.ts'
@@ -345,9 +347,16 @@ export function AuctionPanel({ snap, store, turn }: { snap: Snapshot; store: Gam
                 >
                   <span className="size-3 shrink-0 rounded-[3px]" style={{ background: groupColor }} />
                   <span>
-                    {sp.name} would give you {set.mine} of {set.total} {set.name}. {set.note}
+                    {sp.name} would give you {set.mine} of {set.total} {set.name}.{' '}
+                    {set.mine < set.total ? set.note : ''}
                   </span>
                 </div>
+              )}
+              {viewer !== null && !fin && (
+                <AdviceLines
+                  advice={buyAdvice(s, viewer, a.space, Math.max(a.highBid, 1))}
+                  className="mx-6.5 mt-2.5"
+                />
               )}
             </div>
 
