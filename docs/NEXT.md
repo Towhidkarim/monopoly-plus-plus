@@ -21,6 +21,8 @@ The developer wants fun prioritized: polish (Milestone 11 items) comes before Mi
 
 Then Milestone 10 (bots) and the learned bots (`docs/LEARNED_BOTS.md`).
 
+Game variant and "++" feature ideas are parked in `docs/IDEAS.md` (not planned yet).
+
 ## Loose ends
 
 - React warns "Updating a style property during rerender (background) when a conflicting property is set (backgroundImage)" in one of the game panels that mixes `background` and `backgroundImage` (DebtPanel, GameTooltip, Overlays, TitleDeed, TradeParts or SetupScreen).

@@ -95,9 +95,10 @@ export function MyCity({
   const seatInfo = store.setup.seats[seat]!
 
   return (
+    // z-20: above the buy and auction layers (z-10) so you can raise cash mid-decision; below trade (z-30).
     <aside
       {...dialog.props}
-      className="pointer-events-auto absolute top-26 right-4 bottom-35 flex w-120 max-w-[calc(100%-2rem)] animate-slide-in flex-col overflow-hidden rounded-[26px] border border-line bg-panel shadow-[inset_0_1px_0_rgba(255,255,255,0.08),-20px_0_60px_rgba(2,6,16,0.55)]"
+      className="pointer-events-auto absolute top-26 right-4 bottom-35 z-20 flex w-120 max-w-[calc(100%-2rem)] animate-slide-in flex-col overflow-hidden rounded-[26px] border border-line bg-panel shadow-[inset_0_1px_0_rgba(255,255,255,0.08),-20px_0_60px_rgba(2,6,16,0.55)]"
     >
       <header className="flex items-center justify-between px-5 pt-4.5 pb-3 [@media(max-height:760px)]:pt-3 [@media(max-height:760px)]:pb-2">
         <h2 id={dialog.titleId} className="flex items-center gap-2.5 font-display text-2xl font-bold">
