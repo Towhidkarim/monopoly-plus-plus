@@ -19,6 +19,8 @@ export interface SoundSettings {
   ui: number
   /** City ambience under the game (ambience.ts). */
   ambience: number
+  /** Background music (music.ts). */
+  music: number
 }
 
 export interface PlayOptions {
@@ -37,7 +39,17 @@ export type SoundOverrides = Partial<Record<SoundId, { pick?: number; mix?: Reco
 
 const SETTINGS_KEY = 'skyline.sound'
 const OVERRIDES_KEY = 'skyline.sound.overrides'
-const DEFAULT_SETTINGS: SoundSettings = { muted: false, master: 0.8, sfx: 1, ui: 0.7, ambience: 0.5 }
+/** The music track is mastered loud; this keeps it a bed under the game at any slider position. */
+const MUSIC_TRIM = 0.35
+
+const DEFAULT_SETTINGS: SoundSettings = {
+  muted: false,
+  master: 0.8,
+  sfx: 1,
+  ui: 0.7,
+  ambience: 0.5,
+  music: 0.45,
+}
 /** At most this many overlapping plays of one sound; extra ones are dropped. */
 const MAX_VOICES = 6
 /** Same sound twice within this window (seconds) plays once. */
@@ -56,6 +68,7 @@ export class SoundEngine {
   private master: GainNode | null = null
   private buses: Partial<Record<Bus, GainNode>> = {}
   private ambience: GainNode | null = null
+  private music: GainNode | null = null
   private room: ConvolverNode | null = null
   private readonly buffers = new Map<string, AudioBuffer>()
   private readonly voices = new Map<SoundId, number>()
@@ -94,6 +107,8 @@ export class SoundEngine {
     }
     this.ambience = ctx.createGain()
     this.ambience.connect(this.master)
+    this.music = ctx.createGain()
+    this.music.connect(this.master)
     this.room = ctx.createConvolver()
     this.room.buffer = makeRoom(ctx)
     const ret = ctx.createGain()
@@ -107,10 +122,11 @@ export class SoundEngine {
     return this.ctx !== null && this.ctx.state === 'running'
   }
 
-  /** The context and ambience bus once audio runs and is not muted, else null. */
-  ambienceOut(): { ctx: AudioContext; out: AudioNode } | null {
-    if (!this.ready || !this.ambience || this.settings.muted) return null
-    return { ctx: this.ctx!, out: this.ambience }
+  /** The context and a background bus once audio runs and is not muted, else null. */
+  backgroundOut(bus: 'ambience' | 'music'): { ctx: AudioContext; out: AudioNode } | null {
+    const out = this[bus]
+    if (!this.ready || !out || this.settings.muted) return null
+    return { ctx: this.ctx!, out }
   }
 
   play(id: SoundId, o: PlayOptions = {}): void {
@@ -189,6 +205,7 @@ export class SoundEngine {
     if (this.buses.sfx) this.buses.sfx.gain.value = s.sfx
     if (this.buses.ui) this.buses.ui.gain.value = s.ui
     if (this.ambience) this.ambience.gain.value = s.ambience
+    if (this.music) this.music.gain.value = s.music * MUSIC_TRIM
   }
 
   // ---- sound board edits --------------------------------------------------
@@ -294,7 +311,7 @@ function readSettings(raw: unknown): SoundSettings {
   const s = { ...DEFAULT_SETTINGS }
   if (!isRecord(raw)) return s
   if (typeof raw.muted === 'boolean') s.muted = raw.muted
-  for (const k of ['master', 'sfx', 'ui', 'ambience'] as const) {
+  for (const k of ['master', 'sfx', 'ui', 'ambience', 'music'] as const) {
     const v = raw[k]
     if (typeof v === 'number') s[k] = Math.min(1, Math.max(0, v))
   }

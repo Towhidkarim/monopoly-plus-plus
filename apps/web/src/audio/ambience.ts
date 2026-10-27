@@ -52,7 +52,7 @@ export class CityAmbience {
   }
 
   private tick(): void {
-    const io = this.engine.ambienceOut()
+    const io = this.engine.backgroundOut('ambience')
     if (!io) return
     const { ctx } = io
     this.noise ??= brownNoise(ctx, 4)

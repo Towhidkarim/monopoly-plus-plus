@@ -433,3 +433,9 @@ During a decision (buy, auction, debt, offer, trade) the left column and activit
 - Its own bus into the master (after the compressor's input, like sfx and ui) with an `ambience` level (default 0.5) saved with the sound settings and a "City" slider in the game menu; muting stops new sounds and silences the master. It starts on the game screen and waits for the first click to unlock audio.
 - Measured offline (8 s render): about -25 dBFS RMS by day, -29 at night, peaks below 0.25 before the bus and master gains.
 - Background music is left for a track the developer picks (CC0 only, see project rules).
+
+## D52. Background music (2026-10-28)
+
+- One looping track, "Warm Drinks and Dice" (developer-generated with Google's AI music tool, see docs/ASSETS.md), served from `public/audio/music/`. `MusicPlayer` (`apps/web/src/audio/music.ts`) streams it through an audio element (never decoded whole) into the engine's music bus via a media-element source, so master volume and mute apply. Nothing is fetched before audio unlocks on the first click; it fades in over ~2.5 s on the game screen and out when leaving, and pauses while muted.
+- `music` level (default 0.45, "Music" slider in the game menu) times a fixed `MUSIC_TRIM` of 0.35: the track is mastered loud and should sit under the game's sounds at any slider position.
+- Not done: ducking the music under big moments, and more tracks.

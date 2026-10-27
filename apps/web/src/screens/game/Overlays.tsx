@@ -661,6 +661,20 @@ export function GameMenu({
           />
         </div>
         <div className="flex items-center gap-2.5 px-1.5 py-2">
+          <span className="w-16 text-sm font-bold">Music</span>
+          <input
+            type="range"
+            aria-label="Music volume"
+            min={0}
+            max={1}
+            step={0.01}
+            value={audio.music}
+            disabled={audio.muted}
+            onChange={(e) => sound.setSettings({ music: Number(e.target.value) })}
+            className="min-w-0 flex-1 accent-accent disabled:opacity-40"
+          />
+        </div>
+        <div className="flex items-center gap-2.5 px-1.5 py-2">
           <span className="w-16 text-sm font-bold">City</span>
           <input
             type="range"

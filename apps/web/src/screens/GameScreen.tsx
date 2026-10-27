@@ -5,6 +5,7 @@ import { BoardCanvas } from '../BoardCanvas.tsx'
 import { connectSound } from '../audio/connect.ts'
 import { CityAmbience } from '../audio/ambience.ts'
 import { sound } from '../audio/engine.ts'
+import { MusicPlayer } from '../audio/music.ts'
 import { loadPrefs, savePrefs, syncReducedMotion } from '../game/prefs.ts'
 import { buildableGroups } from '@skyline/bots'
 import { cityOf } from '../game/setup.ts'
@@ -81,6 +82,8 @@ export function GameScreen({
     const city = new CityAmbience(sound)
     city.start()
     ambience.current = city
+    const music = new MusicPlayer(sound)
+    music.start()
     // Dev console handle (and for scripted screenshots).
     if (import.meta.env.DEV) Object.assign(window, { skylineStore: store })
     store.attach(handle?.board ?? null)
@@ -98,6 +101,7 @@ export function GameScreen({
     return () => {
       audio.disconnect()
       city.stop()
+      music.stop()
       ambience.current = null
       store.setDiceTray(null)
       store.attach(null)
