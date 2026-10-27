@@ -102,6 +102,14 @@ export class TileView {
   selected = false
   /** 0..1 flash from path previews, decays each frame. */
   flash = 0
+  /**
+   * 0..1 warning while a piece heads for this tile and would owe rent (set by the board as the
+   * piece approaches): the rim beats in the owner's color, faster as it rises.
+   */
+  danger = 0
+  dangerColor = 0xffffff
+  /** Once the piece has arrived the warning fades out instead of stopping dead. */
+  dangerFading = false
   private pulseClock = 0
   private deco: TileDeco = EMPTY_DECO
   private lastT = 1
@@ -290,14 +298,24 @@ export class TileView {
 
     this.pulseClock += dtMs
     if (this.flash > 0) this.flash = Math.max(0, this.flash - dtMs / 450)
+    if (this.dangerFading) {
+      this.danger = Math.max(0, this.danger - dtMs / 700)
+      if (this.danger === 0) this.dangerFading = false
+    }
     const pulse = this.selected ? 0.75 + 0.25 * Math.sin(this.pulseClock / 160) : 0
-    this.rim.alpha = Math.max(this.hovered ? 1 : 0, pulse, this.flash, this.wave * 0.9)
+    // A heartbeat: a sharp rise and a slower fall, its period shrinking from ~900 to ~420 ms.
+    const beat =
+      this.danger > 0 ? (this.pulseClock % (900 - 480 * this.danger)) / (900 - 480 * this.danger) : 0
+    const warn = this.danger * (0.35 + 0.65 * Math.exp(-6 * beat))
+    this.rim.alpha = Math.max(this.hovered ? 1 : 0, pulse, this.flash, this.wave * 0.9, warn)
     this.rim.tint =
-      this.wave > Math.max(pulse, this.flash) && !this.hovered
-        ? this.waveColor
-        : this.selected
-          ? palette.select
-          : palette.hover
+      warn > Math.max(pulse, this.flash, this.wave) && !this.hovered
+        ? this.dangerColor
+        : this.wave > Math.max(pulse, this.flash) && !this.hovered
+          ? this.waveColor
+          : this.selected
+            ? palette.select
+            : palette.hover
     if (this.flare > 0) {
       this.flare = Math.max(0, this.flare - dtMs / 1600)
       this.applyAlpha()

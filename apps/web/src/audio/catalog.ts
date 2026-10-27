@@ -437,6 +437,21 @@ export const CATALOG = {
       { name: 'Wood tick', layers: wood(0, 0, 0.22, 70), mix: { vary: 0 } },
     ],
   },
+  'auction.heart': {
+    label: 'Bidding war',
+    group: 'Property',
+    bus: 'sfx',
+    when: 'A soft heartbeat under each bid once the bidding heats up',
+    pick: 0,
+    variants: [
+      {
+        name: 'Lub-dub',
+        layers: [thud(0, 0.42, 110, 55, 150), thud(170, 0.3, 100, 52, 170)],
+        mix: { vary: 0 },
+      },
+      { name: 'Single beat', layers: [thud(0, 0.4, 120, 60, 190)], mix: { vary: 0 } },
+    ],
+  },
   'auction.sold': {
     label: 'Sold',
     group: 'Property',

@@ -43,6 +43,8 @@ export class TokenView {
   space: number
   /** True while a travel animation owns `pos.z` (disables idle bob). */
   traveling = false
+  /** The piece whose turn it is breathes gently while it waits (set by the board). */
+  active = false
   private clock = Math.random() * 10_000 // cosmetic phase so pieces do not bob in sync
   private drawnHeading: Heading | -1 = -1
   private drawnT = -1
@@ -96,7 +98,8 @@ export class TokenView {
     this.squash.step(dtMs)
     this.lean.step(dtMs)
     const s = this.squash.value
-    this.pawn.scale.set(1 + s * 0.6, 1 - s)
+    const breathe = this.active && !this.traveling ? 0.025 * Math.sin((this.clock / 1000) * Math.PI * 1.5) : 0
+    this.pawn.scale.set(1 + s * 0.6 - breathe * 0.5, 1 - s + breathe)
     this.pawn.skew.x = this.lean.value
 
     const rest = REST[this.kind]

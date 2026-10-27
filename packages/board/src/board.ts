@@ -70,6 +70,9 @@ export interface BoardListeners {
 
 const MORPH_MS = 750
 
+/** The beat a bankrupt piece holds before it lifts away (sounds wait for it too). */
+export const BANKRUPT_HOLD_MS = 440
+
 export interface BoardPlayer {
   id: string
   color: number
@@ -129,6 +132,8 @@ export class Board {
   private freezeMs = 0
   /** Tiles passed in the current move, for rising step sounds. */
   private stepCount = 0
+  /** The rent tile the moving piece is heading for (see threatOf), if any. */
+  private approach: { space: number; severity: number; steps: number } | null = null
   private mover: TokenView | null = null
   private morphing = false
   private hovered: number | null = null
@@ -376,6 +381,7 @@ export class Board {
         return this.playJump(event.playerId, event.to)
       case 'TURN_STARTED': {
         const token = this.tokens.get(event.playerId)
+        for (const [id, t] of this.tokens) t.active = id === event.playerId && !this.tuning.reducedMotion
         if (token && this.tuning.follow)
           this.camera.setFollow(() => this.worldPos(token), this.juice.camera.followZoom * 0.83)
         token?.squash.kick(5)
@@ -534,6 +540,15 @@ export class Board {
   private async playBankrupt(id: string): Promise<void> {
     const token = this.tokens.get(id)
     if (!token) return
+    // A held beat before the fall: the piece trembles, the world stops for a moment, then it goes.
+    if (!this.tuning.reducedMotion) {
+      for (const k of [1, -1, 0.8, -0.6]) {
+        token.lean.kick(k * 1.4)
+        await this.animator.wait(BANKRUPT_HOLD_MS / 5)
+      }
+      this.hitStop(BANKRUPT_HOLD_MS / 5)
+      this.addTrauma(0.35)
+    }
     token.squash.kick(-10)
     await this.animator.tween(520, (p) => {
       token.pawn.alpha = 1 - p
@@ -610,11 +625,37 @@ export class Board {
     const token = this.tokens.get(playerId)
     if (!token || path.length === 0) return
     this.animator.speed = this.tuning.speed
-    if (this.tuning.follow) this.camera.setFollow(() => this.worldPos(token), this.juice.camera.followZoom)
+    const threat = this.threatOf(playerId, path[path.length - 1]!)
+    this.approach = threat && { ...threat, steps: path.length }
+    if (this.tuning.follow) {
+      // Heading for someone's rent: the camera leans a little toward where the piece will land.
+      const lean = threat ? 0.22 * threat.severity : 0
+      this.camera.setFollow(() => {
+        const at = this.worldPos(token)
+        if (!threat) return at
+        const to = this.tileTop(threat.space)
+        return { x: at.x + (to.x - at.x) * lean, y: at.y + (to.y - at.y) * lean }
+      }, this.juice.camera.followZoom)
+    }
     this.mover = token
     this.stepCount = 0
-    await travel(this.motion, token, path)
-    this.mover = null
+    try {
+      await travel(this.motion, token, path)
+    } finally {
+      if (this.approach) this.tiles[this.approach.space]!.dangerFading = true
+      this.approach = null
+      this.mover = null
+    }
+  }
+
+  /** The rent warning for landing on `space`: someone else's unmortgaged property, stronger with buildings. */
+  private threatOf(playerId: string, space: number): { space: number; severity: number } | null {
+    const owner = this.owners[space]
+    if (owner === null || owner === undefined || owner === playerId || this.mortgages[space]) return null
+    const tile = this.tiles[space]!
+    tile.dangerColor = this.colors.get(owner) ?? 0xffffff
+    tile.dangerFading = false
+    return { space, severity: 0.4 + 0.12 * (this.levels[space] ?? 0) }
   }
 
   private async playJump(playerId: string, to: number): Promise<void> {
@@ -644,6 +685,8 @@ export class Board {
     layoutTile: (space) => this.layoutTile(space),
     step: (space) => {
       this.emit({ kind: 'step', piece: this.mover?.kind ?? 'pawn', space, step: this.stepCount++ })
+      const a = this.approach
+      if (a) this.tiles[a.space]!.danger = a.severity * Math.min(1, 0.3 + (0.7 * this.stepCount) / a.steps)
     },
     landed: (space, strength) => {
       if (strength > 1) this.addTrauma(this.juice.land.jumpTrauma)

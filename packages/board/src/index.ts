@@ -4,7 +4,7 @@
  */
 export { mountBoard } from './mount.ts'
 export type { BoardHandle, BoardOptions } from './mount.ts'
-export { Board, DEFAULT_TUNING } from './board.ts'
+export { BANKRUPT_HOLD_MS, Board, DEFAULT_TUNING } from './board.ts'
 export type {
   BoardCursors,
   BoardBeat,

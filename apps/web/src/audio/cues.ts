@@ -1,5 +1,5 @@
 import type { GameEvent } from '@skyline/engine'
-import type { BoardBeat } from '@skyline/board'
+import { BANKRUPT_HOLD_MS, type BoardBeat } from '@skyline/board'
 import type { Fx } from '../game/store.ts'
 import { TIMINGS, coinCount } from '../game/timings.ts'
 import type { SoundId } from './catalog.ts'
@@ -55,8 +55,13 @@ export class CueMapper {
       case 'AUCTION_STARTED':
         this.bids = 0
         return [{ sound: 'auction.start' }]
-      case 'BID_PLACED':
-        return [{ sound: 'auction.bid', pitch: climb(this.bids++) * 0.5 }]
+      case 'BID_PLACED': {
+        const n = this.bids++
+        const bid: Cue = { sound: 'auction.bid', pitch: climb(n) * 0.5 }
+        // From the third bid a heartbeat sits under each raise, a little louder as it goes on.
+        if (n < 2) return [bid]
+        return [bid, { sound: 'auction.heart', delay: 140 / speed, gain: Math.min(1, 0.55 + 0.08 * (n - 2)) }]
+      }
       case 'AUCTION_ENDED':
         return e.winner ? [{ sound: 'auction.sold' }] : []
       case 'SOLD_BUILDING':
@@ -76,7 +81,8 @@ export class CueMapper {
       case 'RELEASED':
         return [{ sound: 'jail.free' }]
       case 'BANKRUPT':
-        return [{ sound: 'game.bankrupt' }]
+        // After the board's held beat, as the piece falls.
+        return [{ sound: 'game.bankrupt', delay: BANKRUPT_HOLD_MS / speed }]
       case 'FINAL_ROUND':
         return [{ sound: 'game.finalRound' }]
       case 'GAME_OVER':

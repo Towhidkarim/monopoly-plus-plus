@@ -67,6 +67,16 @@ describe('CueMapper', () => {
     expect(m.event({ type: 'BID_PLACED', playerId: 'p1', amount: 10 })[0]!.pitch).toBe(a.pitch)
   })
 
+  it('adds a heartbeat under bids once a bidding war starts', () => {
+    const m = new CueMapper(human)
+    m.event({ type: 'AUCTION_STARTED', space: 1 })
+    const bid = (amount: number) =>
+      m.event({ type: 'BID_PLACED', playerId: 'p1', amount }).map((c) => c.sound)
+    expect(bid(10)).toEqual(['auction.bid'])
+    expect(bid(20)).toEqual(['auction.bid'])
+    expect(bid(30)).toEqual(['auction.bid', 'auction.heart'])
+  })
+
   it('ticks once per flying coin, timed to land, climbing in pitch', () => {
     const m = new CueMapper(human)
     const cues = m.fx({ kind: 'transfer', from: 'p1', to: 'p2', amount: 600 })

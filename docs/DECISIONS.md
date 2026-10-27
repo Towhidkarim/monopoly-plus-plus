@@ -418,3 +418,11 @@ During a decision (buy, auction, debt, offer, trade) the left column and activit
 - No thick bottom lip: `--shadow-card` / `--shadow-card-lg` are a bright top edge, a 1px paper edge, a close contact shadow and a soft ambient one. Smaller radii (16 px deed, 10 px compact, 18 px chance) and quieter header stripes.
 - The cursor sheen is matte: a broad warm light on the near side and a faint shade on the far side, instead of a tight white hotspot. Tilt is gentler (10° / 13°, 10 px lift, 1.02 scale).
 - The selected-space close button is a round chip on the card's corner, clear of the FOR SALE ribbon. Screenshot: `docs/screenshots/card-paper.png` (rest, then tilted).
+
+## D50. Moments: approach warning, active piece breathing, bidding-war heartbeat, bankrupt beat (2026-10-28)
+
+- **Approach warning:** when a move ends on someone else's unmortgaged property, that tile's rim beats like a heart in the owner's color as the piece comes closer (period ~900 to ~420 ms, strength up with buildings), then fades after arrival. The follow camera leans up to 22% toward the destination. The board decides this from its own owners/levels; the engine is untouched.
+- **Active piece:** the piece whose turn it is breathes (a 2.5% squash-and-stretch loop) while it waits. Off with reduced motion.
+- **Bidding war:** from the third bid on, a soft lub-dub heartbeat (`auction.heart`, tunable on the sound board) plays under each raise, slightly louder as the war goes on.
+- **Bankruptcy:** the piece trembles for a held beat (`BANKRUPT_HOLD_MS`, 440 ms) with a short hit-stop and shake before it lifts away; the bankrupt sound waits for the beat.
+- Already present and kept: rolling cash numbers (`TickingMoney`), spring button presses (`FX`).
