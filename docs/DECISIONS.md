@@ -439,3 +439,10 @@ During a decision (buy, auction, debt, offer, trade) the left column and activit
 - One looping track, "Warm Drinks and Dice" (developer-generated with Google's AI music tool, see docs/ASSETS.md), served from `public/audio/music/`. `MusicPlayer` (`apps/web/src/audio/music.ts`) streams it through an audio element (never decoded whole) into the engine's music bus via a media-element source, so master volume and mute apply. Nothing is fetched before audio unlocks on the first click; it fades in over ~2.5 s on the game screen and out when leaving, and pauses while muted.
 - `music` level (default 0.45, "Music" slider in the game menu) times a fixed `MUSIC_TRIM` of 0.35: the track is mastered loud and should sit under the game's sounds at any slider position.
 - Not done: ducking the music under big moments, and more tracks.
+
+## D54. Landing odds before you roll (2026-10-28)
+
+- On your own move, while rolling is the legal action, the 11 spaces a two-dice total can reach are tinted on the board: gold for a plain chance, stronger for likelier totals (7 strongest), in the owner's color where rent is due. Each gets a floating label: the chance ("17%") or the rent owed ("₵250", the engine's `rentFor` with that total, so set doubling and utilities are right). Labels pop in along the path and everything fades out when the dice are thrown. Not shown in jail. Cards, doubles and "go to jail" are not modelled; it is the one roll.
+- Computed in the shell (`apps/web/src/game/odds.ts`, unit-tested) and drawn by the board (`board.setOdds`, tile tint in `TileView`, labels in `view/odds.ts`, world space above buildings). A "Landing odds" switch in the menu, on by default, saved with the other preferences.
+- Tooling: `pnpm lint` passes `--ignore-pattern ".claude/**"` because type-aware oxlint ignores the config's `ignorePatterns` (agent worktrees live under `.claude/worktrees`, now gitignored).
+- D53 is reserved for the bot trade proposals work running in parallel.

@@ -534,6 +534,8 @@ export function GameMenu({
   onSky,
   cursor,
   onCursor,
+  odds,
+  onOdds,
   botOffers,
   onBotOffers,
   onLog,
@@ -554,6 +556,8 @@ export function GameMenu({
   onSky: (v: SkyPref) => void
   cursor: CursorPref
   onCursor: () => void
+  odds: boolean
+  onOdds: () => void
   botOffers: boolean
   onBotOffers: () => void
   onLog: () => void
@@ -632,6 +636,12 @@ export function GameMenu({
           hint="Off uses your system cursor"
           on={cursor === 'game'}
           onChange={onCursor}
+        />
+        <Switch
+          label="Landing odds"
+          hint="Before you roll, show where you could land and the rent"
+          on={odds}
+          onChange={onOdds}
         />
         <Switch
           label="Offers from bots"

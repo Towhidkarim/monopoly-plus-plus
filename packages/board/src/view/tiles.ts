@@ -68,6 +68,10 @@ export class TileView {
   readonly container = new Container()
   private readonly base = new Graphics()
   private readonly decoG = new Graphics()
+  /** Landing-odds tint on the tile top (see setOdds). */
+  private readonly oddsG = new Graphics()
+  private odds: { k: number; color: number | null } = { k: 0, color: null }
+  private oddsOn = false
   /**
    * The lot's building with its lights and beacons. It lives in the board's actor layer (not this
    * tile's container) so it depth-sorts with the city and the pieces; it follows the tile's lift.
@@ -128,7 +132,8 @@ export class TileView {
     this.groupColor = space.kind === 'property' ? groupColors[space.group]! : null
     this.special = specialOf(index)
     this.rim.alpha = 0
-    this.container.addChild(this.base, this.decoG, this.rim)
+    this.oddsG.alpha = 0
+    this.container.addChild(this.base, this.oddsG, this.decoG, this.rim)
     this.tower.addChild(this.building, this.buildingLights, this.buildingBeacons)
     if (this.fp.corner) {
       // Corner props keep to the back edges, behind the pieces standing on the corner.
@@ -260,8 +265,33 @@ export class TileView {
     this.buildingBeacons.y = this.building.y
   }
 
+  /**
+   * Tints the tile top for the landing-odds overlay: `k` 0..1 is how likely (0 hides it), `color`
+   * an owner's color where rent would be due (else gold).
+   */
+  setOdds(k: number, color: number | null): void {
+    this.oddsOn = k > 0
+    // Hiding keeps the last tint drawn so it can fade out.
+    if (!this.oddsOn) return
+    this.odds = { k, color }
+    this.drawOdds(this.lastT)
+  }
+
+  private drawOdds(t: number): void {
+    const { k, color } = this.odds
+    const g = this.oddsG.clear()
+    if (k <= 0) return
+    const fp = this.fp
+    // Gold (the game's accent) for a plain chance; the owner's color where rent is due.
+    const c = color ?? palette.select
+    const r = rect(fp.col0 + GAP, fp.row0 + GAP, fp.col1 - GAP, fp.row1 - GAP, 0.001, t)
+    g.poly(r).fill({ color: c, alpha: 0.14 + 0.36 * k })
+    g.poly(r).stroke({ color: c, width: 2, alpha: 0.5 + 0.5 * k, alignment: 1, join: 'round' })
+  }
+
   draw(t: number): void {
     this.lastT = t
+    this.drawOdds(t)
     this.drawDeco(t)
     const fp = this.fp
     const g = this.base.clear()
@@ -297,6 +327,9 @@ export class TileView {
     this.tower.y = this.container.y
 
     this.pulseClock += dtMs
+    // The odds tint eases in and out.
+    const oddsTo = this.oddsOn ? 1 : 0
+    this.oddsG.alpha += (oddsTo - this.oddsG.alpha) * Math.min(1, dtMs / 140)
     if (this.flash > 0) this.flash = Math.max(0, this.flash - dtMs / 450)
     if (this.dangerFading) {
       this.danger = Math.max(0, this.danger - dtMs / 700)

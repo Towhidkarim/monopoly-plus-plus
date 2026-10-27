@@ -13,6 +13,7 @@ import { SIDE_HEADING, type PieceKind } from './pieces/shapes.ts'
 import { Camera, type Bounds, type Insets } from './view/camera.ts'
 import { CityView, GroundView } from './view/city.ts'
 import { rect } from './view/draw.ts'
+import { OddsLabels, type OddsMark } from './view/odds.ts'
 import { TileView } from './view/tiles.ts'
 import { TokenView } from './view/token.ts'
 
@@ -103,6 +104,7 @@ export class Board {
   private readonly shadowLayer = new Container()
   private readonly actorLayer = new Container({ sortableChildren: true })
   private readonly particles = new Particles()
+  private readonly oddsLabels = new OddsLabels()
   private readonly debugLayer = new Container()
   private readonly debugLines = new Graphics()
   /** Screen-space layer above the world (crisp text such as the dice total). */
@@ -177,6 +179,7 @@ export class Board {
       this.tileLayer,
       this.shadowLayer,
       this.actorLayer,
+      this.oddsLabels.container,
       this.dice.container,
       this.particles.container,
       this.debugLayer,
@@ -558,6 +561,20 @@ export class Board {
     this.removeToken(id)
   }
 
+  /**
+   * The landing-odds overlay: tints the tiles a roll can end on (stronger = likelier; in the
+   * owner's color where rent is due) and floats a label over each. null hides it (fading).
+   */
+  setOdds(marks: readonly OddsMark[] | null): void {
+    const top = marks?.reduce((m, o) => Math.max(m, o.p), 0) ?? 0
+    const by = new Map(marks?.map((m) => [m.space, m]))
+    for (const tile of this.tiles) {
+      const m = by.get(tile.index)
+      tile.setOdds(m && top > 0 ? m.p / top : 0, m?.color ?? null)
+    }
+    this.oddsLabels.set(marks)
+  }
+
   /** Morph between isometric (true) and top-down (false). */
   async setIsometric(iso: boolean): Promise<void> {
     const from = this.viewT
@@ -753,6 +770,7 @@ export class Board {
       token.update(dt, t, under === null ? 0 : this.tiles[under]!.lift.value)
     }
     this.particles.update(dt)
+    this.oddsLabels.update(real, (i) => this.tileTop(i), this.tuning.reducedMotion)
     this.dice.update(dt)
     this.camera.update(real)
     this.city.life.update(dt, this.viewRect())

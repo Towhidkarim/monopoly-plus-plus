@@ -10,6 +10,7 @@ import { loadPrefs, savePrefs, syncReducedMotion } from '../game/prefs.ts'
 import { buildableGroups } from '@skyline/bots'
 import { cityOf } from '../game/setup.ts'
 import { applyCursorPref, type CursorPref } from '../cursors.ts'
+import { landingOdds } from '../game/odds.ts'
 import { skyLevel, type SkyPref } from '../game/sky.ts'
 import type { GameStore } from '../game/store.ts'
 import { ActionDock } from './game/ActionDock.tsx'
@@ -25,7 +26,7 @@ import { Hud } from './game/Hud.tsx'
 import { MyCity } from './game/MyCity.tsx'
 import { OfferPanel } from './game/OfferPanel.tsx'
 import { TradeComposer, type TradeDraft } from './game/TradeComposer.tsx'
-import { SPEEDS, type SpeedChoice } from './game/format.ts'
+import { SPEEDS, fmtMoney, type SpeedChoice } from './game/format.ts'
 import { CardPopup, GameMenu, GameOver, HelpOverlay } from './game/Overlays.tsx'
 import { ActivityFeed, LeftColumn } from './game/SidePanels.tsx'
 import { TurnBanner } from './game/TurnBanner.tsx'
@@ -64,6 +65,7 @@ export function GameScreen({
   const [fastBots, setFastBots] = useState(store.settings.fastBots)
   const [reducedMotion, setReducedMotion] = useState(store.settings.reducedMotion)
   const [botOffers, setBotOffers] = useState(store.settings.botOffers)
+  const [odds, setOdds] = useState(store.settings.odds)
   const [cityLife, setCityLife] = useState(store.settings.cityLife)
   const [dice3d, setDice3d] = useState(store.settings.dice3d)
   const [sky, setSky] = useState<SkyPref>(store.settings.sky)
@@ -133,6 +135,23 @@ export function GameScreen({
   // A decision is open: buy, auction, debt or an incoming offer, or the trade composer.
   const focus = turn.moment !== null || trade !== null
   const viewerId = viewer !== null ? snap.state.players[viewer]!.id : null
+
+  // Landing odds: on your own move before the roll; gone as soon as the dice fly.
+  const rolling =
+    odds && turn.canAct && turn.actorSeat === viewer && turn.legal.some((a) => a.type === 'ROLL')
+  const state = snap.state
+  useEffect(() => {
+    if (!handle) return
+    if (!rolling) return handle.board.setOdds(null)
+    handle.board.setOdds(
+      landingOdds(state, turn.actorSeat).map((o) => ({
+        space: o.space,
+        p: o.p,
+        label: o.rent > 0 ? fmtMoney(o.rent) : `${Math.round(o.p * 100)}%`,
+        color: o.owner === null ? null : store.setup.seats[o.owner]!.color,
+      })),
+    )
+  }, [handle, rolling, state, turn.actorSeat, store])
   const cityBadge =
     viewerId && store.seatKind(viewerId) === 'human' ? buildableGroups(snap.state, viewerId) : 0
   const canTrade =
@@ -153,6 +172,7 @@ export function GameScreen({
       instant: s.instant,
       reducedMotion: s.reducedMotion,
       botOffers: s.botOffers,
+      odds: s.odds,
       cityLife: s.cityLife,
       sky: s.sky,
       cursor: s.cursor,
@@ -343,6 +363,12 @@ export function GameScreen({
                   store.setSettings({ cursor: next })
                   setCursor(next)
                   handle?.setCursors(applyCursorPref(next))
+                  persist()
+                }}
+                odds={odds}
+                onOdds={() => {
+                  store.setSettings({ odds: !odds })
+                  setOdds(!odds)
                   persist()
                 }}
                 botOffers={botOffers}

@@ -6,7 +6,16 @@ const KEY = 'skyline.prefs'
 /** Player preferences that outlive a game: speed, fast bots, reduced motion, bot offers, dice. */
 export type Prefs = Pick<
   StoreSettings,
-  'speed' | 'fastBots' | 'instant' | 'reducedMotion' | 'botOffers' | 'cityLife' | 'sky' | 'cursor' | 'dice3d'
+  | 'speed'
+  | 'fastBots'
+  | 'instant'
+  | 'reducedMotion'
+  | 'botOffers'
+  | 'odds'
+  | 'cityLife'
+  | 'sky'
+  | 'cursor'
+  | 'dice3d'
 >
 
 export function loadPrefs(): Partial<Prefs> {
@@ -20,6 +29,7 @@ export function loadPrefs(): Partial<Prefs> {
       if (typeof r.instant === 'boolean') saved.instant = r.instant
       if (typeof r.reducedMotion === 'boolean') saved.reducedMotion = r.reducedMotion
       if (typeof r.botOffers === 'boolean') saved.botOffers = r.botOffers
+      if (typeof r.odds === 'boolean') saved.odds = r.odds
       if (typeof r.cityLife === 'boolean') saved.cityLife = r.cityLife
       if (typeof r.dice3d === 'boolean') saved.dice3d = r.dice3d
       if (r.cursor === 'game' || r.cursor === 'system') saved.cursor = r.cursor satisfies CursorPref

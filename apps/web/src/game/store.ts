@@ -91,6 +91,8 @@ export interface StoreSettings {
   reducedMotion: boolean
   /** Bots may propose deals to human players. */
   botOffers: boolean
+  /** Landing odds on the board before a human rolls. */
+  odds: boolean
   /** Cars and trains moving on the board city (cosmetic). */
   cityLife: boolean
   /** Day/night: follow the round count, or hold day or night. */
@@ -152,6 +154,7 @@ export class GameStore {
     instant: false,
     reducedMotion: false,
     botOffers: true,
+    odds: true,
     cityLife: true,
     sky: 'auto',
     cursor: 'game',
