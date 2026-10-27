@@ -19,7 +19,7 @@ import { raisePlan } from '../plans.ts'
 import { LANDING } from './landing.ts'
 import { afterPurchase, horizon, rentRate, reserveFor, seatValue } from './model.ts'
 import { BALANCED, type BotParams } from './params.ts'
-import { accepts, proposal } from './trades.ts'
+import { PROPOSAL_COOLDOWN, accepts, offerKey, proposal, type Offer } from './trades.ts'
 
 export interface HeuristicOptions {
   /** Partners the bot may propose trades to (default: everyone). */
@@ -36,6 +36,8 @@ type Of<T extends Action['type']> = Extract<Action, { type: T }>
 export function createHeuristicBot(params: BotParams = BALANCED, options: HeuristicOptions = {}): Bot {
   /** Turn on which each seat last proposed a trade (one proposal per turn). */
   const proposedOn = new Map<string, number>()
+  /** Offer identity (partner + properties) -> turn it was proposed; repeats wait out a cooldown. */
+  const proposedKeys = new Map<string, number>()
   const canTradeWith = options.canTradeWith ?? (() => true)
 
   return {
@@ -116,8 +118,19 @@ export function createHeuristicBot(params: BotParams = BALANCED, options: Heuris
           !view.trades.some((t) => t.from === seat)
         ) {
           proposedOn.set(playerId, view.turnCount)
-          const deal = proposal(view, seat, p, (x) => canTradeWith(view.players[x]!.id))
-          if (deal) return deal
+          const keyOf = (o: Offer) => `${playerId}:${offerKey(o)}`
+          const deal = proposal(
+            view,
+            seat,
+            p,
+            (x) => canTradeWith(view.players[x]!.id),
+            (o) => view.turnCount - (proposedKeys.get(keyOf(o)) ?? -Infinity) < PROPOSAL_COOLDOWN,
+          )
+          if (deal) {
+            const to = view.players.findIndex((q) => q.id === deal.to)
+            proposedKeys.set(keyOf({ from: seat, to, give: deal.give, get: deal.get }), view.turnCount)
+            return deal
+          }
         }
       }
       return find('ROLL') ?? find('END_TURN') ?? null

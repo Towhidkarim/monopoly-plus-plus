@@ -63,48 +63,120 @@ function tradeable(s: GameState, seat: number, exceptGroup: number): number[] {
   return out
 }
 
+/** Groups where `holder` owns all but one space, and `owner` owns that one: [group, missing space]. */
+function oneShort(s: GameState, holder: number, owner: number): [number, number][] {
+  const out: [number, number][] = []
+  for (let g = 0; g < GROUPS.length; g++) {
+    const missing = GROUPS[g]!.filter((i) => s.owner[i] !== holder)
+    if (missing.length === 1 && s.owner[missing[0]!] === owner) out.push([g, missing[0]!])
+  }
+  return out
+}
+
+/** Spaces of group `g` that `seat` owns, if no house stands anywhere in the group. */
+function ownedBare(s: GameState, seat: number, g: number): number[] {
+  const spaces = GROUPS[g]!
+  if (spaces.some((j) => s.houses[j]! > 0)) return []
+  return spaces.filter((j) => s.owner[j] === seat && !s.mortgaged[j])
+}
+
+const sortedIds = (v: number[]) => v.toSorted((a, b) => a - b).join(',')
+
+/** Identity of an offer without its cash, for cooldowns: same partner, same properties. */
+export function offerKey(o: Offer): string {
+  return `${o.to}|${sortedIds(o.give.spaces)}|${sortedIds(o.get.spaces)}`
+}
+
+/** How long (in turns) a proposed deal stays off the table, accepted or not. */
+export const PROPOSAL_COOLDOWN = 12
+
 /**
- * The best deal for a set's missing piece that the owner would likely accept (judged with our
- * own model), or null. `canTradeWith` filters partners (humans have no trade screen yet).
+ * Candidate offers to partner `x`: the missing piece for cash or a property (plus sweetener),
+ * two-for-one deals, and set swaps where each side holds the other's missing piece, with cash
+ * flowing either way to balance.
+ */
+export function candidates(
+  s: GameState,
+  seat: number,
+  x: number,
+  spare: number,
+  partnerSpare: number,
+  p: BotParams,
+): Offer[] {
+  const out: Offer[] = []
+  /** cash > 0: I pay; cash < 0: they pay me. */
+  const add = (give: number[], get: number[], cash: number) => {
+    if (cash > Math.max(0, spare) || -cash > Math.max(0, partnerSpare)) return
+    out.push({
+      from: seat,
+      to: x,
+      give: bundle(give, Math.max(0, cash)),
+      get: bundle(get, Math.max(0, -cash)),
+    })
+  }
+  /** Cash amounts around the point where both sides gain about the same (value moves ~1:1 with cash). */
+  const balancing = (give: number[], get: number[]): number[] => {
+    const [a, b] = gains(s, seat, { from: seat, to: x, give: bundle(give), get: bundle(get) }, p)
+    const mid = round10((a - b) / 2)
+    return [...new Set([0, mid, mid - 40, mid + 40, mid - 100])]
+  }
+  const mine = oneShort(s, seat, x)
+  for (const [g, m] of mine) {
+    const price = SPACES[m]!.price
+    for (const mult of [1.1, 1.4, 1.8, 2.3, 3]) add([], [m], round10(price * mult))
+    const spares = tradeable(s, seat, g)
+    for (const q of spares) for (const c of [0, 50, 100, 200]) add([q], [m], c)
+    for (let a = 0; a < spares.length; a++)
+      for (let b = a + 1; b < spares.length; b++) add([spares[a]!, spares[b]!], [m], 0)
+  }
+  // Set swaps: they miss one piece (q) of a set that I hold, and I miss one (m) that they hold.
+  for (const [h, q] of oneShort(s, x, seat)) {
+    if (ownedBare(s, seat, h).length === 0) continue
+    for (const [g, m] of mine) {
+      if (g === h) continue
+      for (const c of balancing([q], [m])) add([q], [m], c)
+    }
+  }
+  // Both sides advance: they hold two pieces I miss from a set; I give a spare piece plus cash.
+  for (let g = 0; g < GROUPS.length; g++) {
+    const missing = GROUPS[g]!.filter((i) => s.owner[i] !== seat)
+    if (missing.length !== 2 || missing.some((i) => s.owner[i] !== x)) continue
+    for (const q of tradeable(s, seat, g)) for (const c of balancing([q], missing)) add([q], missing, c)
+  }
+  return out
+}
+
+/**
+ * The best deal the partner would likely accept (judged with our own model, with a margin so
+ * offers look tempting), or null. `canTradeWith` filters partners; `blocked` lets the bot veto
+ * offers it made recently (cooldown), so a rejected deal is not repeated.
  */
 export function proposal(
   s: GameState,
   seat: number,
   p: BotParams,
   canTradeWith: (seat: number) => boolean,
+  blocked: (o: Offer) => boolean = () => false,
 ): Extract<Action, { type: 'PROPOSE_TRADE' }> | null {
-  const me = s.players[seat]!
-  const spare = me.cash - reserveFor(s, seat, p) * 0.6
+  const spare = s.players[seat]!.cash - reserveFor(s, seat, p) * 0.6
+  const baseMine = seatValue(s, seat, p)
   let best: { offer: Offer; score: number } | null = null
-  for (let g = 0; g < GROUPS.length; g++) {
-    const missing = GROUPS[g]!.filter((i) => s.owner[i] !== seat)
-    if (missing.length !== 1) continue
-    const m = missing[0]!
-    const x = s.owner[m]!
+  const partners = new Set<number>()
+  for (const group of GROUPS) {
+    const missing = group.filter((i) => s.owner[i] !== seat)
+    if (missing.length <= 2) for (const i of missing) partners.add(s.owner[i]!)
+  }
+  for (const x of [...partners].toSorted((a, b) => a - b)) {
     if (x < 0 || s.players[x]!.bankrupt || !canTradeWith(x)) continue
-    const price = SPACES[m]!.price
-    const offers: Offer[] = []
-    for (const mult of [1.1, 1.4, 1.8, 2.3, 3]) {
-      const cash = round10(price * mult)
-      if (cash <= spare) offers.push({ from: seat, to: x, give: bundle([], cash), get: bundle([m]) })
-    }
-    for (const q of tradeable(s, seat, g)) {
-      for (const cash of [0, 50, 100, 200]) {
-        if (cash <= Math.max(0, spare))
-          offers.push({ from: seat, to: x, give: bundle([q], cash), get: bundle([m]) })
-      }
-    }
-    // Values before the deal are the same for every offer: compute them once.
-    const baseMine = seatValue(s, seat, p)
+    const partnerSpare = s.players[x]!.cash - reserveFor(s, x, p) * 0.5
     const baseTheirs = seatValue(s, x, p)
-    const partnerReserve = reserveFor(s, x, p) * 0.5
-    for (const offer of offers) {
-      if (offer.get.cash > 0 && s.players[x]!.cash - offer.get.cash < partnerReserve) continue
+    for (const offer of candidates(s, seat, x, spare, partnerSpare, p)) {
+      if (blocked(offer)) continue
       const after = afterTrade(s, offer.from, offer.to, offer.give, offer.get)
       const mine = seatValue(after, seat, p) - baseMine
       const theirs = seatValue(after, x, p) - baseTheirs
-      // Would the partner accept (judged with our model)? Then is it worth it for us?
-      if (score(theirs, mine, p) <= p.tradeMargin) continue
+      // Would the partner accept with room to spare (so it looks tempting)? Then is it worth it?
+      if (score(theirs, mine, p) <= p.tradeMargin * 1.25) continue
       const value = score(mine, theirs, p)
       if (value > p.tradeMargin && (!best || value > best.score)) best = { offer, score: value }
     }

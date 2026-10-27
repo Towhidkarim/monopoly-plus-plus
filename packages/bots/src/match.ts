@@ -35,6 +35,8 @@ export interface MatchResult {
   /** Actions a bot chose that the engine rejected (should stay 0). */
   rejected: number
   trades: number
+  /** Trade offers made. */
+  proposed: number
   sets: number
   bankruptcies: number
   violations: string[]
@@ -55,6 +57,7 @@ export function playMatch(opts: MatchOptions): MatchResult {
     actions: 0,
     rejected: 0,
     trades: 0,
+    proposed: 0,
     sets: 0,
     bankruptcies: 0,
     violations: [],
@@ -62,6 +65,7 @@ export function playMatch(opts: MatchOptions): MatchResult {
   const tally = (events: GameEvent[]) => {
     for (const e of events) {
       if (e.type === 'TRADE_ACCEPTED') out.trades++
+      else if (e.type === 'TRADE_PROPOSED') out.proposed++
       else if (e.type === 'MONOPOLY_COMPLETED') out.sets++
       else if (e.type === 'BANKRUPT') out.bankruptcies++
     }

@@ -440,9 +440,13 @@ During a decision (buy, auction, debt, offer, trade) the left column and activit
 - `music` level (default 0.45, "Music" slider in the game menu) times a fixed `MUSIC_TRIM` of 0.35: the track is mastered loud and should sit under the game's sounds at any slider position.
 - Not done: ducking the music under big moments, and more tracks.
 
+## D53. Bot trade proposals (2026-10-28)
+
+**Decision:** a heuristic bot builds several candidate offers per partner and proposes the one that scores best for itself, among those it estimates the partner would accept with room to spare (partner `tradeScore` model with the bot's own params, 1.25 x `tradeMargin`, so offers look tempting). Candidates: the single missing piece for cash or a property (plus sweetener), two spare properties for one piece, set swaps (each side holds the other's missing piece) and two-for-one deals where the partner holds two pieces of a set; swaps and two-for-ones also try cash amounts near the point where both sides gain the same. Cash given never exceeds the bot's spare cash above 0.6 x reserve, and cash asked never takes the partner below half its reserve. Still at most one proposal per bot per turn. Spam control: the engine state keeps no record of rejected offers, so the bot remembers (partner, properties) of each offer it made and does not repeat it for 12 turns (`PROPOSAL_COOLDOWN`), accepted or not. `pnpm sim` now also prints trades proposed per game.
+**Why:** one-sided "missing piece for cash" offers were rare and often refused; balanced swaps give both sides a set, which is how people actually trade. No randomness is used, so decisions stay deterministic.
+
 ## D54. Landing odds before you roll (2026-10-28)
 
 - On your own move, while rolling is the legal action, the 11 spaces a two-dice total can reach are tinted on the board: gold for a plain chance, stronger for likelier totals (7 strongest), in the owner's color where rent is due. Each gets a floating label: the chance ("17%") or the rent owed ("₵250", the engine's `rentFor` with that total, so set doubling and utilities are right). Labels pop in along the path and everything fades out when the dice are thrown. Not shown in jail. Cards, doubles and "go to jail" are not modelled; it is the one roll.
 - Computed in the shell (`apps/web/src/game/odds.ts`, unit-tested) and drawn by the board (`board.setOdds`, tile tint in `TileView`, labels in `view/odds.ts`, world space above buildings). A "Landing odds" switch in the menu, on by default, saved with the other preferences.
 - Tooling: `pnpm lint` passes `--ignore-pattern ".claude/**"` because type-aware oxlint ignores the config's `ignorePatterns` (agent worktrees live under `.claude/worktrees`, now gitignored).
-- D53 is reserved for the bot trade proposals work running in parallel.

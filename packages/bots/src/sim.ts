@@ -53,6 +53,7 @@ function matchups(): void {
   let rounds = 0
   let turns = 0
   let trades = 0
+  let proposed = 0
   let sets = 0
   let bankruptcies = 0
   let lastStanding = 0
@@ -70,6 +71,7 @@ function matchups(): void {
     rounds += r.state.round
     turns += r.state.turnCount
     trades += r.trades
+    proposed += r.proposed
     sets += r.sets
     bankruptcies += r.bankruptcies
     if (alone) lastStanding++
@@ -102,7 +104,7 @@ function matchups(): void {
     )
   })
   console.log(
-    `avg rounds ${avg(rounds)}   turns ${avg(turns)}   trades ${avg(trades)}   sets ${avg(sets)}   bankruptcies ${avg(bankruptcies)}`,
+    `avg rounds ${avg(rounds)}   turns ${avg(turns)}   trades ${avg(trades)} of ${avg(proposed)} proposed   sets ${avg(sets)}   bankruptcies ${avg(bankruptcies)}`,
   )
   console.log(
     `last player standing ${((lastStanding / games) * 100).toFixed(0)}%   unfinished ${unfinished}   rejected bot actions ${rejected}   games with violations ${violations}`,
