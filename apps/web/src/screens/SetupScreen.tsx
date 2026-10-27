@@ -109,7 +109,7 @@ export function SetupScreen({
           <div className="lg:hidden">{cityPill}</div>
 
           {saved && (
-            <div className="flex items-stretch overflow-hidden rounded-[14px] bg-card font-card-body text-card-ink shadow-card">
+            <div className="flex shrink-0 items-stretch overflow-hidden rounded-[14px] bg-card font-card-body text-card-ink shadow-card">
               <span className="flex flex-1 flex-col gap-0.5 px-4 py-3">
                 <span className="font-card text-[17px] font-extrabold">Resume your last game</span>
                 <span className="text-xs text-card-muted">
