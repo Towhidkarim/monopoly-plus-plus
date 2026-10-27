@@ -188,6 +188,19 @@ Acceptance: search bot beats tuned heuristic bot at a statistically meaningful r
 - Performance and bundle audit; lazy-load audio and heavy layers.
 - Optional: replays from action logs; spectator mode; cosmetic themes (different cities and palettes).
 
+## Milestone 12: Guided tutorial (planned 2026-10-28)
+
+A real first game against two bots, about 10 minutes, with a coach that teaches each rule as it happens. Order to be confirmed with the developer (after game length options and the remaining polish, or before).
+
+1. **Scripted dice in the engine:** an optional config list of dice totals used before the seeded RNG, so a tutorial plays the same way every time. Pure and deterministic, with Vitest cases like every rule.
+2. **Coach framework (shell):** steps as data (text, spotlight target via `data-tutorial="…"` anchors, the event or state that completes the step), a soft spotlight and coach card that never covers the highlighted control, gating of controls that are not part of the step, Skip tutorial at any time, and resume after reload.
+3. **Lessons (about 12):** roll, buy (with buy advice), earning rent, paying rent (landing odds), auction and bidding, completing a set, building in My city, jail and cards, a bot's trade offer, raising money (mortgage, selling houses), how the game ends. Short, friendly copy.
+4. **Tutorial bots:** simple and predictable, scripted where a lesson needs it (one fixed trade offer, a bid war that you can win).
+5. **Entry points:** "New here? Learn to play" on the start screen (offered once on first launch), and a Tutorial item in the game menu.
+6. **Acceptance:** an automated test plays the whole tutorial through the store; every step is reachable; skipping and resuming work; reduced motion and keyboard play work.
+
+Later, the same coach framework can show one-time "first time" tips in normal games (first auction, first chance to build).
+
 ## Later: "++" and learned bots
 
 - New mechanics as rule modules: city events per round, player characters, and more (to be designed).
