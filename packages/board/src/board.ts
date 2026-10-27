@@ -562,15 +562,15 @@ export class Board {
   }
 
   /**
-   * The landing-odds overlay: tints the tiles a roll can end on (stronger = likelier; in the
-   * owner's color where rent is due) and floats a label over each. null hides it (fading).
+   * The landing-odds overlay: softly tints the given tiles (stronger = likelier; in the owner's
+   * color where rent is due) and floats a label over each. null or empty hides it (fading).
    */
   setOdds(marks: readonly OddsMark[] | null): void {
-    const top = marks?.reduce((m, o) => Math.max(m, o.p), 0) ?? 0
+    // Strength relative to the likeliest two-dice total (7, 6 in 36), so it means the same with one mark or many.
     const by = new Map(marks?.map((m) => [m.space, m]))
     for (const tile of this.tiles) {
       const m = by.get(tile.index)
-      tile.setOdds(m && top > 0 ? m.p / top : 0, m?.color ?? null)
+      tile.setOdds(m ? Math.min(1, m.p / (6 / 36)) : 0, m?.color ?? null)
     }
     this.oddsLabels.set(marks)
   }

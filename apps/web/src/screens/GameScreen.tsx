@@ -155,12 +155,14 @@ export function GameScreen({
     if (!handle) return
     if (!rolling) return handle.board.setOdds(null)
     handle.board.setOdds(
-      landingOdds(state, turn.actorSeat).map((o) => ({
-        space: o.space,
-        p: o.p,
-        label: o.rent > 0 ? fmtMoney(o.rent) : `${Math.round(o.p * 100)}%`,
-        color: o.owner === null ? null : store.setup.seats[o.owner]!.color,
-      })),
+      landingOdds(state, turn.actorSeat)
+        .filter((o) => o.rent > 0)
+        .map((o) => ({
+          space: o.space,
+          p: o.p,
+          label: fmtMoney(o.rent),
+          color: store.setup.seats[o.owner!]!.color,
+        })),
     )
   }, [handle, rolling, state, turn.actorSeat, store])
   const cityBadge =

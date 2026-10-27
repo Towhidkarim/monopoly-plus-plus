@@ -448,6 +448,7 @@ During a decision (buy, auction, debt, offer, trade) the left column and activit
 ## D54. Landing odds before you roll (2026-10-28)
 
 - On your own move, while rolling is the legal action, the 11 spaces a two-dice total can reach are tinted on the board: gold for a plain chance, stronger for likelier totals (7 strongest), in the owner's color where rent is due. Each gets a floating label: the chance ("17%") or the rent owed ("₵250", the engine's `rentFor` with that total, so set doubling and utilities are right). Labels pop in along the path and everything fades out when the dice are thrown. Not shown in jail. Cards, doubles and "go to jail" are not modelled; it is the one roll.
+- Revised the same day after the developer's review: only spaces where rent is due are marked (no plain percentages), with a soft wash and a thin edge in the owner's color; strength is relative to the likeliest total (6 in 36).
 - Computed in the shell (`apps/web/src/game/odds.ts`, unit-tested) and drawn by the board (`board.setOdds`, tile tint in `TileView`, labels in `view/odds.ts`, world space above buildings). A "Landing odds" switch in the menu, on by default, saved with the other preferences.
 - Tooling: `pnpm lint` passes `--ignore-pattern ".claude/**"` because type-aware oxlint ignores the config's `ignorePatterns` (agent worktrees live under `.claude/worktrees`, now gitignored).
 

@@ -639,7 +639,7 @@ export function GameMenu({
         />
         <Switch
           label="Landing odds"
-          hint="Before you roll, show where you could land and the rent"
+          hint="Before you roll, mark rents you could land on"
           on={odds}
           onChange={onOdds}
         />

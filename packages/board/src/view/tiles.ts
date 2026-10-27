@@ -285,8 +285,9 @@ export class TileView {
     // Gold (the game's accent) for a plain chance; the owner's color where rent is due.
     const c = color ?? palette.select
     const r = rect(fp.col0 + GAP, fp.row0 + GAP, fp.col1 - GAP, fp.row1 - GAP, 0.001, t)
-    g.poly(r).fill({ color: c, alpha: 0.14 + 0.36 * k })
-    g.poly(r).stroke({ color: c, width: 2, alpha: 0.5 + 0.5 * k, alignment: 1, join: 'round' })
+    // Soft: a light wash and a thin edge, a little stronger for likelier totals.
+    g.poly(r).fill({ color: c, alpha: 0.1 + 0.14 * k })
+    g.poly(r).stroke({ color: c, width: 1.5, alpha: 0.35 + 0.3 * k, alignment: 1, join: 'round' })
   }
 
   draw(t: number): void {
