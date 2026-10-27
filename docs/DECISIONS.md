@@ -426,3 +426,10 @@ During a decision (buy, auction, debt, offer, trade) the left column and activit
 - **Bidding war:** from the third bid on, a soft lub-dub heartbeat (`auction.heart`, tunable on the sound board) plays under each raise, slightly louder as the war goes on.
 - **Bankruptcy:** the piece trembles for a held beat (`BANKRUPT_HOLD_MS`, 440 ms) with a short hit-stop and shake before it lifts away; the bankrupt sound waits for the beat.
 - Already present and kept: rolling cash numbers (`TickingMoney`), spring button presses (`FX`).
+
+## D51. City ambience, code-generated (2026-10-28)
+
+- `apps/web/src/audio/ambience.ts` (`CityAmbience`): a looped brown-noise hum through a slowly sweeping low-pass (quieter at night), a distant car or train every 16 to 42 s (band-passed noise swelling and panning across), bird chirps by day and cricket pulses at night, following the board's sky level. No samples, no download.
+- Its own bus into the master (after the compressor's input, like sfx and ui) with an `ambience` level (default 0.5) saved with the sound settings and a "City" slider in the game menu; muting stops new sounds and silences the master. It starts on the game screen and waits for the first click to unlock audio.
+- Measured offline (8 s render): about -25 dBFS RMS by day, -29 at night, peaks below 0.25 before the bus and master gains.
+- Background music is left for a track the developer picks (CC0 only, see project rules).

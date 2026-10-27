@@ -660,6 +660,20 @@ export function GameMenu({
             className="min-w-0 flex-1 accent-accent disabled:opacity-40"
           />
         </div>
+        <div className="flex items-center gap-2.5 px-1.5 py-2">
+          <span className="w-16 text-sm font-bold">City</span>
+          <input
+            type="range"
+            aria-label="City sounds volume"
+            min={0}
+            max={1}
+            step={0.01}
+            value={audio.ambience}
+            disabled={audio.muted}
+            onChange={(e) => sound.setSettings({ ambience: Number(e.target.value) })}
+            className="min-w-0 flex-1 accent-accent disabled:opacity-40"
+          />
+        </div>
         <div className="mx-0 my-1.5 h-px bg-line" />
         <Btn onClick={onLog} className="h-[42px] rounded-xl border-line text-sm">
           Game log <Kbd>L</Kbd>

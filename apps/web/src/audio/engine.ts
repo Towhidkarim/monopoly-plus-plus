@@ -17,6 +17,8 @@ export interface SoundSettings {
   master: number
   sfx: number
   ui: number
+  /** City ambience under the game (ambience.ts). */
+  ambience: number
 }
 
 export interface PlayOptions {
@@ -35,7 +37,7 @@ export type SoundOverrides = Partial<Record<SoundId, { pick?: number; mix?: Reco
 
 const SETTINGS_KEY = 'skyline.sound'
 const OVERRIDES_KEY = 'skyline.sound.overrides'
-const DEFAULT_SETTINGS: SoundSettings = { muted: false, master: 0.8, sfx: 1, ui: 0.7 }
+const DEFAULT_SETTINGS: SoundSettings = { muted: false, master: 0.8, sfx: 1, ui: 0.7, ambience: 0.5 }
 /** At most this many overlapping plays of one sound; extra ones are dropped. */
 const MAX_VOICES = 6
 /** Same sound twice within this window (seconds) plays once. */
@@ -53,6 +55,7 @@ export class SoundEngine {
   private ctx: AudioContext | null = null
   private master: GainNode | null = null
   private buses: Partial<Record<Bus, GainNode>> = {}
+  private ambience: GainNode | null = null
   private room: ConvolverNode | null = null
   private readonly buffers = new Map<string, AudioBuffer>()
   private readonly voices = new Map<SoundId, number>()
@@ -89,6 +92,8 @@ export class SoundEngine {
       g.connect(this.master)
       this.buses[bus] = g
     }
+    this.ambience = ctx.createGain()
+    this.ambience.connect(this.master)
     this.room = ctx.createConvolver()
     this.room.buffer = makeRoom(ctx)
     const ret = ctx.createGain()
@@ -100,6 +105,12 @@ export class SoundEngine {
 
   get ready(): boolean {
     return this.ctx !== null && this.ctx.state === 'running'
+  }
+
+  /** The context and ambience bus once audio runs and is not muted, else null. */
+  ambienceOut(): { ctx: AudioContext; out: AudioNode } | null {
+    if (!this.ready || !this.ambience || this.settings.muted) return null
+    return { ctx: this.ctx!, out: this.ambience }
   }
 
   play(id: SoundId, o: PlayOptions = {}): void {
@@ -177,6 +188,7 @@ export class SoundEngine {
     if (this.master) this.master.gain.value = s.muted ? 0 : s.master
     if (this.buses.sfx) this.buses.sfx.gain.value = s.sfx
     if (this.buses.ui) this.buses.ui.gain.value = s.ui
+    if (this.ambience) this.ambience.gain.value = s.ambience
   }
 
   // ---- sound board edits --------------------------------------------------
@@ -282,7 +294,7 @@ function readSettings(raw: unknown): SoundSettings {
   const s = { ...DEFAULT_SETTINGS }
   if (!isRecord(raw)) return s
   if (typeof raw.muted === 'boolean') s.muted = raw.muted
-  for (const k of ['master', 'sfx', 'ui'] as const) {
+  for (const k of ['master', 'sfx', 'ui', 'ambience'] as const) {
     const v = raw[k]
     if (typeof v === 'number') s[k] = Math.min(1, Math.max(0, v))
   }

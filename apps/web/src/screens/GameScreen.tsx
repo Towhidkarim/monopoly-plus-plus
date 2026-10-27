@@ -3,6 +3,7 @@ import { SPACES } from '@skyline/engine'
 import type { BoardHandle } from '@skyline/board'
 import { BoardCanvas } from '../BoardCanvas.tsx'
 import { connectSound } from '../audio/connect.ts'
+import { CityAmbience } from '../audio/ambience.ts'
 import { sound } from '../audio/engine.ts'
 import { loadPrefs, savePrefs, syncReducedMotion } from '../game/prefs.ts'
 import { buildableGroups } from '@skyline/bots'
@@ -74,8 +75,12 @@ export function GameScreen({
   const [menu, setMenu] = useState(false)
   const [showLog, setShowLog] = useState(false)
 
+  const ambience = useRef<CityAmbience | null>(null)
   useEffect(() => {
     const audio = connectSound(store)
+    const city = new CityAmbience(sound)
+    city.start()
+    ambience.current = city
     // Dev console handle (and for scripted screenshots).
     if (import.meta.env.DEV) Object.assign(window, { skylineStore: store })
     store.attach(handle?.board ?? null)
@@ -92,6 +97,8 @@ export function GameScreen({
     handle?.board.setInsets({ top: 130, right: 0, bottom: 110, left: 0 })
     return () => {
       audio.disconnect()
+      city.stop()
+      ambience.current = null
       store.setDiceTray(null)
       store.attach(null)
     }
@@ -107,6 +114,7 @@ export function GameScreen({
   const round = snap.presented.round
   const skyDone = useRef(false)
   useEffect(() => {
+    ambience.current?.setNight(skyLevel(round, sky))
     if (!handle) return
     handle.board.setNight(skyLevel(round, sky), !skyDone.current)
     skyDone.current = true
