@@ -405,3 +405,9 @@ During a decision (buy, auction, debt, offer, trade) the left column and activit
 
 **Decision:** the ~300 KB gzipped initial JS figure is a goal: prefer the smaller option and lazy-load what is not needed at start, but a feature may cost bytes when it is worth it (the developer, 2026-10-26). Milestone 9 step 7 (P2P WebRTC or a Node adapter) is kept for later, not dropped.
 **Why:** the shell (React, Pixi, fonts, the 3D dice) already sits around 335 KB gzipped; treating the figure as a hard cap would block features for little gain on today's connections.
+
+## D48. For-sale lots are raised plots dressed per district (2026-10-28)
+
+- The empty lot was a lawn edged by a hedge along its two back sides, which read as the walls of a pit, and every lot looked the same. It is now a thin raised slab (its front faces show, so it reads as land), with no back edging.
+- The surface and props follow the group's architecture family: cottage lawns with flower beds and trees, brick gravel with crates and an old lamp, modern paving with planters, benches and lamps, glass lawns with young trees and shrubs. The ground is lightly tinted with the group color.
+- Variation is seeded by the space index (cosmetic RNG): which of three prop slots stays empty, prop jitter, and which front corner holds the "for sale" sign. Same board every game, no two neighbors alike. Screenshot: `docs/screenshots/lots-for-sale.png`.

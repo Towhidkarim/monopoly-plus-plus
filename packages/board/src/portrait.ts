@@ -3,6 +3,7 @@ import { SPACES } from '@skyline/engine'
 import { drawLot } from './art/lots.ts'
 import { NIGHT, lightsAt, nightTint } from './art/paint.ts'
 import { BOARD_STYLE } from './art/style.ts'
+import { groupColors } from './palette.ts'
 import { ringFootprint } from './geometry/ring.ts'
 import { GROUP_FAMILY, lotOf } from './view/tiles.ts'
 
@@ -72,6 +73,7 @@ export class LotPortraits {
       // Owner color tints doors and awnings; a neutral accent keeps the portrait owner-independent.
       level >= 0 ? 0xf5b54a : null,
       space * 131 + 17,
+      groupColors[SPACES[space]!.group],
     )
     building.tint = nightTint(NIGHT.city, n)
     lights.alpha = lightsAt(n)

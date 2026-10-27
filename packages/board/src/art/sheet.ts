@@ -210,7 +210,7 @@ function growthRow(style: ArtStyle, family: Family, band: number, seed: number, 
     const p: Paint = { g, t: 1, style }
     tile(p, 0, 1, d, band)
     const lot: Lot = { col0: 0.1, row0: 0.32, col1: 0.9, row1: d - 0.1, z: 0 }
-    drawLot(p, lot, level, family, level >= 0 ? OWNER : null, seed * 13 + i)
+    drawLot(p, lot, level, family, level >= 0 ? OWNER : null, seed * 13 + i, band)
     if (labels) {
       const at = project({ col: 1, row: d, z: 0 }, 1)
       const t = new Text({

@@ -94,6 +94,7 @@ export class TileView {
   private readonly rim = new Graphics()
   private readonly fp: Footprint
   private readonly family: Family | null
+  private readonly groupColor: number | null
   /** The prop on a non-property side tile (station, pylon, coins, cards, chest). */
   private readonly special: Special | null
   readonly lift = new Spring(0, 260, 18)
@@ -116,6 +117,7 @@ export class TileView {
     this.container.zIndex = this.fp.col0 + this.fp.row0
     const space = SPACES[index]!
     this.family = space.kind === 'property' ? GROUP_FAMILY[space.group]! : null
+    this.groupColor = space.kind === 'property' ? groupColors[space.group]! : null
     this.special = specialOf(index)
     this.rim.alpha = 0
     this.container.addChild(this.base, this.decoG, this.rim)
@@ -218,6 +220,7 @@ export class TileView {
         this.family,
         owner,
         this.index * 131 + 17,
+        this.groupColor,
       )
     } else if (this.special) {
       drawSpecial({ g: b, lights, t, style: BOARD_STYLE, beacons }, fp, this.special, this.index)
