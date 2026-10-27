@@ -1,4 +1,6 @@
 import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import type { Recap } from '../../game/recap.ts'
+import { RecapCard } from './RecapCard.tsx'
 import { SPACES, isOwnable, legalActions, mortgageValue, unmortgageCost, type Action } from '@skyline/engine'
 import { hintFor } from '../../game/hints.ts'
 import type { GameStore, Snapshot } from '../../game/store.ts'
@@ -39,14 +41,19 @@ export function LeftColumn({
   snap,
   store,
   selected,
+  recap,
   onCity,
   onDeselect,
+  onCloseRecap,
 }: {
   snap: Snapshot
   store: GameStore
   selected: number | null
+  /** What happened since your last turn; shown instead of the hint until you roll. */
+  recap: Recap | null
   onCity: () => void
   onDeselect: () => void
+  onCloseRecap: () => void
 }) {
   const viewer = snap.viewer
   const hint = viewer !== null && !snap.busy ? hintFor(snap.state, viewer) : null
@@ -90,6 +97,8 @@ export function LeftColumn({
 
       {selected !== null ? (
         <SelectedSpace index={selected} snap={snap} store={store} onCity={onCity} onClose={onDeselect} />
+      ) : recap ? (
+        <RecapCard recap={recap} store={store} onClose={onCloseRecap} />
       ) : (
         hint && (
           <Panel

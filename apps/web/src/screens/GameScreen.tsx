@@ -11,6 +11,7 @@ import { buildableGroups } from '@skyline/bots'
 import { cityOf } from '../game/setup.ts'
 import { applyCursorPref, type CursorPref } from '../cursors.ts'
 import { landingOdds } from '../game/odds.ts'
+import { RecapTracker, type Recap } from '../game/recap.ts'
 import { skyLevel, type SkyPref } from '../game/sky.ts'
 import type { GameStore } from '../game/store.ts'
 import { ActionDock } from './game/ActionDock.tsx'
@@ -78,6 +79,16 @@ export function GameScreen({
   const [menu, setMenu] = useState(false)
   const [showLog, setShowLog] = useState(false)
 
+  // "While you waited": a recap when a human's turn on this screen comes back (game/recap.ts).
+  const [recap, setRecap] = useState<Recap | null>(null)
+  useEffect(() => {
+    const tracker = new RecapTracker((id) => store.canAct(id))
+    return store.onApplied((e) => {
+      const r = tracker.push(e)
+      if (e.type === 'TURN_STARTED') setRecap(r)
+    })
+  }, [store])
+
   const ambience = useRef<CityAmbience | null>(null)
   useEffect(() => {
     const audio = connectSound(store)
@@ -136,9 +147,9 @@ export function GameScreen({
   const focus = turn.moment !== null || trade !== null
   const viewerId = viewer !== null ? snap.state.players[viewer]!.id : null
 
-  // Landing odds: on your own move before the roll; gone as soon as the dice fly.
-  const rolling =
-    odds && turn.canAct && turn.actorSeat === viewer && turn.legal.some((a) => a.type === 'ROLL')
+  // Your own move before the roll: landing odds and the recap of the others' turns show then.
+  const preRoll = turn.canAct && turn.actorSeat === viewer && turn.legal.some((a) => a.type === 'ROLL')
+  const rolling = odds && preRoll
   const state = snap.state
   useEffect(() => {
     if (!handle) return
@@ -274,8 +285,10 @@ export function GameScreen({
                 snap={snap}
                 store={store}
                 selected={selected}
+                recap={preRoll ? recap : null}
                 onCity={() => setCityOpen(true)}
                 onDeselect={() => select(null)}
+                onCloseRecap={() => setRecap(null)}
               />
             </div>
             {!cityOpen && (

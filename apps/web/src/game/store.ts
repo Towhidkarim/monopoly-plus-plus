@@ -164,6 +164,7 @@ export class GameStore {
   private readonly listeners = new Set<() => void>()
   private readonly fxListeners = new Set<(fx: Fx) => void>()
   private readonly eventListeners = new Set<(e: GameEvent) => void>()
+  private readonly appliedListeners = new Set<(e: GameEvent) => void>()
   private readonly actions: SavedGame['actions'] = []
   private readonly queue: GameEvent[] = []
   private pumping = false
@@ -248,6 +249,15 @@ export class GameStore {
   }
 
   /** Each event as it starts playing (not while skipping), for sound. */
+  /**
+   * Every event as it reaches the presented state, skipped or animated (onEvent only sees
+   * animated ones, in step with the motion). For bookkeeping such as the turn recap.
+   */
+  onApplied = (fn: (e: GameEvent) => void): (() => void) => {
+    this.appliedListeners.add(fn)
+    return () => this.appliedListeners.delete(fn)
+  }
+
   onEvent = (fn: (e: GameEvent) => void): (() => void) => {
     this.eventListeners.add(fn)
     return () => this.eventListeners.delete(fn)
@@ -448,6 +458,7 @@ export class GameStore {
     this.listeners.clear()
     this.fxListeners.clear()
     this.eventListeners.clear()
+    this.appliedListeners.clear()
   }
 
   // ---- event playback -----------------------------------------------------
@@ -463,6 +474,7 @@ export class GameStore {
       else if (e.type === 'DICE_ROLLED') this.snap = { ...this.snap, dice: e.dice, diceLanding: false }
       const line = describe(e, this.nameOf)
       this.snap = { ...this.snap, presented: applyEvent(this.snap.presented, e) }
+      for (const fn of this.appliedListeners) fn(e)
       if (line) this.pushLog(line)
       else this.set({})
     }
