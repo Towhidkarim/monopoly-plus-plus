@@ -133,11 +133,15 @@ export function CardStage({
     p.style.perspective = '900px'
     t.style.willChange = 'transform'
     t.style.transition = FOLLOW
-    t.style.transform = `rotateX(${((0.5 - y) * 14).toFixed(2)}deg) rotateY(${((x - 0.5) * 18).toFixed(2)}deg) translateY(-14px) scale(1.03)`
+    t.style.transform = `rotateX(${((0.5 - y) * 10).toFixed(2)}deg) rotateY(${((x - 0.5) * 13).toFixed(2)}deg) translateY(-10px) scale(1.02)`
     const s = sheenRef.current
     if (s) {
       s.style.opacity = '1'
-      s.style.background = `radial-gradient(circle at ${(x * 100).toFixed(1)}% ${(y * 100).toFixed(1)}%, rgba(255,255,255,0.22), rgba(255,255,255,0) 45%)`
+      // Matte paper under a lamp: a broad warm light on the side tilted toward the viewer and a
+      // faint shade on the far side (no tight white hotspot, which reads as glossy plastic).
+      const px = (x * 100).toFixed(1)
+      const py = (y * 100).toFixed(1)
+      s.style.background = `radial-gradient(farthest-corner at ${px}% ${py}%, rgba(255,247,226,0.16), rgba(255,247,226,0) 62%), radial-gradient(farthest-corner at ${(100 - x * 100).toFixed(1)}% ${(100 - y * 100).toFixed(1)}%, rgba(90,64,24,0.09), rgba(90,64,24,0) 55%)`
     }
     if (swayRef.current) swayRef.current.style.animationPlayState = 'paused'
   }

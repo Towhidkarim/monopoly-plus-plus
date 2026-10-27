@@ -49,26 +49,26 @@ export function CardPopup({ snap, store }: { snap: Snapshot; store: GameStore })
           />
           <div
             aria-hidden="true"
-            className="absolute inset-[16px_-10px_-10px_16px] rotate-5 rounded-[22px] shadow-[0_14px_30px_rgba(2,6,16,0.5)]"
+            className="absolute inset-[16px_-10px_-10px_16px] rotate-5 rounded-[18px] shadow-[0_14px_30px_rgba(2,6,16,0.5)]"
             style={{ background: deck.back }}
           />
           <CardStage
             deal
-            radius={22}
+            radius={18}
             dealFrom={{ x: 30, y: 90 }}
             back={{ color: deck.back, edge: deck.backEdge }}
             className="absolute inset-0"
           >
             <article
               aria-label={`${deck.name} card`}
-              className="relative h-[440px] w-[300px] overflow-hidden rounded-[22px] bg-card font-card-body text-card-ink shadow-[0_30px_60px_rgba(2,6,16,0.65),0_3px_0_var(--color-card-edge)]"
+              className="relative h-[440px] w-[300px] paper overflow-hidden rounded-[18px] bg-card font-card-body text-card-ink shadow-card-lg"
             >
               <div
                 className="relative h-[100px]"
                 style={{
                   background: deck.band,
                   backgroundImage:
-                    'repeating-linear-gradient(135deg, rgba(255,255,255,0.09) 0 10px, rgba(255,255,255,0) 10px 20px)',
+                    'repeating-linear-gradient(135deg, rgba(255,255,255,0.06) 0 10px, rgba(255,255,255,0) 10px 20px)',
                 }}
               >
                 <svg

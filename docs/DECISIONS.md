@@ -411,3 +411,10 @@ During a decision (buy, auction, debt, offer, trade) the left column and activit
 - The empty lot was a lawn edged by a hedge along its two back sides, which read as the walls of a pit, and every lot looked the same. It is now a thin raised slab (its front faces show, so it reads as land), with no back edging.
 - The surface and props follow the group's architecture family: cottage lawns with flower beds and trees, brick gravel with crates and an old lamp, modern paving with planters, benches and lamps, glass lawns with young trees and shrubs. The ground is lightly tinted with the group color.
 - Variation is seeded by the space index (cosmetic RNG): which of three prop slots stays empty, prop jitter, and which front corner holds the "for sale" sign. Same board every game, no two neighbors alike. Screenshot: `docs/screenshots/lots-for-sale.png`.
+
+## D49. Cards read as paper, not plastic (2026-10-28)
+
+- A `paper` utility (index.css) multiplies a fine SVG noise grain and a faint warm edge falloff over every card face (deeds, compact deeds, chance cards).
+- No thick bottom lip: `--shadow-card` / `--shadow-card-lg` are a bright top edge, a 1px paper edge, a close contact shadow and a soft ambient one. Smaller radii (16 px deed, 10 px compact, 18 px chance) and quieter header stripes.
+- The cursor sheen is matte: a broad warm light on the near side and a faint shade on the far side, instead of a tight white hotspot. Tilt is gentler (10° / 13°, 10 px lift, 1.02 scale).
+- The selected-space close button is a round chip on the card's corner, clear of the FOR SALE ribbon. Screenshot: `docs/screenshots/card-paper.png` (rest, then tilted).

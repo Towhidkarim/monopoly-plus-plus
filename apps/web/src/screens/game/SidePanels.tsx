@@ -164,12 +164,12 @@ function SelectedSpace({
   // Houses for a property; for stations and utilities, the number owned minus one.
   const deedLevel = sp.kind === 'property' ? p.houses[index]! : Math.max(0, heldInSet - 1)
 
-  const close = (
+  const close = (place: string) => (
     <button
       type="button"
       onClick={onClose}
       aria-label="Close tile details"
-      className={`absolute top-2 right-2 flex size-8 items-center justify-center rounded-lg bg-table/40 text-ink ${FX} enabled:hover:bg-table/70`}
+      className={`absolute flex size-8 items-center justify-center text-ink ${place} ${FX}`}
     >
       <Icon name="close" size={16} />
     </button>
@@ -179,7 +179,7 @@ function SelectedSpace({
     const info = spaceInfo(index)
     return (
       <div className="pointer-events-auto relative animate-rise rounded-[20px] border border-line bg-panel/95 px-4 py-3.5 shadow-panel">
-        {close}
+        {close('top-2 right-2 rounded-lg bg-table/40 enabled:hover:bg-table/70')}
         <Eyebrow className="text-ink-muted">{info.kind}</Eyebrow>
         <div className="mt-0.5 text-lg font-bold">{info.name}</div>
         <p className="mt-1 text-sm leading-relaxed text-ink-muted">{describeSpace(index, snap)}</p>
@@ -200,7 +200,10 @@ function SelectedSpace({
           moment
           dealFrom={{ x: -160, y: 60 }}
         />
-        {close}
+        {/* A chip on the card's corner, clear of the header and the FOR SALE ribbon. */}
+        {close(
+          '-top-2.5 -right-2.5 z-10 rounded-full border border-line bg-panel shadow-panel enabled:hover:bg-panel-2',
+        )}
       </div>
       <div className="rounded-[20px] border border-line bg-panel/95 px-4 py-3 text-sm shadow-panel">
         {owner ? (

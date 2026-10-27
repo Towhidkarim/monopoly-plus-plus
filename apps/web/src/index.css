@@ -42,7 +42,14 @@
   --shadow-keycap: 0 2px 0 #c9c1ae;
   --shadow-gold: inset 0 -4px 0 rgba(0, 0, 0, 0.18), 0 6px 18px rgba(245, 181, 74, 0.3);
   --shadow-gold-lg: inset 0 -4px 0 rgba(0, 0, 0, 0.18), 0 10px 28px rgba(245, 181, 74, 0.35);
-  --shadow-card: 0 16px 34px rgba(2, 6, 16, 0.55), 0 3px 0 #e4dccb;
+  /* Cards are paper: a thin bright top edge, a 1px paper edge, a close contact shadow and a soft
+     ambient one (no thick lip, which read as a plastic tile). */
+  --shadow-card:
+    inset 0 1px 0 rgba(255, 255, 255, 0.75), 0 1px 0 #e4dccb, 0 2px 4px rgba(2, 6, 16, 0.3),
+    0 14px 30px rgba(2, 6, 16, 0.42);
+  --shadow-card-lg:
+    inset 0 1px 0 rgba(255, 255, 255, 0.75), 0 1px 0 #e4dccb, 0 3px 6px rgba(2, 6, 16, 0.3),
+    0 26px 54px rgba(2, 6, 16, 0.5);
 
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
@@ -250,6 +257,23 @@
 /* Dialogs take focus programmatically; the ring belongs on controls, not on the panel itself. */
 [role='dialog']:focus {
   outline: none;
+}
+
+/* Card stock: a fine grain and a faint warm falloff toward the edges, multiplied over the card
+   (text included, like print on paper). The card needs `position: relative` and a radius. */
+@utility paper {
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background-image:
+      radial-gradient(120% 90% at 50% 35%, transparent 55%, rgba(120, 92, 48, 0.1)),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.45 0 0 0 0 0.36 0 0 0 0 0.22 0 0 0 0.5 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+    mix-blend-mode: multiply;
+    opacity: 0.32;
+  }
 }
 
 /* Card motion (D32 Feel study). Transform and opacity only; the JS side skips these with reduced motion. */

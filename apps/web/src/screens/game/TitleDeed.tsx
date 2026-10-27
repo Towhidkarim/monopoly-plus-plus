@@ -17,7 +17,7 @@ const SLATE = '#33415c'
 const SKY_DAY = '#dcebe3'
 const SKY_NIGHT = '#16213a'
 const STRIPES = (n: number) =>
-  `repeating-linear-gradient(135deg, rgba(255,255,255,0.14) 0 ${n}px, rgba(255,255,255,0) ${n}px ${n * 2}px)`
+  `repeating-linear-gradient(135deg, rgba(255,255,255,0.07) 0 ${n}px, rgba(255,255,255,0) ${n}px ${n * 2}px)`
 
 /** Who owns the card's space: their seat color and piece (the token emblem on the card). */
 export interface DeedOwner {
@@ -245,12 +245,10 @@ export function DeedCard({
       <article
         ref={cardRef}
         aria-label={`${sp.name}, ${stateLabel}`}
-        className="relative overflow-hidden rounded-[14px] bg-card font-card-body text-card-ink"
+        className="paper relative overflow-hidden rounded-[10px] bg-card font-card-body text-card-ink"
         style={{
           width: 140,
-          boxShadow: selected
-            ? '0 18px 34px rgba(2,6,16,0.6), 0 2px 0 var(--color-card-edge)'
-            : '0 14px 30px rgba(2,6,16,0.55), 0 2px 0 var(--color-card-edge)',
+          boxShadow: selected ? 'var(--shadow-card-lg)' : 'var(--shadow-card)',
           filter: mortgaged ? 'saturate(0.35)' : undefined,
           outline: selected ? '3px solid #f5b54a' : undefined,
           outlineOffset: 2,
@@ -313,7 +311,7 @@ export function DeedCard({
         )}
       </article>,
       140,
-      14,
+      10,
     )
   }
 
@@ -322,10 +320,10 @@ export function DeedCard({
     <article
       ref={cardRef}
       aria-label={`${sp.name} title deed, ${stateLabel}`}
-      className="relative overflow-hidden rounded-[20px] bg-card font-card-body text-card-ink"
+      className="paper relative overflow-hidden rounded-[16px] bg-card font-card-body text-card-ink"
       style={{
         width: 300,
-        boxShadow: '0 24px 50px rgba(2,6,16,0.6), 0 3px 0 var(--color-card-edge)',
+        boxShadow: 'var(--shadow-card-lg)',
         filter: mortgaged ? 'saturate(0.35)' : undefined,
       }}
     >
@@ -354,12 +352,12 @@ export function DeedCard({
       </div>
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-2 rounded-[14px] border-[1.5px]"
+        className="pointer-events-none absolute inset-2 rounded-[11px] border-[1.5px]"
         style={{ borderColor: frame }}
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-3 rounded-[11px] border"
+        className="pointer-events-none absolute inset-3 rounded-[8px] border"
         style={{ borderColor: frameSoft }}
       />
       {st === 'owned' && owner && (
@@ -375,7 +373,7 @@ export function DeedCard({
         className="relative mx-5 mt-3.5 h-[150px] overflow-hidden rounded-[14px]"
         style={{
           background: sky,
-          boxShadow: `inset 0 2px 8px rgba(0,0,0,0.25), 0 0 0 3px #fbf8f1, 0 0 0 4px ${frameSoft}`,
+          boxShadow: `inset 0 1px 4px rgba(0,0,0,0.16), 0 0 0 3px #fbf8f1, 0 0 0 4px ${frameSoft}`,
         }}
       >
         <div className="absolute inset-x-[22px] top-1.5 bottom-0">
@@ -510,7 +508,7 @@ export function DeedCard({
       {stamp && <Stamp word={stamp} size={44} rotate={-9} shake className="absolute top-[190px] left-10" />}
     </article>,
     300,
-    20,
+    16,
   )
 }
 
