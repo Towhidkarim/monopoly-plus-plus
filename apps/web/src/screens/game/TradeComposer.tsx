@@ -427,17 +427,30 @@ export function TradeComposer({
             <span className="flex-1 text-sm text-ink-muted">{them.name} decides when you send it.</span>
           )}
           {problem && <span className="text-sm font-bold text-alert">{problem}</span>}
-          {verdict?.kind === 'bot' && !verdict.accepts && verdict.more !== null && (
-            <button
-              type="button"
-              onClick={() => {
-                sound.play('money.coin')
-                edit(setGive, { ...give, cash: give.cash + verdict.more! })
-              }}
-              className={`h-11 rounded-[14px] border border-accent/60 bg-accent/10 px-4 text-sm font-extrabold whitespace-nowrap text-gold ${FX_BRIGHT} enabled:hover:bg-accent/20`}
-            >
-              Add <Money value={verdict.more} /> to make it work
-            </button>
+          {bot && (
+            // A fixed slot, so the meter never jumps as the suggestion comes and goes.
+            <div className="flex w-60 shrink-0 justify-center">
+              {verdict?.kind === 'bot' && !verdict.accepts && verdict.more !== null ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    sound.play('money.coin')
+                    edit(setGive, { ...give, cash: give.cash + verdict.more! })
+                  }}
+                  className={`h-11 w-full animate-pop rounded-[14px] border border-accent/60 bg-accent/10 px-4 text-sm font-extrabold whitespace-nowrap text-gold ${FX_BRIGHT} enabled:hover:bg-accent/20`}
+                >
+                  Add <Money value={verdict.more} /> to make it work
+                </button>
+              ) : verdict?.kind === 'bot' && verdict.accepts ? (
+                <span className="flex h-11 animate-pop items-center gap-1.5 text-sm font-extrabold text-teal">
+                  <span aria-hidden="true">✓</span> {them.name} would accept
+                </span>
+              ) : verdict?.kind === 'bot' ? (
+                <span className="flex h-11 items-center text-center text-sm text-ink-muted">
+                  No cash would sway them
+                </span>
+              ) : null}
+            </div>
           )}
           <div className="ml-auto flex items-center gap-2.5">
             <Btn kind="secondary" onClick={onClose} className="h-13! rounded-2xl! px-5! text-[15px]!">
