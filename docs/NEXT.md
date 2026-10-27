@@ -11,6 +11,10 @@ Still needs the developer:
 - First deploy: `! npx wrangler login`, then `pnpm deploy`; then a real session across machines.
 - The hands-on review of Milestone 8 and the real-GPU 60 fps checks listed in the roadmap.
 
+## Done 2026-10-28: juice and atmosphere pass
+
+D48 raised for-sale lots dressed per district; D49 paper cards; D50 moments (rent approach warning, breathing active piece, bidding-war heartbeat, bankrupt beat); D51 code-generated city ambience. Waiting on the developer: a feel review of all four in real play, and a background music track (CC0) to wire in. Not done yet: the for-sale sign wobbling on hover and popping off when bought.
+
 ## Next: fun and polish (confirmed by the developer, 2026-10-26)
 
 The developer wants fun prioritized: polish (Milestone 11 items) comes before Milestone 10 (bot v2 and search). When choosing between items, pick what makes playing more fun first. Order, one step per commit, each restated with acceptance criteria first:
