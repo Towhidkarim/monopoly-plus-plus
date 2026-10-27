@@ -30,7 +30,7 @@ Then, because I'm only human, I made it gorgeous too. 🎨
 ## 🎲 What's in the box
 
 ### The game
-- **Full rules**: auctions, trading, houses and hotels with even-build, mortgages, jail, two card decks, debt and bankruptcy.
+- **Full rules**: auctions, trading, houses and hotels with even-build, mortgages, jail, two card decks, debt and bankruptcy, so on.
 - **Trade any time**, not just on your turn, with several open offers at once. Offer properties, cash and jail cards. Bots answer with verdicts and counter-offers, and they'll propose deals to you too.
 - **Manage property any time** (except mid-auction). One-click *Build evenly*, *Sell* and *Raise money* helpers.
 - **Presets**: **Standard** (quick, round-limited, richest player wins), **Turbo** (fast and chaotic) and **Classic** (the full, no-limit slog). Online rooms also get house rules: starting cash, GO salary, jail fine, free-parking pot, mortgage interest and more.
