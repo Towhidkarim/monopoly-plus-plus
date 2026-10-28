@@ -1,17 +1,10 @@
 import { useState } from 'react'
 import { PIECES, tokenColors, type PieceKind } from '@skyline/board'
-import type { PresetName } from '@skyline/engine'
-import {
-  TWISTS,
-  loadGame,
-  type GameSetup,
-  type SavedGame,
-  type SeatSetup,
-  type Twists,
-} from '../game/setup.ts'
+import { PRESETS, type PresetName } from '@skyline/engine'
+import { loadGame, type GameSetup, type SavedGame, type SeatSetup, type Twists } from '../game/setup.ts'
 import { cssHex } from '../spaceInfo.ts'
 import { Icon } from './game/icons.tsx'
-import { Btn, Eyebrow, TokenAvatar, TwistSwitch } from './game/ui.tsx'
+import { Btn, Eyebrow, TokenAvatar, TwistList } from './game/ui.tsx'
 import { SetupBackdrop } from './SetupBackdrop.tsx'
 
 const MODES: { preset: PresetName; label: string; blurb: string; color: string; ink: string }[] = [
@@ -192,15 +185,7 @@ export function SetupScreen({
 
           <div className="flex flex-col gap-2">
             <Eyebrow className="text-ink-muted">Twists</Eyebrow>
-            {TWISTS.map((t) => (
-              <TwistSwitch
-                key={t.key}
-                label={t.label}
-                blurb={t.blurb}
-                on={twists[t.key] === true}
-                onChange={(on) => setTwists((prev) => ({ ...prev, [t.key]: on }))}
-              />
-            ))}
+            <TwistList twists={twists} salary={PRESETS[preset].goSalary} onChange={setTwists} />
           </div>
 
           <div className="flex flex-col gap-2.5">

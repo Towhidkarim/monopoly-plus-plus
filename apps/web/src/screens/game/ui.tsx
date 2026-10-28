@@ -1,6 +1,8 @@
 import { useLayoutEffect, useRef, type HTMLAttributes, type ReactNode } from 'react'
 import type { PieceKind } from '@skyline/board'
+import { UNDERDOG_MAX } from '@skyline/engine'
 import { TIMINGS } from '../../game/timings.ts'
+import { TWISTS, type Twists } from '../../game/setup.ts'
 import { sound } from '../../audio/engine.ts'
 import { fmtMoney } from './format.ts'
 import { useReducedMotion } from './cardEnv.tsx'
@@ -270,5 +272,93 @@ export function TwistSwitch({
         />
       </span>
     </button>
+  )
+}
+
+/** The twist switches, with the Comeback bonus cap under its switch while it is on. */
+export function TwistList({
+  twists,
+  salary,
+  disabled = false,
+  onChange,
+}: {
+  twists: Twists
+  /** The preset's Launch salary, to show the cap in money. */
+  salary: number
+  disabled?: boolean
+  onChange: (next: Twists) => void
+}) {
+  return (
+    <>
+      {TWISTS.map((t) => (
+        <div key={t.key} className="flex flex-col gap-1.5">
+          <TwistSwitch
+            label={t.label}
+            blurb={t.blurb}
+            on={twists[t.key] === true}
+            disabled={disabled}
+            onChange={(on) =>
+              // The cap is always written with the switch, so a saved game replays with it.
+              onChange({
+                ...twists,
+                [t.key]: on,
+                ...(t.key === 'underdogSalary' && on
+                  ? { underdogMax: twists.underdogMax ?? UNDERDOG_MAX }
+                  : {}),
+              })
+            }
+          />
+          {t.key === 'underdogSalary' && twists.underdogSalary && (
+            <BonusCap
+              value={twists.underdogMax ?? UNDERDOG_MAX}
+              salary={salary}
+              disabled={disabled}
+              onChange={(underdogMax) => onChange({ ...twists, underdogMax })}
+            />
+          )}
+        </div>
+      ))}
+    </>
+  )
+}
+
+/** Slider for the biggest underdog bonus, from half a salary to four salaries. */
+function BonusCap({
+  value,
+  salary,
+  disabled,
+  onChange,
+}: {
+  value: number
+  salary: number
+  disabled: boolean
+  onChange: (value: number) => void
+}) {
+  const pct = Math.round(value * 100)
+  return (
+    <label
+      className={`ml-3 flex flex-col gap-1.5 rounded-xl border border-line/70 px-3 py-2 ${disabled ? 'opacity-70' : ''}`}
+    >
+      <span className="flex items-baseline justify-between gap-2 text-xs text-ink-muted">
+        <span>Biggest bonus</span>
+        <span className="font-display text-sm font-bold text-ink tabular-nums">
+          +{pct}% <span className="font-normal text-ink-muted">({fmtMoney(salary * value)})</span>
+        </span>
+      </span>
+      <input
+        type="range"
+        min={0.5}
+        max={4}
+        step={0.5}
+        value={value}
+        disabled={disabled}
+        aria-valuetext={`plus ${pct} percent of the salary`}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="w-full accent-[var(--color-accent)]"
+      />
+      <span className="text-[11px] leading-snug text-ink-muted">
+        Paid in full to anyone two thirds behind the leader; less the closer they are.
+      </span>
+    </label>
   )
 }

@@ -27,7 +27,8 @@ function useHash(): string {
  * Dev shortcuts (handy for watching and screenshots):
  * `?demo=bots` starts a four-bot game; `?demo=play` seats you against three bots, and
  * `&scene=buy|auction|debt|build|card` fast-forwards until you face that moment; `&speed=1` turns on
- * the Speed die (and `&scene=bus|triples|scout` waits for that roll).
+ * the Speed die (and `&scene=bus|triples|scout` waits for that roll); `&comeback=1` turns on the
+ * underdog salary and Second Wind loans.
  */
 function demoStore(): GameStore | null {
   const params = new URLSearchParams(window.location.search)
@@ -37,7 +38,10 @@ function demoStore(): GameStore | null {
   const names = demo === 'play' ? ['You', 'Nova', 'Atlas', 'Juno'] : ['Nova', 'Atlas', 'Juno', 'Orion']
   const store = new GameStore({
     preset: 'standard',
-    ...(params.get('speed') === '1' ? { twists: { speedDie: true } } : {}),
+    twists: {
+      ...(params.get('speed') === '1' ? { speedDie: true } : {}),
+      ...(params.get('comeback') === '1' ? { underdogSalary: true, underdogMax: 2, secondWind: true } : {}),
+    },
     seed: Number(params.get('seed') ?? 7),
     seats: pieces.map((piece, i) => ({
       id: `p${i + 1}`,

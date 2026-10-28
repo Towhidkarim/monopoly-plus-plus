@@ -13,6 +13,9 @@ export interface PresentedPlayer {
   inJail: boolean
   bankrupt: boolean
   jailCards: number
+  /** Second Wind (D63): still owed on the open loan (0 when none), and what it came to. */
+  loan: number
+  loanTotal: number
 }
 
 export interface Presented {
@@ -37,6 +40,8 @@ export function presentFrom(s: GameState): Presented {
       inJail: p.inJail,
       bankrupt: p.bankrupt,
       jailCards: p.jailCards.length,
+      loan: p.loan ?? 0,
+      loanTotal: p.loanTotal ?? 0,
     })),
     owner: [...s.owner],
     houses: [...s.houses],
@@ -60,7 +65,13 @@ export function applyEvent(p: Presented, e: GameEvent): Presented {
   })
   switch (e.type) {
     case 'CASH_CHANGED':
-      return player(e.playerId, (x) => ({ ...x, cash: x.cash + e.delta }))
+      return player(e.playerId, (x) => ({
+        ...x,
+        cash: x.cash + e.delta,
+        loan: e.reason === 'loanRepay' ? Math.max(0, x.loan + e.delta) : x.loan,
+      }))
+    case 'LOAN_TAKEN':
+      return player(e.playerId, (x) => ({ ...x, loan: e.owed, loanTotal: e.owed }))
     case 'MOVED':
       return player(e.playerId, (x) => ({ ...x, position: e.path.at(-1) ?? x.position }))
     case 'JUMPED':
@@ -83,7 +94,14 @@ export function applyEvent(p: Presented, e: GameEvent): Presented {
           }
     }
     case 'BANKRUPT':
-      return player(e.playerId, (x) => ({ ...x, bankrupt: true, cash: 0, inJail: false, jailCards: 0 }))
+      return player(e.playerId, (x) => ({
+        ...x,
+        bankrupt: true,
+        cash: 0,
+        inJail: false,
+        jailCards: 0,
+        loan: 0,
+      }))
     case 'TURN_STARTED':
       return { ...p, current: seat(e.playerId), round: e.round }
     case 'PROPERTY_BOUGHT':
@@ -120,7 +138,7 @@ export function desyncs(p: Presented, truth: Presented): string[] {
   const out: string[] = []
   p.players.forEach((x, i) => {
     const t = truth.players[i]!
-    for (const k of ['cash', 'position', 'inJail', 'bankrupt', 'jailCards'] as const) {
+    for (const k of ['cash', 'position', 'inJail', 'bankrupt', 'jailCards', 'loan'] as const) {
       if (x[k] !== t[k]) out.push(`${x.id}.${k}: shown ${String(x[k])}, actual ${String(t[k])}`)
     }
   })

@@ -11,7 +11,7 @@ export interface LogEntry {
     from: string | null
     to: string | null
     amount: number
-    reason: 'rent' | 'salary' | 'underdog' | 'tax' | 'fine'
+    reason: 'rent' | 'salary' | 'underdog' | 'tax' | 'fine' | 'loan' | 'loanRepay'
   }
   /** A space this entry is about (buy toasts show its color band). */
   space?: number
@@ -58,6 +58,12 @@ function describeRaw(e: GameEvent, name: (id: string) => string): Omit<LogEntry,
           text: `${name(e.playerId)} got a ₵${e.delta} underdog bonus`,
           tone: 'good',
           money: { from: null, to: e.playerId, amount: e.delta, reason: 'underdog' },
+        }
+      if (e.reason === 'loanRepay' && e.delta < 0)
+        return {
+          text: `${name(e.playerId)} repaid ₵${-e.delta} of the loan`,
+          tone: 'muted',
+          money: { from: e.playerId, to: null, amount: -e.delta, reason: 'loanRepay' },
         }
       if (e.reason === 'rent' && e.delta < 0 && e.counterparty)
         return {
@@ -131,6 +137,14 @@ function describeRaw(e: GameEvent, name: (id: string) => string): Omit<LogEntry,
       return { text: `${name(e.playerId)} must raise money to pay ₵${e.amount}`, tone: 'bad', icon: 'alert' }
     case 'BANKRUPT':
       return { text: `${name(e.playerId)} went bankrupt`, tone: 'bad' }
+    case 'LOAN_TAKEN':
+      return {
+        text: `Second Wind! ${name(e.playerId)} borrowed ₵${e.amount} (₵${e.owed} to repay)`,
+        tone: 'good',
+        money: { from: null, to: e.playerId, amount: e.amount, reason: 'loan' },
+      }
+    case 'LOAN_REPAID':
+      return { text: `${name(e.playerId)} paid off the loan. Debt free!`, tone: 'good' }
     case 'FINAL_ROUND':
       return { text: `Final round!`, tone: 'bad' }
     case 'GAME_OVER':

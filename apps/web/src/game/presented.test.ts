@@ -7,9 +7,12 @@ describe('presented state', () => {
   it('never drifts from the engine: events alone rebuild what the screen shows', () => {
     for (const seed of [1, 2, 3, 4, 5, 6]) {
       const players = 2 + (seed % 3)
+      // Half the games with the Comeback twists, so loans and repayments are covered too.
+      const config =
+        seed % 2 ? PRESETS.standard : { ...PRESETS.standard, underdogSalary: true, secondWind: true }
       const { actions } = playout({
         players,
-        config: PRESETS.standard,
+        config,
         seed,
         maxActions: 3000,
         checkEveryStep: false,
@@ -17,7 +20,7 @@ describe('presented state', () => {
       let s = createGame(
         Array.from({ length: players }, (_, i) => ({ id: `p${i + 1}`, name: `p${i + 1}` })),
         seed,
-        PRESETS.standard,
+        config,
       )
       let shown = presentFrom(s)
       for (const { playerId, action } of actions) {

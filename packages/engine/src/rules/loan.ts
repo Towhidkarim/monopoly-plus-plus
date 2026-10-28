@@ -43,6 +43,14 @@ function shortfall(s: GameState, seat: number): number {
   return owed - s.players[seat]!.cash
 }
 
+/** What a loan for `seat`'s shortfall right now would lend and cost. */
+export function loanTerms(s: GameState, seat: number): { amount: number; owed: number; rate: number } {
+  const amount = up10(shortfall(s, seat))
+  const rate = loanRate(s, seat)
+  // Interest to the coin (rounding it up to ₵10 would charge 50% on a ₵20 loan).
+  return { amount, owed: amount + Math.round(amount * rate), rate }
+}
+
 export function checkTakeLoan(s: GameState, seat: number): string | null {
   if (!s.config.secondWind) return 'loans are off'
   if (s.debts[0]?.debtor !== seat) return 'only a player who cannot pay may take a loan'
@@ -54,11 +62,10 @@ export function checkTakeLoan(s: GameState, seat: number): string | null {
 export function applyTakeLoan(ctx: Ctx, seat: number): void {
   const s = ctx.s
   const p = s.players[seat]!
-  const amount = up10(shortfall(s, seat))
-  const rate = loanRate(s, seat)
-  const owed = amount + up10(Math.round(amount * rate)) // round first: 1700 * 0.1 is 170.00000000000003
+  const { amount, owed, rate } = loanTerms(s, seat)
   addCash(ctx, seat, amount, 'loan', -1)
   p.loan = owed
+  p.loanTotal = owed
   p.loans = (p.loans ?? 0) + 1
   ctx.events.push({ type: 'LOAN_TAKEN', playerId: p.id, amount, owed, rate })
   // reduce settles the debts right after, with the borrowed cash.

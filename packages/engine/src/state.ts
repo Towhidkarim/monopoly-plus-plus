@@ -21,6 +21,8 @@ export interface PlayerState {
   bankrupt: boolean
   /** Second Wind: what is still owed on the open bank loan, interest included (D63). */
   loan?: number
+  /** Second Wind: what the open (or last) loan came to when taken, for progress bars. */
+  loanTotal?: number
   /** Second Wind: loans taken so far (sets the next loan's interest). */
   loans?: number
 }

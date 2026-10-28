@@ -5,6 +5,7 @@ import {
   GROUPS,
   HOTEL,
   SPACES,
+  UNDERDOG_MAX,
   netWorth,
   ownsGroup,
   type GameConfig,
@@ -514,9 +515,13 @@ const RULES: [string, string][] = [
 ]
 
 /** Rules for twists, shown when the game has them on (DECISIONS.md D61). */
-const UNDERDOG_RULE: [string, string] = [
+const underdogRule = (config: GameConfig): [string, string] => [
   'Comeback',
-  'Behind the leader? Your Launch salary grows with the gap: up to +50% for whoever trails far behind. The leader gets the normal salary.',
+  `Behind the leader? Your Launch salary grows with the gap: up to +${Math.round((config.underdogMax ?? UNDERDOG_MAX) * 100)}% extra for whoever trails two thirds behind or more. The leader gets the normal salary.`,
+]
+const SECOND_WIND_RULE: [string, string] = [
+  'Second Wind',
+  "Can't pay a bill? Take a bank loan instead of selling. The bank pays it at once and you keep every building. Half of what you earn repays it, plus interest: 10% the first time, 25% the second, then 50%. You can borrow up to what your city is worth, one loan at a time.",
 ]
 const SPEED_DIE_RULE: [string, string] = [
   'Speed die',
@@ -531,7 +536,8 @@ export function HelpOverlay({ onClose, config }: { onClose: () => void; config?:
   const rules = [
     ...RULES,
     ...(config?.speedDie ? [SPEED_DIE_RULE] : []),
-    ...(config?.underdogSalary ? [UNDERDOG_RULE] : []),
+    ...(config?.underdogSalary ? [underdogRule(config)] : []),
+    ...(config?.secondWind ? [SECOND_WIND_RULE] : []),
   ]
   usePanelSound()
   const dialog = useDialogFocus()

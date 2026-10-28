@@ -75,7 +75,10 @@ export class CueMapper {
       case 'TRADE_ACCEPTED':
         return [{ sound: 'trade.deal' }]
       case 'MONOPOLY_COMPLETED':
+      case 'LOAN_TAKEN':
         return [{ sound: 'set.complete' }]
+      case 'LOAN_REPAID':
+        return [{ sound: 'trade.deal' }]
       case 'JAILED':
         return [{ sound: 'jail.sent' }]
       case 'RELEASED':

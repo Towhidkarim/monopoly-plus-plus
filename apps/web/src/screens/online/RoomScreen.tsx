@@ -1,5 +1,6 @@
 import { useState, useSyncExternalStore } from 'react'
 import { PERSONALITIES } from '@skyline/bots'
+import { PRESETS } from '@skyline/engine'
 import { MIN_SEATS, type ErrorCode, type LobbyInfo, type SeatInfo } from '@skyline/protocol'
 import { citySeedOf, type RoomConnection, type RoomView } from '../../net/connection.ts'
 import {
@@ -11,9 +12,8 @@ import {
   type Profile,
 } from '../../net/session.ts'
 import { cssHex } from '../../spaceInfo.ts'
-import { TWISTS } from '../../game/setup.ts'
 import { GameScreen } from '../GameScreen.tsx'
-import { Btn, Eyebrow, TwistSwitch } from '../game/ui.tsx'
+import { Btn, Eyebrow, TwistList } from '../game/ui.tsx'
 import { ProfileFields } from './OnlineMenu.tsx'
 import { Note, OnlineShell, Title } from './Shell.tsx'
 
@@ -249,16 +249,12 @@ function Lobby({
             </label>
           )}
         </div>
-        {TWISTS.map((t) => (
-          <TwistSwitch
-            key={t.key}
-            label={t.label}
-            blurb={t.blurb}
-            on={settings.rules[t.key] === true}
-            disabled={!host}
-            onChange={(on) => setSettings({ rules: { ...settings.rules, [t.key]: on } })}
-          />
-        ))}
+        <TwistList
+          twists={settings.rules}
+          salary={settings.rules.goSalary ?? PRESETS[settings.preset].goSalary}
+          disabled={!host}
+          onChange={(next) => setSettings({ rules: { ...settings.rules, ...next } })}
+        />
         <label className={`flex items-center gap-2 text-sm text-ink-muted ${host ? '' : 'opacity-70'}`}>
           <input
             type="checkbox"

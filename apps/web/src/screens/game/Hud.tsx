@@ -1,5 +1,5 @@
 import { useSyncExternalStore, type ReactNode } from 'react'
-import { GROUP_COUNT, GROUPS, SPACES, isOwnable } from '@skyline/engine'
+import { GROUP_COUNT, GROUPS, SPACES, isOwnable, validate } from '@skyline/engine'
 import { sound } from '../../audio/engine.ts'
 import type { GameStore, Snapshot } from '../../game/store.ts'
 import { cssHex, groupColor, groupName } from '../../spaceInfo.ts'
@@ -104,6 +104,7 @@ export function Hud({
                 `${fmtMoney(pl.cash)} cash`,
                 tag ? tag.toLowerCase() : null,
                 pl.jailCards > 0 ? `${pl.jailCards} Lockup ${pl.jailCards === 1 ? 'card' : 'cards'}` : null,
+                pl.loan > 0 ? `${fmtMoney(pl.loan)} loan to repay` : null,
               ]
                 .filter(Boolean)
                 .join(', ')}
@@ -160,6 +161,21 @@ export function Hud({
                 </div>
               </div>
               <SetBars seat={seat} owner={p.owner} mortgaged={p.mortgaged} />
+              {pl.loan > 0 && !pl.bankrupt && (
+                <LoanBar
+                  loan={pl.loan}
+                  total={pl.loanTotal}
+                  onRepay={
+                    // Only a full payoff: a partial one would empty the wallet in one click.
+                    store.canAct(pl.id) &&
+                    !snap.busy &&
+                    pl.cash >= pl.loan &&
+                    validate(snap.state, pl.id, { type: 'REPAY_LOAN' }) === null
+                      ? () => store.run(pl.id, [{ type: 'REPAY_LOAN' }])
+                      : null
+                  }
+                />
+              )}
               {active && (
                 <span
                   aria-hidden="true"
@@ -255,6 +271,39 @@ function SetBars({ seat, owner, mortgaged }: { seat: number; owner: number[]; mo
     <div className="flex gap-[3px]">
       {Array.from({ length: GROUP_COUNT }, (_, g) => bar(GROUPS[g]!, groupColor(g), groupName(g)))}
       {bar(OTHER_SPACES, '#94a3b8', 'Stations and utilities')}
+    </div>
+  )
+}
+
+/**
+ * Second Wind (D63): what is left of the loan, a gold bar that drains as income repays it, and
+ * on the player's own card a button to pay it off once their cash covers it.
+ */
+function LoanBar({ loan, total, onRepay }: { loan: number; total: number; onRepay: (() => void) | null }) {
+  const left = total > 0 ? Math.min(1, loan / total) : 1
+  return (
+    <div className="flex items-center gap-2" title="Second Wind loan: half of every income goes to it">
+      <span className="text-[9px] font-extrabold tracking-widest text-gold uppercase">Loan</span>
+      <span className="relative h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-white/8">
+        <span
+          className="absolute inset-y-0 left-0 rounded-full bg-[repeating-linear-gradient(135deg,#f5b54a_0_5px,#d9952c_5px_10px)] transition-[width] duration-500 ease-spring"
+          style={{ width: `${left * 100}%` }}
+        />
+      </span>
+      <span className="text-[11px] font-bold text-gold tabular-nums">{fmtMoney(loan)}</span>
+      {onRepay && (
+        <button
+          type="button"
+          onClick={() => {
+            sound.play('ui.click')
+            onRepay()
+          }}
+          title={`Pay off the whole loan now (${fmtMoney(loan)})`}
+          className={`rounded-md border border-gold/50 px-1.5 py-px text-[10px] font-extrabold text-gold ${FX} enabled:hover:bg-gold/15`}
+        >
+          Pay off
+        </button>
+      )}
     </div>
   )
 }

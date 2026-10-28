@@ -6,7 +6,17 @@ export interface Bark {
   text: string
 }
 
-type Moment = 'paidRent' | 'gotRent' | 'bought' | 'set' | 'trade' | 'jailed' | 'bankrupt' | 'payday'
+type Moment =
+  | 'paidRent'
+  | 'gotRent'
+  | 'bought'
+  | 'set'
+  | 'trade'
+  | 'jailed'
+  | 'bankrupt'
+  | 'payday'
+  | 'loan'
+  | 'debtFree'
 type Style = 'Balanced' | 'Banker' | 'Tycoon' | 'Shark'
 
 /** Lines per moment and bot personality (the bots package's `BotParams.name`). */
@@ -59,6 +69,18 @@ const LINES: Record<Moment, Record<Style, readonly string[]>> = {
     Tycoon: ['More capital!'],
     Shark: ['Ka-ching.'],
   },
+  loan: {
+    Balanced: ['Not out yet!', 'Second wind!'],
+    Banker: ['A prudent restructuring.', 'Terms accepted.'],
+    Tycoon: ['Leverage! The empire stands.', "Can't stop me!"],
+    Shark: ["I'll pay it back with your rent.", 'Still here.'],
+  },
+  debtFree: {
+    Balanced: ['Debt free!', 'Clean slate.'],
+    Banker: ['Ledger balanced.'],
+    Tycoon: ['Free and clear!'],
+    Shark: ['Now watch me.'],
+  },
 }
 
 /** How often a moment gets a line (big moments always, small ones now and then). */
@@ -71,6 +93,8 @@ const CHANCE: Record<Moment, number> = {
   jailed: 1,
   bankrupt: 1,
   payday: 0.15,
+  loan: 1,
+  debtFree: 1,
 }
 
 /** Rent at least this big always gets a reaction. */
@@ -131,6 +155,10 @@ export class BarkMapper {
         return this.say(e.playerId, 'jailed')
       case 'BANKRUPT':
         return this.say(e.playerId, 'bankrupt', true)
+      case 'LOAN_TAKEN':
+        return this.say(e.playerId, 'loan', true)
+      case 'LOAN_REPAID':
+        return this.say(e.playerId, 'debtFree', true)
       default:
         return null
     }

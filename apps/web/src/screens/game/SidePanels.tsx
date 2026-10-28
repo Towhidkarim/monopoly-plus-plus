@@ -428,15 +428,19 @@ function Toast({ entry: e, snap, store }: { entry: LogEntry; snap: Snapshot; sto
         ? 'Launch salary'
         : m.reason === 'underdog'
           ? 'Underdog bonus'
-          : m.reason === 'tax'
-            ? 'Tax to the bank'
-            : m.reason === 'fine'
-              ? 'Lockup fine'
-              : iGet
-                ? `Rent from ${nameOf(m.from)}`
-                : iPay
-                  ? `Rent to ${nameOf(m.to)}`
-                  : `${nameOf(m.from)} paid rent to ${nameOf(m.to)}`
+          : m.reason === 'loan'
+            ? 'Second Wind loan'
+            : m.reason === 'loanRepay'
+              ? 'Loan repayment'
+              : m.reason === 'tax'
+                ? 'Tax to the bank'
+                : m.reason === 'fine'
+                  ? 'Lockup fine'
+                  : iGet
+                    ? `Rent from ${nameOf(m.from)}`
+                    : iPay
+                      ? `Rent to ${nameOf(m.to)}`
+                      : `${nameOf(m.from)} paid rent to ${nameOf(m.to)}`
     return (
       <div className={base}>
         <span className="flex items-center gap-[3px]">

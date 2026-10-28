@@ -20,10 +20,16 @@ export interface SeatSetup {
 export interface Twists {
   speedDie?: boolean
   underdogSalary?: boolean
+  /** Cap of the underdog bonus in salaries (D63); absent means the engine default, 2. */
+  underdogMax?: number
+  secondWind?: boolean
 }
 
+/** The on/off twists (the rest are their settings). */
+export type TwistKey = 'speedDie' | 'underdogSalary' | 'secondWind'
+
 /** The twists the setup screens offer, in order. */
-export const TWISTS: readonly { key: keyof Twists; label: string; blurb: string }[] = [
+export const TWISTS: readonly { key: TwistKey; label: string; blurb: string }[] = [
   {
     key: 'speedDie',
     label: 'Speed die',
@@ -33,7 +39,12 @@ export const TWISTS: readonly { key: keyof Twists; label: string; blurb: string 
   {
     key: 'underdogSalary',
     label: 'Comeback',
-    blurb: 'Players behind the leader collect a bigger salary at Launch, up to +50%.',
+    blurb: 'Players behind the leader collect a bigger salary at Launch. The further behind, the bigger.',
+  },
+  {
+    key: 'secondWind',
+    label: 'Second Wind',
+    blurb: "Can't pay? Take a bank loan instead of selling your city. Half of what you earn pays it back.",
   },
 ]
 
@@ -47,8 +58,15 @@ export interface GameSetup {
   seats: SeatSetup[]
 }
 
-/** The engine config for a setup: its preset plus its twists. */
-export const configOf = (setup: GameSetup): GameConfig => ({ ...PRESETS[setup.preset], ...setup.twists })
+/**
+ * The engine config for a setup: its preset plus its twists. Saves from before the bonus cap
+ * existed (D63) keep the +50% they were played with, so their replay stays exact.
+ */
+export const configOf = (setup: GameSetup): GameConfig => ({
+  ...PRESETS[setup.preset],
+  ...setup.twists,
+  ...(setup.twists?.underdogSalary && setup.twists.underdogMax === undefined ? { underdogMax: 0.5 } : {}),
+})
 
 /** The city a setup shows: its own seed, or one derived from the game seed for old saves. */
 export const cityOf = (setup: GameSetup): number => setup.citySeed ?? (setup.seed * 2654435761) % 1_000_003

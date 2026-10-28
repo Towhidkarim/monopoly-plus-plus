@@ -50,7 +50,15 @@ export interface CardShown {
 export type Fx =
   | { kind: 'pop'; playerId: string; delta: number }
   | { kind: 'transfer'; from: string; to: string; amount: number }
-  | { kind: 'callout'; tone: 'good' | 'bad' | 'info'; title: string; detail?: string; seat?: number }
+  | {
+      kind: 'callout'
+      tone: 'good' | 'bad' | 'info'
+      title: string
+      detail?: string
+      seat?: number
+      /** A rubber stamp slammed above the line for the biggest moments ("SECOND WIND!"). */
+      stamp?: string
+    }
   /** 3D dice: first touchdown (intensity 0..1), and both dice at rest. */
   | { kind: 'diceHit'; intensity: number }
   | { kind: 'diceSettle'; doubles: boolean; popInMs: number }
@@ -658,6 +666,24 @@ export class GameStore {
           seat: this.seatIndex(deal.from),
         })
       }
+    } else if (e.type === 'LOAN_TAKEN') {
+      this.emit({
+        kind: 'callout',
+        tone: 'info',
+        stamp: 'SECOND WIND!',
+        title: `${this.nameOf(e.playerId)} borrowed ₵${e.amount.toLocaleString()} from the bank`,
+        detail: `The city stays standing. ₵${e.owed.toLocaleString()} to repay from half of every income.`,
+        seat: this.seatIndex(e.playerId),
+      })
+    } else if (e.type === 'LOAN_REPAID') {
+      this.emit({
+        kind: 'callout',
+        tone: 'good',
+        stamp: 'DEBT FREE!',
+        title: `${this.nameOf(e.playerId)} paid off the loan`,
+        detail: `Every coin earned is ${this.nameOf(e.playerId) === 'You' ? 'yours' : 'theirs'} to keep again.`,
+        seat: this.seatIndex(e.playerId),
+      })
     } else if (e.type === 'FINAL_ROUND') {
       this.emit({ kind: 'callout', tone: 'info', title: 'Final round', detail: 'Highest net worth wins.' })
     }

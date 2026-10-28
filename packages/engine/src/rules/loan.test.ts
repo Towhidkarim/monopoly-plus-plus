@@ -61,6 +61,7 @@ describe('Second Wind loans', () => {
     expect(after.players[0]!.cash).toBe(0)
     expect(after.players[1]!.cash).toBe(1500 + 2000)
     expect(after.players[0]!.loan).toBe(1870)
+    expect(after.players[0]!.loanTotal).toBe(1870)
     expect([21, 23, 24].map((i) => after.houses[i])).toEqual([3, 3, 3])
   })
 
@@ -121,9 +122,14 @@ describe('Second Wind loans', () => {
     expect(reject(owing(0, 320), 'a', { type: 'REPAY_LOAN' })).toMatch(/no loan/)
   })
 
+  it('charges interest to the coin, so small loans stay cheap', () => {
+    const small = edit(hotelHit(), (d) => (d.players[0]!.cash = 1990)) // ₵10 short
+    expect(act(small, 'a', { type: 'TAKE_LOAN' }).s.players[0]!.loan).toBe(11)
+  })
+
   it('charges more interest on each later loan', () => {
     const second = edit(hotelHit(), (d) => (d.players[0]!.loans = 1))
-    expect(act(second, 'a', { type: 'TAKE_LOAN' }).s.players[0]!.loan).toBe(2130) // 1700 + 25%
+    expect(act(second, 'a', { type: 'TAKE_LOAN' }).s.players[0]!.loan).toBe(2125) // 1700 + 25%
     const later = edit(hotelHit(), (d) => (d.players[0]!.loans = 5))
     expect(act(later, 'a', { type: 'TAKE_LOAN' }).s.players[0]!.loan).toBe(2550) // 1700 + 50%
   })

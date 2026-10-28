@@ -4,6 +4,8 @@ import {
   CHEST_CARDS,
   HOTEL,
   SPACES,
+  loanCap,
+  loanTerms,
   rentFor,
   type Action,
   type CashReason,
@@ -59,6 +61,8 @@ interface DebtView {
   recommended: Action[]
   planAmount: number
   planActions: Action[]
+  /** Second Wind (D63): the loan on offer, or why there is none; null when the twist is off. */
+  loan: { amount: number; owed: number; rate: number; legal: boolean; blocked: string | null } | null
 }
 
 type Outcome = 'paid' | 'bankrupt'
@@ -123,7 +127,22 @@ function buildView(snap: Snapshot, store: GameStore, turn: TurnView, card: Drawn
     recommended: plan.actions,
     planAmount: plan.amount,
     planActions: plan.actions,
+    loan: s.config.secondWind ? loanOffer(s, seat, turn.legal) : null,
   }
+}
+
+/** The Second Wind loan on offer for the current shortfall, or why there is none. */
+function loanOffer(s: GameState, seat: number, legal: readonly Action[]): DebtView['loan'] {
+  const { amount, owed, rate } = loanTerms(s, seat)
+  const open = s.players[seat]!.loan ?? 0
+  const cap = loanCap(s, seat)
+  const blocked =
+    open > 0
+      ? `Your loan is still open (${fmtMoney(open)} to go). Pay it off to borrow again.`
+      : amount > cap
+        ? `The bank lends up to what your city is worth, ${fmtMoney(cap)}.`
+        : null
+  return { amount, owed, rate, legal: legal.some((a) => a.type === 'TAKE_LOAN'), blocked }
 }
 
 /**
@@ -266,6 +285,8 @@ function Sheet({
             </div>
           </div>
 
+          {v.loan && <LoanOffer loan={v.loan} live={live} onTake={() => turn.act({ type: 'TAKE_LOAN' })} />}
+
           <div className="flex min-h-14 flex-1 flex-col gap-0.5 overflow-y-auto px-3">
             {v.options.map(({ a, title, detail: note }) => {
               const picked = v.recommended.some(
@@ -293,7 +314,7 @@ function Sheet({
           </div>
 
           <div className="flex flex-col gap-3 px-6 pt-4 pb-5.5">
-            {!v.enough && (
+            {!v.enough && !v.loan?.legal && (
               <div className="rounded-xl border border-alert/30 bg-alert/10 px-3.5 py-3 text-[13px] leading-relaxed">
                 Even selling and mortgaging everything leaves you {fmtMoney(v.need - v.liquid)} short. A trade
                 could still save you.
@@ -320,8 +341,8 @@ function Sheet({
               <div className="flex items-center gap-2.5">
                 {v.planActions.length > 0 && (
                   <Btn
-                    autofocus
-                    kind={v.enough ? 'primary' : 'secondary'}
+                    autofocus={!v.loan?.legal}
+                    kind={v.enough && !v.loan?.legal ? 'primary' : 'secondary'}
                     disabled={!live}
                     onClick={() => store.run(id, v.planActions)}
                     className="h-14 min-w-0 flex-1 rounded-2xl px-5 text-base"
@@ -499,4 +520,51 @@ function detail(s: GameState, a: Raise): string {
   const level = s.houses[a.space]!
   const after = level === HOTEL ? 'hotel becomes 4 houses' : `rent drops to ${fmtMoney(sp.rent[level - 1]!)}`
   return `${familyName(a.space)} · ${after} (now ${fmtMoney(rentFor(s, a.space, 7))})`
+}
+
+/** Second Wind: the bank covers the whole bill now; half of every income pays it back. */
+function LoanOffer({
+  loan,
+  live,
+  onTake,
+}: {
+  loan: NonNullable<DebtView['loan']>
+  live: boolean
+  onTake: () => void
+}) {
+  if (!loan.legal)
+    return (
+      <div className="mx-6 mb-2 rounded-2xl border border-line px-4 py-3 text-[13px] leading-relaxed text-ink-muted">
+        <strong className="font-display text-ink">Second Wind</strong> ·{' '}
+        {loan.blocked ?? 'No loan right now.'}
+      </div>
+    )
+  return (
+    <div className="mx-6 mb-2 flex items-center gap-3.5 rounded-2xl border border-gold/50 bg-gold/8 px-4 py-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+      <span
+        aria-hidden="true"
+        className="flex size-11 shrink-0 animate-pop items-center justify-center rounded-full bg-coin font-display text-xl font-bold text-[#5a3a00] shadow-[inset_0_-3px_0_var(--color-coin-dark)]"
+      >
+        ₵
+      </span>
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="font-display text-base font-bold text-gold">
+          Second Wind: borrow {fmtMoney(loan.amount)}
+        </span>
+        <span className="text-xs leading-snug text-ink-muted">
+          The bank pays the bill and you keep every building. Repay {fmtMoney(loan.owed)} (
+          {Math.round(loan.rate * 100)}% interest) from half of what you earn.
+        </span>
+      </div>
+      <Btn
+        autofocus
+        kind="primary"
+        disabled={!live}
+        onClick={onTake}
+        className="h-12 shrink-0 rounded-2xl px-4.5"
+      >
+        Take the loan
+      </Btn>
+    </div>
+  )
 }
