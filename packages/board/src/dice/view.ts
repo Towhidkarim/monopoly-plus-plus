@@ -451,9 +451,9 @@ export class DiceView {
       for (const p of this.pose.slice(0, run.count)) p.p.z += (1 - k) * (1 - k) * 0.35
       for (const d of this.dice) d.mesh.alpha = k
     }
-    // Far die first.
+    // Far die first, so the nearest is drawn last, on top (`view` points toward the camera).
     const depth = (p: Pose) => p.p.x * B.view.x + p.p.y * B.view.y + p.p.z * B.view.z
-    order.sort((i, j) => depth(this.pose[j]!) - depth(this.pose[i]!))
+    order.sort((i, j) => depth(this.pose[i]!) - depth(this.pose[j]!))
     for (const [k, i] of order.entries()) this.container.setChildIndex(this.dice[i]!.mesh, 1 + k)
 
     for (const i of order) {
