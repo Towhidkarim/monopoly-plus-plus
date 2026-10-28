@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_JUICE } from '../juice/config.ts'
-import { CORNERS, FACES, faceSwap, topFace } from './cube.ts'
+import { CORNERS, FACES, faceSwap, speedFaceOf, speedFaceValue, topFace } from './cube.ts'
 import { qrot } from './math.ts'
 import {
   DEFAULT_THROW_AREA,
@@ -63,7 +63,7 @@ describe('solveThrow', () => {
             [0, a],
             [1, b],
           ] as const) {
-            const end = last(track.poses[i])
+            const end = last(track.poses[i]!)
             expect(topFace(end.q).value).toBe(want)
             // Exactly face up, resting on the board.
             expect(qrot(end.q, topFace(end.q).n).z).toBeGreaterThan(0.9999)
@@ -77,17 +77,17 @@ describe('solveThrow', () => {
     const b = solveThrow(request([4, 2], 31337))
     expect(b).toEqual(a)
     const c = solveThrow(request([4, 2], 31338))
-    expect(last(c.poses[0]).p).not.toEqual(last(a.poses[0]).p)
+    expect(last(c.poses[0]!).p).not.toEqual(last(a.poses[0]!).p)
   })
 
   it('the requested values never change the path, only which face is printed where', () => {
     const one = solveThrow(request([1, 1], 99))
     const six = solveThrow(request([6, 5], 99))
-    expect(six.poses[0].length).toBe(one.poses[0].length)
+    expect(six.poses[0]!.length).toBe(one.poses[0]!.length)
     for (const i of [0, 1] as const)
-      for (let f = 0; f < one.poses[i].length; f += 7) {
-        const p = one.poses[i][f]!
-        const q = six.poses[i][f]!
+      for (let f = 0; f < one.poses[i]!.length; f += 7) {
+        const p = one.poses[i]![f]!
+        const q = six.poses[i]![f]!
         expect(q.p).toEqual(p.p)
         // Same set of world corner positions.
         for (const c of CORNERS) {
@@ -108,7 +108,7 @@ describe('solveThrow', () => {
     for (let seed = 1; seed <= seeds; seed++) {
       const track = solveThrow(request([1 + (seed % 6), 1 + ((seed * 5) % 6)], seed))
       const h = track.half
-      const ends = [last(track.poses[0]), last(track.poses[1])]
+      const ends = [last(track.poses[0]!), last(track.poses[1]!)]
       for (const end of ends) {
         expect(end.p.x).toBeGreaterThanOrEqual(area.col0 + h - 1e-6)
         expect(end.p.x).toBeLessThanOrEqual(area.col1 - h + 1e-6)
@@ -132,7 +132,7 @@ describe('solveThrow', () => {
       const track = solveThrow({ ...request([3, 3], seed), area: other, from: { col: -2, row: 4 } })
       expect(track.faces).toEqual([3, 3])
       for (const i of [0, 1] as const) {
-        const end = last(track.poses[i])
+        const end = last(track.poses[i]!)
         expect(end.p.x).toBeGreaterThan(other.col0)
         expect(end.p.x).toBeLessThan(other.col1)
         expect(end.p.y).toBeGreaterThan(other.row0)
@@ -149,7 +149,7 @@ describe('simulate', () => {
       const h = track.half
       const touchdown = track.hits.find((x) => x.kind === 'floor')!.t
       for (const i of [0, 1] as const)
-        for (const [f, pose] of track.poses[i].entries()) {
+        for (const [f, pose] of track.poses[i]!.entries()) {
           let low = Infinity
           for (const c of CORNERS)
             low = Math.min(low, pose.p.z + qrot(pose.q, { x: c.x * h, y: c.y * h, z: c.z * h }).z)
@@ -186,13 +186,70 @@ describe('poseAt', () => {
   it('interpolates between keyframes and clamps to the track', () => {
     const track = solveThrow(request([2, 5], 8))
     const out = { p: { x: 0, y: 0, z: 0 }, q: { w: 1, x: 0, y: 0, z: 0 } }
-    const a = track.poses[0][10]!
-    const b = track.poses[0][11]!
+    const a = track.poses[0]![10]!
+    const b = track.poses[0]![11]!
     poseAt(track, 0, 10.5 * STEP, out)
     expect(out.p.x).toBeCloseTo((a.p.x + b.p.x) / 2, 9)
     poseAt(track, 0, 99, out)
-    expect(out.p).toEqual(last(track.poses[0]).p)
+    expect(out.p).toEqual(last(track.poses[0]!).p)
     poseAt(track, 1, -1, out)
-    expect(out.p).toEqual(track.poses[1][0]!.p)
+    expect(out.p).toEqual(track.poses[1]![0]!.p)
+  })
+})
+
+describe('three dice (the Speed die)', () => {
+  const three = (values: number[], seed: number) => solveThrow({ ...request([1, 1], seed), values })
+
+  it('lands every white pair with every Speed die face, flat on the board', () => {
+    for (let seed = 1; seed <= 40; seed++) {
+      const values = [1 + (seed % 6), 1 + ((seed * 5) % 6), 1 + ((seed * 7) % 6)]
+      const track = three(values, seed)
+      expect(track.faces).toEqual(values)
+      expect(track.poses).toHaveLength(3)
+      for (const [i, want] of values.entries()) {
+        const end = last(track.poses[i]!)
+        expect(topFace(end.q).value).toBe(want)
+        expect(qrot(end.q, topFace(end.q).n).z).toBeGreaterThan(0.9999)
+        expect(end.p.z).toBeCloseTo(track.half, 6)
+      }
+    }
+  })
+
+  it('rests inside the area and apart, within the time budget', () => {
+    let inWindow = 0
+    const seeds = 60
+    for (let seed = 1; seed <= seeds; seed++) {
+      const track = three([2, 5, 1 + (seed % 6)], seed)
+      const h = track.half
+      const ends = track.poses.map((list) => last(list))
+      for (const end of ends) {
+        expect(end.p.x).toBeGreaterThanOrEqual(area.col0 + h - 1e-6)
+        expect(end.p.x).toBeLessThanOrEqual(area.col1 - h + 1e-6)
+        expect(end.p.y).toBeGreaterThanOrEqual(area.row0 + h - 1e-6)
+        expect(end.p.y).toBeLessThanOrEqual(area.row1 - h + 1e-6)
+      }
+      for (let i = 0; i < 3; i++)
+        for (let j = i + 1; j < 3; j++) expect(restingOverlap(ends[i]!, ends[j]!, h)).toBe(false)
+      const ms = track.duration * 1000
+      if (ms >= physics.minMs && ms <= physics.maxMs) inWindow++
+      expect(ms).toBeLessThan(3300)
+    }
+    expect(inWindow / seeds).toBeGreaterThan(0.9)
+  })
+
+  it('is deterministic, and two dice are unchanged by the third die existing', () => {
+    expect(three([3, 4, 6], 5)).toEqual(three([3, 4, 6], 5))
+    const two = solveThrow(request([3, 4], 5))
+    expect(two.poses).toHaveLength(2)
+    expect(two.faces).toEqual([3, 4])
+  })
+})
+
+describe('speed face mapping', () => {
+  it('round trips and keeps the two scouts opposite the 1 and the 2', () => {
+    for (const f of [1, 2, 3, 'bus', 'scout'] as const)
+      for (const pick of [0, 1]) expect(speedFaceOf(speedFaceValue(f, pick))).toBe(f)
+    expect(speedFaceValue('bus')).toBe(4)
+    expect([speedFaceValue('scout', 0), speedFaceValue('scout', 1)].toSorted((a, b) => a - b)).toEqual([5, 6])
   })
 })

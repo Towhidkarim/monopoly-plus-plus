@@ -20,7 +20,8 @@ export function TurnBanner({
   cityOpen?: boolean
 }) {
   // Decision panels and cards say it themselves; the banner would only peek out behind them.
-  if (snap.presented.over || turn.moment || snap.card) return null
+  // The Speed die's move choice keeps the banner: its subtitle says what to do.
+  if (snap.presented.over || (turn.moment && turn.moment !== 'move') || snap.card) return null
   const seat = snap.presented.current
   const info = store.setup.seats[seat]!
   const color = cssHex(info.color)

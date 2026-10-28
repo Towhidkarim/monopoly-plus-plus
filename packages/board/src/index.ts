@@ -15,7 +15,7 @@ export type {
 } from './board.ts'
 export { DEFAULT_JUICE, cloneJuice } from './juice/config.ts'
 export { DEFAULT_THROW_AREA, DEFAULT_THROW_FROM } from './dice/view.ts'
-export type { DiceSettle, DiceThrowOptions, DiceThrowResult } from './dice/view.ts'
+export type { DiceSettle, DiceThrowOptions, DiceThrowResult, SpeedFace } from './dice/view.ts'
 export type { ThrowArea } from './dice/sim.ts'
 export type { JuiceConfig } from './juice/config.ts'
 export type { OddsMark } from './view/odds.ts'

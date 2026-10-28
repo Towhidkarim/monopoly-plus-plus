@@ -25,12 +25,21 @@ export class OddsLabels {
   readonly container = new Container({ eventMode: 'none' })
   private labels: { space: number; text: Text; age: number; delay: number }[] = []
   private leaving = false
+  /** The marks on show, so setting the same ones again keeps them instead of re-popping. */
+  private shown = ''
 
   set(marks: readonly OddsMark[] | null): void {
     if (!marks || marks.length === 0) {
       this.leaving = true
       return
     }
+    // Only the text matters here; the tint strength (`p`) lives on the tiles.
+    const key = JSON.stringify(marks.map((m) => [m.space, m.label, m.color]))
+    if (key === this.shown && this.labels.length > 0) {
+      this.leaving = false
+      return
+    }
+    this.shown = key
     this.clear()
     this.leaving = false
     marks.forEach((m, i) => {

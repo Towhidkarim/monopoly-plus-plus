@@ -1,5 +1,6 @@
 import { SPACES, expectedActor, legalActions, type Action, type TradeOffer } from '@skyline/engine'
 import type { GameStore, Snapshot } from '../../game/store.ts'
+import { moveOptions, type MoveOption } from './moveChoice.ts'
 
 /** A button the shell offers for the current decision. */
 export interface Choice {
@@ -23,8 +24,10 @@ export interface TurnView {
   legal: Action[]
   /** Dispatches for the waiting player. The UI only offers legal actions, so errors are ignored. */
   act: (a: Action) => void
-  /** Which decision panel is open, if any. */
-  moment: 'buy' | 'auction' | 'debt' | 'offer' | null
+  /** Which decision panel is open, if any (`move`: the Speed die's Bus or triples choice). */
+  moment: 'buy' | 'auction' | 'debt' | 'offer' | 'move' | null
+  /** The destinations to offer while `moment` is `move` (hotkeys 1, 2, 3, 4 in this order). */
+  moves: MoveOption[]
   /** An offer a human must answer before play goes on (the bots wait too). */
   offer: TradeOffer | null
   primary: Choice | null
@@ -52,7 +55,17 @@ export function turnView(snap: Snapshot, store: GameStore): TurnView {
   const find = <T extends Action['type']>(t: T) =>
     legal.find((a): a is Extract<Action, { type: T }> => a.type === t)
 
-  const base = { actorSeat, actorId: actor.id, human, canAct, legal, act: dispatch, title, offer: null }
+  const base = {
+    actorSeat,
+    actorId: actor.id,
+    human,
+    canAct,
+    legal,
+    act: dispatch,
+    title,
+    offer: null,
+    moves: [],
+  }
 
   // A human's drawn card waits for a click, even while the rest of the batch is queued.
   if (snap.card?.waiting) {
@@ -86,7 +99,9 @@ export function turnView(snap: Snapshot, store: GameStore): TurnView {
         ? 'debt'
         : canAct && s.pending?.kind === 'buy'
           ? 'buy'
-          : null
+          : canAct && s.pending?.kind === 'move'
+            ? 'move'
+            : null
 
   if (!canAct) {
     const subtitle = snap.busy
@@ -97,8 +112,31 @@ export function turnView(snap: Snapshot, store: GameStore): TurnView {
           ? `${actor.name} must raise money.`
           : s.pending?.kind === 'auction'
             ? `${actor.name} is bidding.`
-            : `${actor.name} is thinking…`
+            : s.pending?.kind === 'move'
+              ? `${actor.name} is choosing where to go.`
+              : `${actor.name} is thinking…`
     return { ...base, moment, primary: null, secondary: [], subtitle }
+  }
+
+  if (moment === 'move' && s.pending?.kind === 'move') {
+    const bus = s.pending.reason === 'bus'
+    const moves = moveOptions(s, actorSeat)
+    const secondary = moves.map((m, i) => ({
+      label: `Move ${m.steps}`,
+      hotkey: String(i + 1),
+      run: act({ type: 'CHOOSE_MOVE', space: m.space }),
+    }))
+    return {
+      ...base,
+      moment,
+      moves,
+      // Space takes the first option (the normal move); the dock shows every option itself.
+      primary: secondary[0] ?? null,
+      secondary,
+      subtitle: bus
+        ? 'Bus! Move by one die or both.'
+        : 'Triples! Pick any space on the board, or one of these.',
+    }
   }
 
   const roll = find('ROLL')

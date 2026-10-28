@@ -32,7 +32,7 @@ The developer wants fun prioritized: polish (Milestone 11 items) comes before Mi
 2. **Open items from earlier milestones:** D38 dice (throw from the active player's side, white tray dice), the React style warning below, anything from the developer's Milestone 8 review.
 3. **Milestone 11 items:** mobile layout (portrait shell), persistence (settings, stats, PWA install), performance audit, trademark and naming check; the Wails desktop wrapper and replays later.
 
-**Milestone 13 started 2026-10-28:** the Speed die is in the engine, bots and protocol (D62, commit 4797d04). Next step: its shell (setup toggle, third die in the tray and on the board, Bus/triples choice with landing highlights on the board and in the dock, Scout pin), then the Blitz preset.
+**Milestone 13 started 2026-10-28:** the Speed die is done, engine to shell (D62): setup and room toggle, amber third die in 3D and the tray, Bus/triples choice in the dock and on the board, Scout pin. Waiting on the developer: a play test with it on. Next step: the Blitz preset (step 3).
 
 Then the rest of **Milestone 13, twists** (modern modes: dice control, Blitz, perk cards, city headlines, City Council; `docs/ROADMAP.md`, DECISIONS.md D61). The developer wants this soon, ahead of the bots. After that Milestone 10 (bots), and the learned bots last (`docs/LEARNED_BOTS.md`).
 

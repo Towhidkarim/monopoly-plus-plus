@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react' // useEffect: hash listener, room socket
 import { tokenColors } from '@skyline/board'
 import { GameStore } from './game/store.ts'
-import { SCENES, playToScene } from './game/scenes.ts'
+import { ROLL_SCENES, SCENES, playToScene } from './game/scenes.ts'
 import { clearSavedGame, type GameSetup, type SavedGame } from './game/setup.ts'
 import { PlaygroundScreen } from './playground/PlaygroundScreen.tsx'
 import { SoundBoard } from './playground/SoundBoard.tsx'
@@ -26,7 +26,8 @@ function useHash(): string {
 /**
  * Dev shortcuts (handy for watching and screenshots):
  * `?demo=bots` starts a four-bot game; `?demo=play` seats you against three bots, and
- * `&scene=buy|auction|debt|build` fast-forwards until you face that moment.
+ * `&scene=buy|auction|debt|build|card` fast-forwards until you face that moment; `&speed=1` turns on
+ * the Speed die (and `&scene=bus|triples|scout` waits for that roll).
  */
 function demoStore(): GameStore | null {
   const params = new URLSearchParams(window.location.search)
@@ -36,6 +37,7 @@ function demoStore(): GameStore | null {
   const names = demo === 'play' ? ['You', 'Nova', 'Atlas', 'Juno'] : ['Nova', 'Atlas', 'Juno', 'Orion']
   const store = new GameStore({
     preset: 'standard',
+    ...(params.get('speed') === '1' ? { twists: { speedDie: true } } : {}),
     seed: Number(params.get('seed') ?? 7),
     seats: pieces.map((piece, i) => ({
       id: `p${i + 1}`,
@@ -50,7 +52,7 @@ function demoStore(): GameStore | null {
     store.setSettings({ instant: true })
     if (!playToScene(store, scene)) console.warn(`[skyline] scene "${scene}" not reached; try another seed`)
     store.setSettings({ instant: false })
-    if (scene === 'card') store.dispatch('p1', { type: 'ROLL' })
+    if (ROLL_SCENES.has(scene)) store.dispatch('p1', { type: 'ROLL' })
   }
   if (params.get('fast') === '1') store.setSettings({ speed: 4, fastBots: true })
   if (params.get('instant') === '1') store.setSettings({ instant: true, fastBots: true })

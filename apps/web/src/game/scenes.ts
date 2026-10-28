@@ -8,21 +8,30 @@ import type { GameStore } from './store.ts'
  * given moment, so each decision screen can be reached and screenshotted on demand. Everyone,
  * the human included, plays the simple bot plus eager building (so rents and debts happen).
  */
-export type Scene = 'buy' | 'auction' | 'debt' | 'build' | 'card'
+export type Scene = 'buy' | 'auction' | 'debt' | 'build' | 'card' | 'bus' | 'triples' | 'scout'
 
-export const SCENES: readonly Scene[] = ['buy', 'auction', 'debt', 'build', 'card']
+export const SCENES: readonly Scene[] = ['buy', 'auction', 'debt', 'build', 'card', 'bus', 'triples', 'scout']
+
+/** Scenes reached just before the human's roll; the caller then rolls with animation on. */
+export const ROLL_SCENES: ReadonlySet<Scene> = new Set(['card', 'bus', 'triples', 'scout'])
+
+/** Whether the human's next roll would do `test` (needs `&speed=1` for the Speed die scenes). */
+const nextRoll =
+  (test: (r: Extract<ReturnType<typeof reduce>, { ok: true }>) => boolean) => (s: GameState, h: number) => {
+    if (s.current !== h || s.phase !== 'preRoll' || s.players[h]!.inJail) return false
+    const r = reduce(s, s.players[h]!.id, { type: 'ROLL' })
+    return r.ok && test(r)
+  }
 
 const reached: Record<Scene, (s: GameState, human: number) => boolean> = {
   buy: (s, h) => s.pending?.kind === 'buy' && s.current === h,
   auction: (s, h) => s.pending?.kind === 'auction' && s.pending.bidders[s.pending.current] === h,
   debt: (s, h) => s.debts[0]?.debtor === h,
   build: (s, h) => s.phase === 'postRoll' && s.current === h && buildableGroups(s, s.players[h]!.id) > 0,
-  // The human's next roll draws a card (the caller then rolls with animation on).
-  card: (s, h) => {
-    if (s.current !== h || s.phase !== 'preRoll' || s.players[h]!.inJail) return false
-    const r = reduce(s, s.players[h]!.id, { type: 'ROLL' })
-    return r.ok && r.events.some((e) => e.type === 'CARD_DRAWN')
-  },
+  card: nextRoll((r) => r.events.some((e) => e.type === 'CARD_DRAWN')),
+  bus: nextRoll((r) => r.state.pending?.kind === 'move' && r.state.pending.reason === 'bus'),
+  triples: nextRoll((r) => r.state.pending?.kind === 'move' && r.state.pending.reason === 'triples'),
+  scout: nextRoll((r) => r.events.some((e) => e.type === 'SCOUTED')),
 }
 
 /** Returns false if the game ended (or the human went bankrupt) before the scene came up. */

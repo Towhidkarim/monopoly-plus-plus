@@ -481,7 +481,7 @@ function GameStory({ snap, store }: { snap: Snapshot; store: GameStore }) {
 const SHORTCUTS: [string[], string][] = [
   [['Space'], 'Roll, end turn or continue'],
   [['B', 'A'], 'Buy, or send it to auction'],
-  [['1–4'], 'Auction: raise the bid, or bid the list price'],
+  [['1–4'], 'Auction: raise the bid, or bid the list price. Speed die: where to go'],
   [['P'], 'Pass in an auction'],
   [['P', 'U'], 'Pay the Lockup fine, or use a free card'],
   [['C'], 'My city'],
@@ -512,11 +512,17 @@ const RULES: [string, string][] = [
   ['Any time', 'Build, mortgage and trade whenever you like, even on other players’ turns.'],
 ]
 
+/** Rules for twists, shown when the game has them on (DECISIONS.md D61). */
+const SPEED_DIE_RULE: [string, string] = [
+  'Speed die',
+  'A third die rolls with yours. 1–3 adds to your move. The Bus lets you move by one die or both: pick on the board. The Scout moves you as usual, then on to the nearest lot for sale. Triples: go to any space.',
+]
+
 const cap =
   'flex h-[26px] min-w-[22px] items-center justify-center rounded-md border border-[#d8cfbb] bg-white px-[7px] font-display text-xs font-bold shadow-[0_3px_0_#d8cfbb]'
 
 /** The rulebook: rules on the left page, shortcuts on the right. */
-export function HelpOverlay({ onClose }: { onClose: () => void }) {
+export function HelpOverlay({ onClose, speedDie = false }: { onClose: () => void; speedDie?: boolean }) {
   usePanelSound()
   const dialog = useDialogFocus()
   return (
@@ -539,7 +545,7 @@ export function HelpOverlay({ onClose }: { onClose: () => void }) {
           <h2 id={dialog.titleId} className="m-0 font-card text-[34px] font-extrabold">
             How to play
           </h2>
-          {RULES.map(([title, body], i) => (
+          {(speedDie ? [...RULES, SPEED_DIE_RULE] : RULES).map(([title, body], i) => (
             <div key={title} className="flex gap-3">
               <span className="flex size-7 flex-none items-center justify-center rounded-full bg-card-ink font-display text-[13px] font-bold text-card">
                 {i + 1}

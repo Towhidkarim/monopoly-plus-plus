@@ -78,13 +78,13 @@ export interface DiceHit {
 }
 
 export interface DiceTrack {
-  /** Keyframes per die, one every STEP seconds; both dice have the same count. */
-  poses: [Pose[], Pose[]]
+  /** Keyframes per die, one every STEP seconds; every die has the same count. */
+  poses: Pose[][]
   hits: DiceHit[]
   /** Seconds from release until both dice are at rest. */
   duration: number
   /** Top face value of each die at rest (equals the requested values after the solve). */
-  faces: [number, number]
+  faces: number[]
   /** Half edge length, board units. */
   half: number
   /** Throw attempts the solver simulated before one fit the time window and the area. */
@@ -92,7 +92,8 @@ export interface DiceTrack {
 }
 
 export interface ThrowRequest {
-  values: readonly [number, number]
+  /** Two or three die faces (the third is the Speed die: same cube, other print). */
+  values: readonly number[]
   seed: number
   area: ThrowArea
   /** Where the dice leave the hand, board units (may be off the board). */
@@ -122,11 +123,11 @@ interface Body {
 
 /** Initial conditions for one throw (from the seed). */
 interface Launch {
-  p: [V3, V3]
-  v: [V3, V3]
-  q: [Quat, Quat]
-  w: [V3, V3]
-  goal: [{ x: number; y: number }, { x: number; y: number }]
+  p: V3[]
+  v: V3[]
+  q: Quat[]
+  w: V3[]
+  goal: { x: number; y: number }[]
 }
 
 const MAX_SECONDS = 3.2
@@ -155,10 +156,10 @@ export function solveThrow(req: ThrowRequest): DiceTrack {
   }
   const track = best!.track
   track.tries = Math.min(tries + 1, MAX_TRIES)
-  for (const i of [0, 1] as const) {
-    const swap = faceSwap(req.values[i], track.faces[i])
-    for (const pose of track.poses[i]) pose.q = qmul(pose.q, swap)
-    track.faces[i] = topFace(track.poses[i][track.poses[i].length - 1]!.q).value
+  for (let i = 0; i < req.values.length; i++) {
+    const swap = faceSwap(req.values[i]!, track.faces[i]!)
+    for (const pose of track.poses[i]!) pose.q = qmul(pose.q, swap)
+    track.faces[i] = topFace(track.poses[i]![track.poses[i]!.length - 1]!.q).value
   }
   return track
 }
@@ -169,15 +170,15 @@ function judge(track: DiceTrack, req: ThrowRequest): number {
   const ms = track.duration * 1000
   let score = ms < minMs ? (minMs - ms) / 100 : ms > maxMs ? (ms - maxMs) / 100 : 0
   const h = track.half
-  const a = track.poses[0][track.poses[0].length - 1]!
-  const b = track.poses[1][track.poses[1].length - 1]!
-  for (const end of [a, b]) {
+  const ends = track.poses.map((list) => list[list.length - 1]!)
+  for (const end of ends) {
     const out =
       Math.max(0, req.area.col0 + h - end.p.x, end.p.x - (req.area.col1 - h)) +
       Math.max(0, req.area.row0 + h - end.p.y, end.p.y - (req.area.row1 - h))
     score += out * 20
   }
-  if (restingOverlap(a, b, h)) score += 10
+  for (let i = 0; i < ends.length; i++)
+    for (let j = i + 1; j < ends.length; j++) if (restingOverlap(ends[i]!, ends[j]!, h)) score += 10
   // Prefer a few visible bounces, few hard knocks on the invisible rails, and no mid-air clash.
   if (track.hits.filter((x) => x.kind === 'floor').length < 3) score += 1
   score += track.hits.filter((x) => x.kind === 'wall' && x.intensity > 0.25).length * 0.4
@@ -222,6 +223,7 @@ function randomQuat(rng: () => number): Quat {
 
 function makeLaunch(rng: () => number, req: ThrowRequest): Launch {
   const { area, from, physics: ph } = req
+  const n = req.values.length
   const h = ph.size / 2
   const cx = (area.col0 + area.col1) / 2
   const cy = (area.row0 + area.row1) / 2
@@ -235,24 +237,23 @@ function makeLaunch(rng: () => number, req: ThrowRequest): Launch {
   const px = -dy
   const py = dx
   const launch: Launch = {
-    p: [v3(), v3()],
-    v: [v3(), v3()],
-    q: [randomQuat(rng), randomQuat(rng)],
-    w: [v3(), v3()],
-    goal: [
-      { x: 0, y: 0 },
-      { x: 0, y: 0 },
-    ],
+    p: Array.from({ length: n }, () => v3()),
+    v: Array.from({ length: n }, () => v3()),
+    q: Array.from({ length: n }, () => randomQuat(rng)),
+    w: Array.from({ length: n }, () => v3()),
+    goal: Array.from({ length: n }, () => ({ x: 0, y: 0 })),
   }
   const jitter = () => rng() * 2 - 1
   const speed = ph.throwSpeed * (0.85 + 0.3 * rng())
-  for (const i of [0, 1] as const) {
-    const side = i === 0 ? -1 : 1
+  for (let i = 0; i < n; i++) {
+    // The Speed die (third) comes down the middle, behind the pair, and is herded ahead of them.
+    const side = i === 0 ? -1 : i === 1 ? 1 : 0
+    const mid = i === 2 ? 1 : 0
     const sx = from.col + px * side * 0.45 + jitter() * 0.15
     const sy = from.row + py * side * 0.45 + jitter() * 0.15
     const sz = 1.5 + rng() * 0.7
     // First touchdown in the near half of the area; the dice tumble on into it.
-    const lead = reach * (0.8 + 0.2 * rng())
+    const lead = reach * (0.8 + 0.2 * rng() + mid * 0.1)
     const tx = cx - dx * lead + px * side * reach * 0.3 + jitter() * reach * 0.15
     const ty = cy - dy * lead + py * side * reach * 0.3 + jitter() * reach * 0.15
     const dist = Math.hypot(tx - sx, ty - sy)
@@ -261,8 +262,8 @@ function makeLaunch(rng: () => number, req: ThrowRequest): Launch {
     launch.v[i] = v3((tx - sx) / t, (ty - sy) / t, (h * 1.4 + (ph.gravity * t * t) / 2 - sz) / t)
     const s = ph.spin
     launch.goal[i] = {
-      x: cx + dx * reach * 0.1 + px * side * reach * 0.38 + jitter() * reach * 0.2,
-      y: cy + dy * reach * 0.1 + py * side * reach * 0.38 + jitter() * reach * 0.2,
+      x: cx + dx * reach * (0.1 + mid * 0.3) + px * side * reach * 0.38 + jitter() * reach * 0.2,
+      y: cy + dy * reach * (0.1 + mid * 0.3) + py * side * reach * 0.38 + jitter() * reach * 0.2,
     }
     launch.w[i] = v3(px * s * 0.7 + jitter() * s * 0.5, py * s * 0.7 + jitter() * s * 0.5, jitter() * s * 0.4)
   }
@@ -292,13 +293,13 @@ function makeBody(p: V3, v: V3, q: Quat, w: V3, goal: { x: number; y: number }):
 /** Runs one throw to rest (no face swap). Exported for tests. */
 export function simulate(launch: Launch, ph: DicePhysics, area: ThrowArea): DiceTrack {
   const h = ph.size / 2
-  const bodies = [0, 1].map((i) =>
+  const bodies = launch.p.map((_, i) =>
     makeBody(launch.p[i]!, launch.v[i]!, launch.q[i]!, launch.w[i]!, launch.goal[i]!),
   )
-  const poses: [Pose[], Pose[]] = [[], []]
+  const poses: Pose[][] = bodies.map(() => [])
   const hits: DiceHit[] = []
   const record = () => {
-    for (const i of [0, 1] as const) poses[i].push({ p: { ...bodies[i]!.p }, q: { ...bodies[i]!.q } })
+    for (const [i, b] of bodies.entries()) poses[i]!.push({ p: { ...b.p }, q: { ...b.q } })
   }
   record()
   const maxSteps = Math.ceil(MAX_SECONDS / STEP)
@@ -306,19 +307,20 @@ export function simulate(launch: Launch, ph: DicePhysics, area: ThrowArea): Dice
   for (; step < maxSteps; step++) {
     const t = (step + 1) * STEP
     for (const [i, b] of bodies.entries()) stepBody(b, i, t, ph, h, area, hits)
-    collideDice(bodies[0]!, bodies[1]!, t, ph, h, hits)
+    for (let i = 0; i < bodies.length; i++)
+      for (let j = i + 1; j < bodies.length; j++) collideDice(bodies[i]!, bodies[j]!, t, ph, h, hits)
     record()
     if (bodies.every((b) => b.mode === 2)) break
   }
   // Out of time: whoever still moves tips straight onto a face.
   for (const b of bodies) if (b.mode !== 2) forceRest(b, h, step * STEP)
   if (bodies.some((b) => b.restAt === step * STEP)) record()
-  const last = (i: 0 | 1) => poses[i][poses[i].length - 1]!.q
+  const last = (i: number) => poses[i]![poses[i]!.length - 1]!.q
   return {
     poses,
     hits,
-    duration: (poses[0].length - 1) * STEP,
-    faces: [topFace(last(0)).value, topFace(last(1)).value],
+    duration: (poses[0]!.length - 1) * STEP,
+    faces: bodies.map((_, i) => topFace(last(i)).value),
     half: h,
     tries: 1,
   }
@@ -592,8 +594,8 @@ function collideDice(a: Body, b: Body, t: number, ph: DicePhysics, h: number, hi
 }
 
 /** Interpolated pose of die `die` at `seconds` after release (clamped to the track). */
-export function poseAt(track: DiceTrack, die: 0 | 1, seconds: number, out: Pose): Pose {
-  const list = track.poses[die]
+export function poseAt(track: DiceTrack, die: number, seconds: number, out: Pose): Pose {
+  const list = track.poses[die]!
   const f = Math.min(Math.max(seconds / STEP, 0), list.length - 1)
   const i = Math.floor(f)
   const a = list[i]!

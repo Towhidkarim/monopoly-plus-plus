@@ -27,11 +27,21 @@ function describeRaw(e: GameEvent, name: (id: string) => string): Omit<LogEntry,
   switch (e.type) {
     case 'TURN_STARTED':
       return { text: `Round ${e.round}: ${name(e.playerId)} to play`, tone: 'muted' }
-    case 'DICE_ROLLED':
-      return {
-        text: `${name(e.playerId)} rolled ${e.dice[0]} + ${e.dice[1]}${e.dice[0] === e.dice[1] ? ' (doubles!)' : ''}`,
-        tone: 'normal',
-      }
+    case 'DICE_ROLLED': {
+      const triples = e.speed === e.dice[0] && e.speed === e.dice[1]
+      const speed =
+        e.speed === undefined
+          ? ''
+          : e.speed === 'bus'
+            ? ' + Bus'
+            : e.speed === 'scout'
+              ? ' + Scout'
+              : ` + ${e.speed}`
+      const note = triples ? ' (triples!)' : e.dice[0] === e.dice[1] ? ' (doubles!)' : ''
+      return { text: `${name(e.playerId)} rolled ${e.dice[0]} + ${e.dice[1]}${speed}${note}`, tone: 'normal' }
+    }
+    case 'SCOUTED':
+      return { text: `${name(e.playerId)}'s Scout heads for ${sp(e.to)}`, tone: 'normal' }
     case 'MOVED':
       return e.path.length > 0
         ? { text: `${name(e.playerId)} moved to ${sp(e.path.at(-1)!)}`, tone: 'muted' }

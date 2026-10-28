@@ -1,7 +1,7 @@
 import { Container, Graphics, Text, type Geometry } from 'pixi.js'
 import { Spring } from '../anim/spring.ts'
 import { project } from '../geometry/project.ts'
-import { CORNERS, topFace } from './cube.ts'
+import { CORNERS, speedFaceOf, speedFaceValue, topFace, type SpeedFace } from './cube.ts'
 import { qaxis, qmul, qrot, v3, type Quat, type V3 } from './math.ts'
 import { DieMesh, roundedCubeGeometry } from './mesh.ts'
 import {
@@ -16,6 +16,7 @@ import {
 } from './sim.ts'
 
 export { DEFAULT_THROW_AREA, DEFAULT_THROW_FROM }
+export type { SpeedFace }
 
 /**
  * Two code-drawn dice thrown onto the board (DECISIONS.md D38). The throw is solved ahead of
@@ -24,8 +25,13 @@ export { DEFAULT_THROW_AREA, DEFAULT_THROW_FROM }
  */
 
 export interface DiceSettle {
+  /** The two white dice (the Speed die is `speedFace`). */
   values: [number, number]
+  /** The Speed die's face, when one was thrown. */
+  speedFace?: SpeedFace
+  /** White sum plus the Speed die's number (bus and scout add nothing). */
   total: number
+  /** The white dice match (the Speed die never counts). */
   doubles: boolean
   /** Where the total pops, in canvas CSS px (for a DOM callout or sound panning). */
   screen: { x: number; y: number }
@@ -36,6 +42,8 @@ export interface DiceSettle {
 export interface DiceThrowOptions {
   /** The engine's result. The dice land on these faces. */
   values: readonly [number, number]
+  /** Throw a third, amber Speed die that lands on this face (D62). */
+  speedFace?: SpeedFace
   /** Cosmetic seed for the throw (same seed and values, same throw). Random when omitted. */
   seed?: number
   /** Release point in board units (for example the active player's side). */
@@ -61,6 +69,7 @@ export interface DiceThrowOptions {
 export interface DiceThrowResult {
   /** Top faces read off the final drawn orientation (equal to `values`). */
   values: [number, number]
+  speedFace?: SpeedFace
   /** Release to rest at 1x, ms. */
   durationMs: number
   seed: number
@@ -98,6 +107,9 @@ const WHITE = 0xffffff
 const BLACK = 0x15171c
 const INK = 0x1f2a3d
 const LAMP = 0xffc874
+/** Speed die: warm amber body, dark brown marks. */
+const AMBER_BODY = 0xe8a33c
+const AMBER_MARK = 0x2b1a06
 const GOLD = 0xfbbf24
 
 /** Key light from the top-left-front (world, normalized). */
@@ -121,6 +133,8 @@ interface Run {
   track: DiceTrack
   speed: number
   reduced: boolean
+  /** Dice in this throw: 2, or 3 with the Speed die. */
+  count: number
   /** Seconds of track played. */
   clock: number
   /** Index of the next hit to fire. */
@@ -150,7 +164,7 @@ export class DiceView {
   private readonly shadows = new Graphics()
   private geometry: Geometry
   private geometryRound: number
-  private readonly dice: readonly [DieMesh, DieMesh]
+  private readonly dice: readonly [DieMesh, DieMesh, DieMesh]
   private readonly debugG = new Graphics()
   private readonly label = new Container({ eventMode: 'none' })
   private readonly total: Text
@@ -161,7 +175,8 @@ export class DiceView {
   private debug = false
   private basis: Basis = { t: -1, ex: { x: 0, y: 0 }, ey: { x: 0, y: 0 }, ez: { x: 0, y: 0 }, view: v3() }
   // Scratch, so drawing allocates nothing per frame.
-  private readonly pose: [Pose, Pose] = [
+  private readonly pose: [Pose, Pose, Pose] = [
+    { p: v3(), q: { w: 1, x: 0, y: 0, z: 0 } },
     { p: v3(), q: { w: 1, x: 0, y: 0, z: 0 } },
     { p: v3(), q: { w: 1, x: 0, y: 0, z: 0 } },
   ]
@@ -171,8 +186,19 @@ export class DiceView {
     this.geometryRound = host.tuning().round
     this.geometry = roundedCubeGeometry(this.geometryRound)
     const colors = { body: WHITE, pip: BLACK, lamp: LAMP }
-    this.dice = [new DieMesh(this.geometry, colors, LIGHT), new DieMesh(this.geometry, colors, LIGHT)]
-    this.container.addChild(this.shadows, this.dice[0].mesh, this.dice[1].mesh, this.debugG)
+    const amber = { body: AMBER_BODY, pip: AMBER_MARK, lamp: LAMP }
+    this.dice = [
+      new DieMesh(this.geometry, colors, LIGHT),
+      new DieMesh(this.geometry, colors, LIGHT),
+      new DieMesh(this.geometry, amber, LIGHT, true),
+    ]
+    this.container.addChild(
+      this.shadows,
+      this.dice[0].mesh,
+      this.dice[1].mesh,
+      this.dice[2].mesh,
+      this.debugG,
+    )
     this.container.visible = false
     const style = {
       fontFamily: ['Sora Variable', 'Bricolage Grotesque Variable', 'system-ui', 'sans-serif'],
@@ -197,16 +223,20 @@ export class DiceView {
     this.finish()
     const feel = this.host.tuning()
     const seed = (opts.seed ?? Math.floor(Math.random() * 2 ** 31)) >>> 0
+    const speedFace = opts.speedFace
+    const wanted =
+      speedFace === undefined ? [...opts.values] : [...opts.values, speedFaceValue(speedFace, seed)]
     const track = solveThrow({
-      values: opts.values,
+      values: wanted,
       seed,
       area: opts.area ?? DEFAULT_THROW_AREA,
       from: opts.from ?? DEFAULT_THROW_FROM,
       physics: feel,
     })
-    const last = (i: 0 | 1) => track.poses[i][track.poses[i].length - 1]!.q
+    const last = (i: number) => track.poses[i]![track.poses[i]!.length - 1]!.q
     const result: DiceThrowResult = {
       values: [topFace(last(0)).value, topFace(last(1)).value],
+      ...(speedFace === undefined ? {} : { speedFace: speedFaceOf(topFace(last(2)).value) }),
       durationMs: Math.round(track.duration * 1000),
       seed,
       tries: track.tries,
@@ -218,6 +248,7 @@ export class DiceView {
         track,
         speed: Math.max(0.05, speed),
         reduced,
+        count: wanted.length,
         clock: opts.instant || reduced ? track.duration : 0,
         nextHit: opts.instant || reduced ? track.hits.length : 0,
         firstImpact: false,
@@ -230,7 +261,10 @@ export class DiceView {
       this.refreshGeometry(feel.round)
       this.container.visible = true
       this.container.alpha = 1
-      for (const d of this.dice) d.mesh.alpha = 1
+      for (const [i, d] of this.dice.entries()) {
+        d.mesh.alpha = 1
+        d.mesh.visible = i < wanted.length
+      }
     })
   }
 
@@ -309,7 +343,7 @@ export class DiceView {
     const hits = run.track.hits
     while (run.nextHit < hits.length && hits[run.nextHit]!.t <= run.clock) {
       const hit = hits[run.nextHit++]!
-      const dice: readonly (0 | 1)[] = hit.kind === 'dice' ? [0, 1] : [hit.die === 0 ? 0 : 1]
+      const dice: readonly number[] = hit.kind === 'dice' ? [...Array(run.count).keys()] : [hit.die]
       for (const d of dice) run.opts.onBounce?.(hit.intensity, d)
       if (!run.firstImpact && hit.kind === 'floor' && hit.intensity > 0.35) {
         run.firstImpact = true
@@ -321,12 +355,24 @@ export class DiceView {
 
   private settle(run: Run): void {
     const [a, b] = run.result.values
+    const sf = run.result.speedFace
     const at = this.host.world.toGlobal(this.labelWorld(run))
     const popInMs = this.host.tuning().settleMs / run.speed
-    run.settle = { values: [a, b], total: a + b, doubles: a === b, screen: { x: at.x, y: at.y }, popInMs }
-    this.total.text = String(a + b)
+    const total = a + b + (typeof sf === 'number' ? sf : 0)
+    run.settle = {
+      values: [a, b],
+      ...(sf === undefined ? {} : { speedFace: sf }),
+      total,
+      doubles: a === b,
+      screen: { x: at.x, y: at.y },
+      popInMs,
+    }
+    this.total.text = String(total)
     this.total.style.fill = a === b ? GOLD : CREAM
-    this.sub.visible = a === b
+    // Under the number: DOUBLES, and for a bus or scout face what comes after the white sum.
+    const note = [a === b ? 'DOUBLES' : '', sf === 'bus' ? '+ BUS' : sf === 'scout' ? '+ SCOUT' : '']
+    this.sub.text = note.filter(Boolean).join('  ')
+    this.sub.visible = this.sub.text !== ''
     if (run.reduced) run.opts.onBounce?.(0.35, 0)
     run.opts.onSettle?.(run.settle)
   }
@@ -348,14 +394,16 @@ export class DiceView {
     old.destroy()
   }
 
-  /** Point above the two resting dice where the total pops (world px). */
+  /** Point above the two resting white dice where the total pops (world px). */
   private labelWorld(run: Run): { x: number; y: number } {
-    const a = run.track.poses[0][run.track.poses[0].length - 1]!.p
-    const b = run.track.poses[1][run.track.poses[1].length - 1]!.p
-    return project(
-      { col: (a.x + b.x) / 2, row: (a.y + b.y) / 2, z: run.track.half * 2 + 0.3 },
-      this.host.viewT(),
-    )
+    let x = 0
+    let y = 0
+    for (const list of run.track.poses.slice(0, 2)) {
+      const p = list[list.length - 1]!.p
+      x += p.x / 2
+      y += p.y / 2
+    }
+    return project({ col: x, row: y, z: run.track.half * 2 + 0.3 }, this.host.viewT())
   }
 
   private refreshBasis(): Basis {
@@ -395,22 +443,22 @@ export class DiceView {
     const glow = this.host.glow()
     this.shadows.clear()
     const fly = run.phase === 'fly' ? run.phaseMs : -1
-    const order: (0 | 1)[] = [0, 1]
-    for (const i of order) poseAt(run.track, i, run.clock, this.pose[i])
+    const order = [...Array(run.count).keys()]
+    for (const i of order) poseAt(run.track, i, run.clock, this.pose[i]!)
     // Reduced motion: a short drop into place instead of the tumble.
     if (run.reduced && run.phase === 'throw') {
       const k = Math.min(1, run.phaseMs / 260)
-      for (const p of this.pose) p.p.z += (1 - k) * (1 - k) * 0.35
+      for (const p of this.pose.slice(0, run.count)) p.p.z += (1 - k) * (1 - k) * 0.35
       for (const d of this.dice) d.mesh.alpha = k
     }
     // Far die first.
     const depth = (p: Pose) => p.p.x * B.view.x + p.p.y * B.view.y + p.p.z * B.view.z
-    if (depth(this.pose[0]) > depth(this.pose[1])) order.reverse()
-    this.container.setChildIndex(this.dice[order[1]!].mesh, 2)
+    order.sort((i, j) => depth(this.pose[j]!) - depth(this.pose[i]!))
+    for (const [k, i] of order.entries()) this.container.setChildIndex(this.dice[i]!.mesh, 1 + k)
 
     for (const i of order) {
-      const pose = this.pose[i]
-      const die = this.dice[i]
+      const pose = this.pose[i]!
+      const die = this.dice[i]!
       // Rest point in world px, and where the die is drawn (they differ during the fly).
       const rest = project({ col: pose.p.x, row: pose.p.y, z: pose.p.z }, B.t)
       let ax = rest.x
@@ -426,7 +474,7 @@ export class DiceView {
         lift = f.lift
         ay -= lift
         die.mesh.alpha = f.alpha
-        if (!run.reduced) q = qmul(qaxis(v3(0, 0, 1), f.e * (i === 0 ? 1.4 : -1.2)), pose.q)
+        if (!run.reduced) q = qmul(qaxis(v3(0, 0, 1), f.e * (i === 1 ? -1.2 : i === 2 ? 0.9 : 1.4)), pose.q)
       }
       // Contact shadow on the board, shrinking and fading with height.
       const height = Math.max(0, pose.p.z - h) + lift / 60
@@ -454,7 +502,10 @@ export class DiceView {
     const screen = this.host.screen()
     const tray = run.opts.tray ?? { x: screen.width - 70, y: screen.height - 60 }
     const world = this.host.world
-    const target = world.toLocal({ x: tray.x + (i === 0 ? -1 : 1) * (tray.size ?? 34) * 0.62, y: tray.y })
+    const target = world.toLocal({
+      x: tray.x + (i - (run.count - 1) / 2) * (tray.size ?? 34) * 1.24,
+      y: tray.y,
+    })
     const zoom = world.scale.x || 1
     // Size on screen: an upright die is about 2h * 110 world px wide.
     const wide = run.track.half * 2 * 110 * zoom
@@ -524,7 +575,7 @@ export class DiceView {
     }
     const corner = v3()
     const rad = run.track.half * this.geometryRound
-    for (const pose of this.pose) {
+    for (const pose of this.pose.slice(0, run.count)) {
       for (const k of CORNERS) {
         corner.x = k.x * (run.track.half - rad)
         corner.y = k.y * (run.track.half - rad)

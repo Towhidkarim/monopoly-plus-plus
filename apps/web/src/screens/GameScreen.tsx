@@ -64,6 +64,10 @@ export function GameScreen({
   const snap = useSyncExternalStore(store.subscribe, store.getSnapshot)
   const [handle, setHandle] = useState<BoardHandle | null>(null)
   const [selected, setSelected] = useState<number | null>(null)
+  /** Speed die move choice: the destination under the pointer (dock button). */
+  const [hoverSpace, setHoverSpace] = useState<number | null>(null)
+  /** Chooses a clicked tile when it is a move option; set every render (latest turn). */
+  const pickRef = useRef<(space: number | null) => boolean>(() => false)
   const [speed, setSpeed] = useState<SpeedChoice>(
     store.settings.instant ? 'instant' : (SPEEDS.find((v) => v === store.settings.speed) ?? 1),
   )
@@ -143,7 +147,8 @@ export function GameScreen({
       const c = handle.app.canvas.getBoundingClientRect()
       return { x: r.left + r.width / 2 - c.left, y: r.top + r.height / 2 - c.top, size: r.height }
     })
-    handle?.board.setListeners({ select: setSelected, beat: audio.beat })
+    // A click on a highlighted tile during the Speed die's move choice goes there instead.
+    handle?.board.setListeners({ select: (i) => pickRef.current(i) || setSelected(i), beat: audio.beat })
     // Frame the board between the HUD and turn banner above and the action dock below.
     handle?.board.setInsets({ top: 130, right: 0, bottom: 110, left: 0 })
     return () => {
@@ -179,7 +184,8 @@ export function GameScreen({
   const turn = turnView(snap, store)
   const viewer = snap.viewer
   // A decision is open: buy, auction, debt or an incoming offer, or the trade composer.
-  const focus = turn.moment !== null || trade !== null
+  // (Not for the Speed die's move choice: it is made on the board and in the dock.)
+  const focus = (turn.moment !== null && turn.moment !== 'move') || trade !== null
   const viewerId = viewer !== null ? snap.state.players[viewer]!.id : null
 
   // Your own move before the roll: landing odds and the recap of the others' turns show then.
@@ -200,6 +206,31 @@ export function GameScreen({
         })),
     )
   }, [handle, rolling, state, turn.actorSeat, store])
+  // The Speed die's Bus or triples: tag every shown destination on the board, the hovered one strongest.
+  // turnView builds a fresh list every render; the board keeps identical tags instead of re-popping.
+  const moves = turn.moment === 'move' ? turn.moves : null
+  useEffect(() => {
+    if (!handle || !moves) return
+    handle.board.setOdds(
+      moves.map((m) => ({
+        space: m.space,
+        p: hoverSpace === null || hoverSpace === m.space ? 1 / 6 : 1 / 14,
+        label: m.tag,
+        color: m.owner >= 0 ? store.setup.seats[m.owner]!.color : null,
+      })),
+    )
+    return () => handle.board.setOdds(null)
+  }, [handle, moves, hoverSpace, store])
+  useEffect(() => {
+    pickRef.current = (space) => {
+      if (space === null || turn.moment !== 'move' || snap.state.pending?.kind !== 'move') return false
+      if (!snap.state.pending.options.includes(space)) return false
+      turn.act({ type: 'CHOOSE_MOVE', space })
+      handle?.board.select(null)
+      setHoverSpace(null)
+      return true
+    }
+  })
   const cityBadge =
     viewerId && store.seatKind(viewerId) === 'human' ? buildableGroups(snap.state, viewerId) : 0
   const canTrade =
@@ -351,6 +382,8 @@ export function GameScreen({
               cityOpen={cityOpen}
               onCity={toggleCity}
               onTrade={openTrade}
+              hoverSpace={hoverSpace}
+              onHoverSpace={setHoverSpace}
             />
             <CalloutLayer store={store} />
             <AuctionPanel snap={snap} store={store} turn={turn} />
@@ -447,7 +480,9 @@ export function GameScreen({
                 onClose={() => setTrade(null)}
               />
             )}
-            {help && <HelpOverlay onClose={() => setHelp(false)} />}
+            {help && (
+              <HelpOverlay onClose={() => setHelp(false)} speedDie={snap.state.config.speedDie === true} />
+            )}
           </div>
           <GameOver snap={snap} store={store} onRestart={onRestart} onQuit={onQuit} />
         </BoardCanvas>

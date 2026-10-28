@@ -14,6 +14,7 @@ import { Camera, type Bounds, type Insets } from './view/camera.ts'
 import { CityView, GroundView } from './view/city.ts'
 import { rect } from './view/draw.ts'
 import { OddsLabels, type OddsMark } from './view/odds.ts'
+import { ScoutPin } from './view/pin.ts'
 import { TileView } from './view/tiles.ts'
 import { TokenView } from './view/token.ts'
 
@@ -105,6 +106,8 @@ export class Board {
   private readonly actorLayer = new Container({ sortableChildren: true })
   private readonly particles = new Particles()
   private readonly oddsLabels = new OddsLabels()
+  /** The Speed die Scout's target marker (D62). */
+  private readonly scoutPin = new ScoutPin()
   private readonly debugLayer = new Container()
   private readonly debugLines = new Graphics()
   /** Screen-space layer above the world (crisp text such as the dice total). */
@@ -180,6 +183,7 @@ export class Board {
       this.shadowLayer,
       this.actorLayer,
       this.oddsLabels.container,
+      this.scoutPin.container,
       this.dice.container,
       this.particles.container,
       this.debugLayer,
@@ -355,6 +359,7 @@ export class Board {
 
   /** Snaps the whole board to a game state with no animation (load, reconnect, skip). */
   sync(snap: BoardSnapshot): void {
+    this.scoutPin.clear()
     this.animator.finishAll()
     this.animator.resume()
     for (let i = 0; i < 40; i++) {
@@ -379,7 +384,16 @@ export class Board {
     this.animator.speed = this.tuning.speed
     switch (event.type) {
       case 'MOVED':
-        return this.playMove(event.playerId, event.path)
+        await this.playMove(event.playerId, event.path)
+        this.scoutPin.lift() // a Scout's piece has reached its pin
+        return
+      case 'SCOUTED':
+        // The pin drops on the target lot (a beat like a building landing), then the piece walks.
+        this.scoutPin.drop(event.to)
+        await this.animator.wait(this.scoutPin.landsInMs)
+        this.tiles[event.to]!.lift.kick(-2)
+        this.emit({ kind: 'own', space: event.to })
+        return this.animator.wait(260)
       case 'JUMPED':
         return this.playJump(event.playerId, event.to)
       case 'TURN_STARTED': {
@@ -771,6 +785,7 @@ export class Board {
     }
     this.particles.update(dt)
     this.oddsLabels.update(real, (i) => this.tileTop(i), this.tuning.reducedMotion)
+    this.scoutPin.update(real, (i) => this.tileTop(i), this.tuning.reducedMotion)
     this.dice.update(dt)
     this.camera.update(real)
     this.city.life.update(dt, this.viewRect())

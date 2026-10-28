@@ -230,3 +230,45 @@ export function DeedSwatch({
     </span>
   )
 }
+
+/** One twist: its name, a line about it, and a switch. */
+export function TwistSwitch({
+  label,
+  blurb,
+  on,
+  disabled = false,
+  onChange,
+}: {
+  label: string
+  blurb: string
+  on: boolean
+  disabled?: boolean
+  onChange: (on: boolean) => void
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      aria-label={`${label}: ${blurb}`}
+      disabled={disabled}
+      onClick={() => onChange(!on)}
+      className={`flex items-center gap-3 rounded-[14px] border px-3.5 py-2.5 text-left transition-[border-color,background-color] duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-default ${
+        on ? 'border-accent/70 bg-accent/10' : 'border-line enabled:hover:bg-white/5'
+      }`}
+    >
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="font-display text-[15px] font-bold text-ink">{label}</span>
+        <span className="text-xs leading-snug text-ink-muted">{blurb}</span>
+      </span>
+      <span
+        aria-hidden="true"
+        className={`relative h-6 w-10 shrink-0 rounded-full transition-colors duration-200 ${on ? 'bg-accent' : 'bg-table'}`}
+      >
+        <span
+          className={`absolute top-0.5 left-0.5 size-5 rounded-full bg-card shadow-keycap transition-transform duration-200 ease-spring ${on ? 'translate-x-4' : ''}`}
+        />
+      </span>
+    </button>
+  )
+}

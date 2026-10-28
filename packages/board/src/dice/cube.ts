@@ -106,3 +106,25 @@ export function faceSwap(want: number, have: number): Quat {
   const axis = { x: a.y * b.z - a.z * b.y, y: a.z * b.x - a.x * b.z, z: a.x * b.y - a.y * b.x }
   return qaxis(axis, Math.PI / 2)
 }
+
+/** The Speed die's faces: 1, 2, 3, Bus, Scout, Scout (type `SpeedFace` in the engine). */
+export type SpeedFace = 1 | 2 | 3 | 'bus' | 'scout'
+
+/**
+ * Which cube face prints a Speed die result. Numbers sit on the faces with the same value (pips
+ * as on a white die), the bus on 4, and the scout on the two faces opposite 2 and 1 (5 and 6);
+ * `pick` (the throw seed) chooses between them so the same result does not always show the same
+ * face. Opposite faces sum to 7, so the two scouts are never next to each other.
+ */
+export function speedFaceValue(face: SpeedFace, pick = 0): number {
+  if (face === 'bus') return 4
+  if (face === 'scout') return pick & 1 ? 5 : 6
+  return face
+}
+
+/** Inverse of `speedFaceValue`: what a Speed die showing cube face `value` means. */
+export function speedFaceOf(value: number): SpeedFace {
+  if (value >= 5) return 'scout'
+  if (value === 4) return 'bus'
+  return value === 1 ? 1 : value === 2 ? 2 : 3
+}

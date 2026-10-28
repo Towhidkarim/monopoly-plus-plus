@@ -11,8 +11,9 @@ import {
   type Profile,
 } from '../../net/session.ts'
 import { cssHex } from '../../spaceInfo.ts'
+import { TWISTS } from '../../game/setup.ts'
 import { GameScreen } from '../GameScreen.tsx'
-import { Btn, Eyebrow } from '../game/ui.tsx'
+import { Btn, Eyebrow, TwistSwitch } from '../game/ui.tsx'
 import { ProfileFields } from './OnlineMenu.tsx'
 import { Note, OnlineShell, Title } from './Shell.tsx'
 
@@ -248,6 +249,16 @@ function Lobby({
             </label>
           )}
         </div>
+        {TWISTS.map((t) => (
+          <TwistSwitch
+            key={t.key}
+            label={t.label}
+            blurb={t.blurb}
+            on={settings.rules[t.key] === true}
+            disabled={!host}
+            onChange={(on) => setSettings({ rules: { ...settings.rules, [t.key]: on } })}
+          />
+        ))}
         <label className={`flex items-center gap-2 text-sm text-ink-muted ${host ? '' : 'opacity-70'}`}>
           <input
             type="checkbox"

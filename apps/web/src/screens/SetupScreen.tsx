@@ -1,10 +1,17 @@
 import { useState } from 'react'
 import { PIECES, tokenColors, type PieceKind } from '@skyline/board'
 import type { PresetName } from '@skyline/engine'
-import { loadGame, type GameSetup, type SavedGame, type SeatSetup } from '../game/setup.ts'
+import {
+  TWISTS,
+  loadGame,
+  type GameSetup,
+  type SavedGame,
+  type SeatSetup,
+  type Twists,
+} from '../game/setup.ts'
 import { cssHex } from '../spaceInfo.ts'
 import { Icon } from './game/icons.tsx'
-import { Btn, Eyebrow, TokenAvatar } from './game/ui.tsx'
+import { Btn, Eyebrow, TokenAvatar, TwistSwitch } from './game/ui.tsx'
 import { SetupBackdrop } from './SetupBackdrop.tsx'
 
 const MODES: { preset: PresetName; label: string; blurb: string; color: string; ink: string }[] = [
@@ -66,6 +73,7 @@ export function SetupScreen({
   const [preset, setPreset] = useState<PresetName>('standard')
   const [seats, setSeats] = useState<SeatSetup[]>(() => defaultSeats(4))
   const [seed, setSeed] = useState(randomSeed)
+  const [twists, setTwists] = useState<Twists>({})
   const [citySeed, setCitySeed] = useState(randomSeed)
 
   const resize = (n: number) =>
@@ -182,6 +190,19 @@ export function SetupScreen({
             </div>
           </div>
 
+          <div className="flex flex-col gap-2">
+            <Eyebrow className="text-ink-muted">Twists</Eyebrow>
+            {TWISTS.map((t) => (
+              <TwistSwitch
+                key={t.key}
+                label={t.label}
+                blurb={t.blurb}
+                on={twists[t.key] === true}
+                onChange={(on) => setTwists((prev) => ({ ...prev, [t.key]: on }))}
+              />
+            ))}
+          </div>
+
           <div className="flex flex-col gap-2.5">
             <div className="flex items-center justify-between">
               <Eyebrow className="text-ink-muted">Players</Eyebrow>
@@ -267,6 +288,7 @@ export function SetupScreen({
                 onClick={() =>
                   onStart({
                     preset,
+                    ...(Object.values(twists).some(Boolean) ? { twists } : {}),
                     seed,
                     citySeed,
                     seats: seats.map((s) => ({ ...s, name: s.name.trim() || s.id })),

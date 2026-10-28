@@ -70,6 +70,7 @@ export function LeftColumn({
         >
           <DiceTray
             dice={snap.dice}
+            speedFace={snap.speedFace}
             roll={snap.diceRoll}
             landing={snap.diceLanding}
             speed={store.settings.speed}
@@ -81,7 +82,7 @@ export function LeftColumn({
             <span className="font-display text-xl leading-tight font-bold">
               {snap.diceLanding
                 ? `${rollerName} ${rollerName === 'You' ? 'are' : 'is'} rolling…`
-                : `${rollerName} rolled ${snap.dice[0] + snap.dice[1]}`}
+                : `${rollerName} rolled ${snap.dice[0] + snap.dice[1] + (typeof snap.speedFace === 'number' ? snap.speedFace : 0)}`}
             </span>
             {doubles && !snap.diceLanding && (
               <span

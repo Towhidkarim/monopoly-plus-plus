@@ -1,5 +1,11 @@
 import { useEffect, useEffectEvent, useState } from 'react'
-import { DEFAULT_JUICE, type BoardHandle, type DiceThrowResult, type JuiceConfig } from '@skyline/board'
+import {
+  DEFAULT_JUICE,
+  type BoardHandle,
+  type DiceThrowResult,
+  type JuiceConfig,
+  type SpeedFace,
+} from '@skyline/board'
 import { sound } from '../audio/engine.ts'
 import { Button, Section, Slider, Toggle } from './controls.tsx'
 
@@ -29,6 +35,7 @@ const KNOBS: { key: keyof Dice; label: string; min: number; max: number; step: n
   { key: 'flyMs', label: 'Fly to tray ms', min: 200, max: 1200, step: 10 },
 ]
 
+const SPEED_PICKS: readonly (SpeedFace | null)[] = [null, 1, 2, 3, 'bus', 'scout']
 const roll = () => 1 + Math.floor(Math.random() * 6) // cosmetic playground only
 
 /**
@@ -38,6 +45,8 @@ const roll = () => 1 + Math.floor(Math.random() * 6) // cosmetic playground only
 export function DicePanel({ handle }: { handle: BoardHandle | null }) {
   const board = handle?.board ?? null
   const [picks, setPicks] = useState<[number | null, number | null]>([null, null])
+  // Speed die: null = no third die.
+  const [speedPick, setSpeedPick] = useState<SpeedFace | null>(null)
   const [seedText, setSeedText] = useState('')
   const [speed, setSpeed] = useState<number>(1)
   const [debug, setDebug] = useState(false)
@@ -73,6 +82,7 @@ export function DicePanel({ handle }: { handle: BoardHandle | null }) {
     let bounces = 0
     const got = await board.throwDice({
       values: want,
+      ...(speedPick === null ? {} : { speedFace: speedPick }),
       ...(Number.isFinite(typed) ? { seed: typed } : {}),
       speed,
       tray,
@@ -133,6 +143,26 @@ export function DicePanel({ handle }: { handle: BoardHandle | null }) {
             })}
           </fieldset>
         ))}
+        <fieldset className="flex items-center gap-1">
+          <legend className="sr-only">Speed die face</legend>
+          <span className="w-12 text-xs text-ink-muted">Speed</span>
+          {SPEED_PICKS.map((v) => {
+            const on = speedPick === v
+            return (
+              <button
+                key={v ?? 'off'}
+                type="button"
+                aria-pressed={on}
+                onClick={() => setSpeedPick(v)}
+                className={`h-7 flex-1 rounded-md text-xs font-semibold transition-transform active:scale-95 ${
+                  on ? 'bg-accent text-table' : 'border border-line bg-white/5 text-ink hover:bg-white/10'
+                }`}
+              >
+                {v ?? 'off'}
+              </button>
+            )
+          })}
+        </fieldset>
         <label className="flex items-center justify-between gap-3 text-sm text-ink">
           Seed
           <input

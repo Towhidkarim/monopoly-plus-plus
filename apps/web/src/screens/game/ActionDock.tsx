@@ -1,6 +1,9 @@
 import { useRef, type ReactNode } from 'react'
+import { SPACES } from '@skyline/engine'
+import { cssHex } from '../../spaceInfo.ts'
 import type { GameStore, Snapshot } from '../../game/store.ts'
 import { Icon } from './icons.tsx'
+import type { MoveOption } from './moveChoice.ts'
 import type { TurnView } from './turn.ts'
 import { Kbd, FX, FX_BRIGHT } from './ui.tsx'
 
@@ -16,10 +19,15 @@ export function ActionDock({
   cityOpen,
   onCity,
   onTrade,
+  hoverSpace = null,
+  onHoverSpace,
 }: {
   snap: Snapshot
   store: GameStore
   turn: TurnView
+  /** Speed die move choice: the destination under the pointer (button or tile). */
+  hoverSpace?: number | null
+  onHoverSpace?: (space: number | null) => void
   cityBadge: number
   cityOpen: boolean
   onCity: () => void
@@ -54,7 +62,22 @@ export function ActionDock({
           My city
         </DockButton>
 
-        {primary ? (
+        {turn.moment === 'move' ? (
+          <fieldset className="m-0 flex items-center gap-2 border-0 p-0">
+            <legend className="sr-only">Where to go</legend>
+            {turn.moves.map((m, i) => (
+              <MoveButton
+                key={m.space}
+                move={m}
+                hotkey={String(i + 1)}
+                hot={hoverSpace === m.space}
+                ownerColor={m.owner >= 0 ? cssHex(store.setup.seats[m.owner]!.color) : null}
+                onHover={(on) => onHoverSpace?.(on ? m.space : null)}
+                onClick={turn.secondary[i]!.run}
+              />
+            ))}
+          </fieldset>
+        ) : primary ? (
           // The wrapper pops in on each new primary; the button inside breathes while it waits.
           <span key={primary.label} className="inline-flex animate-pop">
             <button
@@ -117,11 +140,12 @@ export function ActionDock({
           </div>
         )}
 
-        {secondary.map((c) => (
-          <DockButton key={c.label} onClick={c.run} hotkey={c.hotkey}>
-            {c.label}
-          </DockButton>
-        ))}
+        {turn.moment !== 'move' &&
+          secondary.map((c) => (
+            <DockButton key={c.label} onClick={c.run} hotkey={c.hotkey}>
+              {c.label}
+            </DockButton>
+          ))}
 
         <DockButton
           onClick={onTrade ?? (() => {})}
@@ -143,6 +167,54 @@ export function ActionDock({
         )}
       </div>
     </div>
+  )
+}
+
+const TONE: Record<MoveOption['tone'], string> = {
+  rent: 'text-alert',
+  buy: 'text-teal',
+  bad: 'text-alert',
+  plain: 'text-ink-muted',
+}
+
+/** One Speed die destination: the steps, the space, and what landing there means. */
+function MoveButton({
+  move,
+  hotkey,
+  hot,
+  ownerColor,
+  onHover,
+  onClick,
+}: {
+  move: MoveOption
+  hotkey: string
+  hot: boolean
+  ownerColor: string | null
+  onHover: (on: boolean) => void
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      onPointerEnter={() => onHover(true)}
+      onPointerLeave={() => onHover(false)}
+      onFocus={() => onHover(true)}
+      onBlur={() => onHover(false)}
+      className={`flex h-[66px] min-w-36 items-center gap-3 rounded-[18px] border px-4 text-left ${FX} ${hot ? '-translate-y-0.5 border-accent bg-accent/15' : 'border-line bg-panel-2 enabled:hover:bg-white/5'}`}
+    >
+      <span className="font-display text-[28px] leading-none font-bold text-accent tabular-nums">
+        {move.steps}
+      </span>
+      <span className="flex min-w-0 flex-col">
+        <span className="max-w-40 truncate text-sm font-extrabold text-ink">{SPACES[move.space]!.name}</span>
+        <span className={`flex items-center gap-1.5 text-xs font-bold ${TONE[move.tone]}`}>
+          {ownerColor && <span className="size-2 rounded-full" style={{ background: ownerColor }} />}
+          {move.tag}
+        </span>
+      </span>
+      <Kbd>{hotkey}</Kbd>
+    </button>
   )
 }
 

@@ -1,5 +1,4 @@
 import {
-  PRESETS,
   SPACES,
   createGame,
   expectedActor,
@@ -8,6 +7,7 @@ import {
   validate,
   type Action,
   type GameEvent,
+  type SpeedFace,
   type Bundle,
   type GameState,
 } from '@skyline/engine'
@@ -34,7 +34,7 @@ import { applyEvent, desyncs, presentFrom, type Presented } from './presented.ts
 import { loadPrefs } from './prefs.ts'
 import type { SkyPref } from './sky.ts'
 import type { CursorPref } from '../cursors.ts'
-import { saveGame, type GameSetup, type SavedGame, type SeatSetup } from './setup.ts'
+import { configOf, saveGame, type GameSetup, type SavedGame, type SeatSetup } from './setup.ts'
 import { gameResults, type GameResults } from './results.ts'
 import { BIG_RENT, TIMINGS, coinsLandMs } from './timings.ts'
 
@@ -65,6 +65,8 @@ export interface Snapshot {
   busy: boolean
   log: LogEntry[]
   dice: readonly [number, number] | null
+  /** The Speed die face of the last roll (twist, DECISIONS.md D62), shown as a third die. */
+  speedFace: SpeedFace | null
   /** Increments on every roll so the dice tray can re-trigger its animation. */
   diceRoll: number
   /** 3D dice are on the board: the tray waits for them and does not show the result yet. */
@@ -211,7 +213,7 @@ export class GameStore {
       createGame(
         setup.seats.map((s) => ({ id: s.id, name: s.name })),
         setup.seed,
-        PRESETS[setup.preset],
+        configOf(setup),
       )
     // Rebuild a saved game by replaying its action log (deterministic).
     for (const step of replay) {
@@ -226,6 +228,7 @@ export class GameStore {
       busy: false,
       log: [],
       dice: state.lastDice,
+      speedFace: state.lastSpeed ?? null,
       diceRoll: 0,
       diceLanding: false,
       card: null,
@@ -381,7 +384,7 @@ export class GameStore {
     const start = createGame(
       this.setup.seats.map((s) => ({ id: s.id, name: s.name })),
       this.setup.seed,
-      PRESETS[this.setup.preset],
+      configOf(this.setup),
     )
     return gameResults(start, this.actions)
   }
@@ -510,7 +513,8 @@ export class GameStore {
     while (this.queue.length > 0 && !this.disposed) {
       const e = this.queue.shift()!
       if (!this.skipping) await this.play(e)
-      else if (e.type === 'DICE_ROLLED') this.snap = { ...this.snap, dice: e.dice, diceLanding: false }
+      else if (e.type === 'DICE_ROLLED')
+        this.snap = { ...this.snap, dice: e.dice, speedFace: e.speed ?? null, diceLanding: false }
       const line = describe(e, this.nameOf)
       this.snap = { ...this.snap, presented: applyEvent(this.snap.presented, e) }
       for (const fn of this.appliedListeners) fn(e)
@@ -532,8 +536,9 @@ export class GameStore {
     const speed = this.settings.speed
     for (const fn of this.eventListeners) fn(e)
     if (e.type === 'DICE_ROLLED') {
-      if (this.settings.dice3d && this.board?.throwDice) return this.throwDice(e.dice, speed)
-      this.set({ dice: e.dice, diceRoll: this.snap.diceRoll + 1 })
+      const face = e.speed ?? null
+      if (this.settings.dice3d && this.board?.throwDice) return this.throwDice(e.dice, face, speed)
+      this.set({ dice: e.dice, speedFace: face, diceRoll: this.snap.diceRoll + 1 })
       await wait(TIMINGS.dice / speed)
       return
     }
@@ -558,10 +563,14 @@ export class GameStore {
    * 3D dice: the camera frames the throw, the dice tumble onto the engine's values, the total
    * pops, and the game moves on as the dice fly into the tray (which then shows them).
    */
-  private async throwDice(dice: readonly [number, number], speed: number): Promise<void> {
+  private async throwDice(
+    dice: readonly [number, number],
+    speedFace: SpeedFace | null,
+    speed: number,
+  ): Promise<void> {
     const board = this.board
     if (!board?.throwDice) return
-    this.set({ dice, diceRoll: this.snap.diceRoll + 1, diceLanding: true })
+    this.set({ dice, speedFace, diceRoll: this.snap.diceRoll + 1, diceLanding: true })
     board.setTuning(this.tuning(speed))
     const tray = this.diceTray?.()
     let first = true
@@ -570,6 +579,7 @@ export class GameStore {
     const done = board
       .throwDice({
         values: dice,
+        ...(speedFace ? { speedFace } : {}),
         speed,
         focus: true,
         ...(tray ? { tray } : {}),

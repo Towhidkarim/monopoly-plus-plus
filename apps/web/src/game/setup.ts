@@ -1,4 +1,4 @@
-import type { Action, PresetName } from '@skyline/engine'
+import { PRESETS, type Action, type GameConfig, type PresetName } from '@skyline/engine'
 import type { PieceKind } from '@skyline/board'
 
 /** One seat at the table. */
@@ -16,13 +16,33 @@ export interface SeatSetup {
   personality?: string
 }
 
+/** Optional twists on top of the preset (DECISIONS.md D61); all off when absent. */
+export interface Twists {
+  speedDie?: boolean
+}
+
+/** The twists the setup screens offer, in order. */
+export const TWISTS: readonly { key: keyof Twists; label: string; blurb: string }[] = [
+  {
+    key: 'speedDie',
+    label: 'Speed die',
+    blurb:
+      'A third die. The Bus lets you pick where to go; the Scout grabs the nearest free lot. Faster games.',
+  },
+]
+
 export interface GameSetup {
   preset: PresetName
+  /** Twists switched on (absent in old saves: none). */
+  twists?: Twists
   seed: number
   /** Seed of the generated city on the board (cosmetic only; absent in old saves). */
   citySeed?: number
   seats: SeatSetup[]
 }
+
+/** The engine config for a setup: its preset plus its twists. */
+export const configOf = (setup: GameSetup): GameConfig => ({ ...PRESETS[setup.preset], ...setup.twists })
 
 /** The city a setup shows: its own seed, or one derived from the game seed for old saves. */
 export const cityOf = (setup: GameSetup): number => setup.citySeed ?? (setup.seed * 2654435761) % 1_000_003

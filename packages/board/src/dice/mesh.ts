@@ -1,5 +1,6 @@
 import { Geometry, Mesh, Shader, UniformGroup } from 'pixi.js'
 import { FACES } from './cube.ts'
+import { speedIcons } from './icons.ts'
 import { qrot, v3, type Quat, type V3 } from './math.ts'
 
 /**
@@ -127,6 +128,8 @@ uniform vec3 uPip;
 uniform vec3 uLamp;
 uniform float uGlow;
 uniform float uAA;
+uniform float uSpeed;
+uniform sampler2D uIcons;
 
 out vec4 finalColor;
 
@@ -172,6 +175,16 @@ void main(void) {
   // About one screen pixel of edge softness (uAA is pixels per pip radius, inverted).
   float aa = uAA;
   float pip = 1.0 - smoothstep(1.0 - aa, 1.0 + aa, d);
+  // The Speed die prints a bus (face 4) or a pin (faces 5 and 6) instead of pips.
+  float mark = pip;
+  if (uSpeed > 0.5 && vFace.x > 3.5) {
+    pip = 0.0;
+    vec2 iu = vFace.yz / 0.66;
+    float inside = step(abs(iu.x), 1.0) * step(abs(iu.y), 1.0);
+    float cell = vFace.x < 4.5 ? 0.0 : 0.5;
+    vec2 tc = vec2(cell + (iu.x * 0.5 + 0.5) * 0.5, 0.5 - iu.y * 0.5);
+    mark = texture(uIcons, tc).a * inside;
+  }
 
   // Pips are shallow spherical dimples: inside, the surface tilts toward the pip's center.
   vec3 sn = n;
@@ -189,9 +202,9 @@ void main(void) {
   float light = 0.72 + 0.24 * sn.z + 0.34 * diff;
   float rim = 1.0 - 0.22 * pow(1.0 - max(facing, 0.0), 2.5);
 
-  vec3 base = mix(uBody, uPip, pip);
+  vec3 base = mix(uBody, uPip, mark);
   vec3 col = base * light * rim;
-  col += vec3(1.0) * spec * mix(0.3, 0.22, pip);
+  col += vec3(1.0) * spec * mix(0.3, 0.22, mark);
   // Lamp light catches the upper rounded edges at night.
   col += uLamp * uGlow * 0.5 * pow(1.0 - max(facing, 0.0), 2.0) * smoothstep(0.1, 0.8, n.z);
 
@@ -221,7 +234,12 @@ export class DieMesh {
   private readonly view = new Float32Array([0, 0, 1])
   private readonly col = [v3(), v3(), v3()] as const
 
-  constructor(geometry: Geometry, colors: { body: number; pip: number; lamp: number }, light: V3) {
+  constructor(
+    geometry: Geometry,
+    colors: { body: number; pip: number; lamp: number },
+    light: V3,
+    speed = false,
+  ) {
     this.uniforms = new UniformGroup({
       uAxes: { value: this.axes, type: 'mat3x3<f32>' },
       uRot: { value: this.rot, type: 'mat3x3<f32>' },
@@ -233,8 +251,12 @@ export class DieMesh {
       uLamp: { value: hex(colors.lamp), type: 'vec3<f32>' },
       uGlow: { value: 0, type: 'f32' },
       uAA: { value: 0.1, type: 'f32' },
+      uSpeed: { value: speed ? 1 : 0, type: 'f32' },
     })
-    const shader = Shader.from({ gl: { vertex, fragment }, resources: { dieUniforms: this.uniforms } })
+    const shader = Shader.from({
+      gl: { vertex, fragment },
+      resources: { dieUniforms: this.uniforms, uIcons: speedIcons().source },
+    })
     this.mesh = new Mesh({ geometry, shader })
   }
 
