@@ -1,6 +1,6 @@
 # Ideas: game variants and "++" features
 
-A parking lot for later. Nothing here is planned or decided; when one of these becomes a milestone, move it to `docs/ROADMAP.md` and record the design in `docs/DECISIONS.md`.
+A parking lot for later. The strongest of these (Speed die, perks, headlines, daily seed and more) are now planned in Milestone 13 (`docs/ROADMAP.md`, DECISIONS.md D61). Nothing here is planned or decided; when one of these becomes a milestone, move it to `docs/ROADMAP.md` and record the design in `docs/DECISIONS.md`.
 
 ## Design note
 

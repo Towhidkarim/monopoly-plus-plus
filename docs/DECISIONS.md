@@ -485,3 +485,11 @@ During a decision (buy, auction, debt, offer, trade) the left column and activit
 
 - The pad under every property lot was darker than the tile around it; with its thin raised edge the eye read it as a dip ("weird lift"). It is now lighter than the tile (raised surfaces catch light) and a little higher (`LOT_Z` 0.012 to 0.02).
 - For-sale plots sit further inside the lot (inset 0.09), so the tile frames them. Only lawns keep the group tint: tinted gravel read as a mauve rug. Gravel is a cool grey with a few weed tufts; paving is plain. Screenshot (night, day): `docs/screenshots/lots-pad-v2.png`.
+
+## D61. Twists: optional rule modules for modern modes (plan, 2026-10-28, Milestone 13)
+
+- The developer wants the game more fun and with more player control than classic rules, soon, ahead of bot work: Milestone 13 comes right after the current UX batch, before Milestone 10 and the learned bots (which come last and must learn the twists too).
+- Twists are data: `GameConfig.twists` (each off by default) read by `reduce` and `legalActions`. Classic, Standard and Turbo stay as they are; Blitz becomes a preset that turns twists on. Games stay replayable from seed plus actions, and online rooms need no special code.
+- Hidden twist state (perk hands, secret goals) is masked by `observe()`. Out-of-turn reactions (Rent Shield, Insurance) use the existing any-time action path (D8), so they work for humans, bots and the room.
+- First set, in order: dice control (Roll 3 keep 2, Speed die, Momentum meter), Blitz, perk cards drafted at Start, city headlines a round ahead, City Council for bankrupt players. The rest stays a menu in the roadmap.
+- Each twist ships only after `pnpm sim` balance runs (rounds per game, first-seat win rate, round-10 leader win rate, close results, bot edge) and `--fuzz`; the numbers get recorded here.

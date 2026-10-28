@@ -167,6 +167,52 @@ Acceptance: four browsers play a full game through a room; refreshing a tab mid-
 
 Status 2026-10-26: steps 1 to 6 done (DECISIONS.md D41 to D46). Acceptance run on the dev server (Worker plus Durable Object): four tabs played a full Turbo game (20 rounds, 80 turns) through one room, one tab reloaded mid-game and rejoined, all four ended on the identical state with no checksum warnings, and `pnpm room:smoke` showed the room rejecting an out-of-turn action. Step 7 (P2P WebRTC or a Node adapter) is kept for later. Pending: the first real deploy (`wrangler login`, `pnpm deploy`) and a play session across real machines.
 
+## Milestone 13: Twists, modern modes for "++" (planned 2026-10-28)
+
+Order (the developer, 2026-10-28): this comes soon, right after the current UX batch in `docs/NEXT.md` and before Milestone 10 and the learned bots. It is numbered 13 only because it was planned after 12. Moves the strongest ideas from `docs/IDEAS.md` into a plan. Design rules: DECISIONS.md D61.
+
+**Goals**
+
+- **More control:** the player makes a real choice on most turns, not only "buy or pass".
+- **Less waiting:** things to do or react to when it is not your turn.
+- **Shorter, closer games:** fewer runaway leaders, no players knocked out with nothing to do.
+- **Variety:** two games with the same settings should play differently.
+- **Show off the juice and the living board:** twists show up in the city (weather, buildings, trains), not only in text.
+- Classic play stays available unchanged; every twist is optional.
+
+**Rules for every twist**
+
+- A twist is data in `GameConfig.twists` that `reduce` and `legalActions` read, with no special-case code in the shell. Pure, seeded, replayable, and its events are played by the view like any other.
+- Hidden information (a hand of cards, secret goals) only reaches other players through `observe()`.
+- The heuristic bot plays every twist sensibly (simple value hooks, tested), and `pnpm sim --fuzz` covers each one.
+- Balanced with `pnpm sim` before it ships. Metrics: rounds per game, first-seat win rate, how often the round-10 leader wins (lower is better, within reason), how often the result is close, and the heuristic bot's edge over random.
+- Each twist gets a one-line explanation in setup and the rulebook, plus its own juice beat.
+
+**Steps (one per commit, each restated with acceptance criteria first)**
+
+1. **Twist framework and lobby:** the `twists` config, a "Twists" section in local and online setup, the rulebook listing active twists, and the sim reporting the metrics above per config. Done when a no-op twist travels through setup, engine, room and replay.
+2. **Dice control:** *Roll 3, keep 2* (choose which pair you move by, with landing odds per choice) and the *Speed die* (a third die with bus and "next unowned lot" faces). Then the *Momentum meter*: paying rent and low rolls fill it; spend it on a reroll or a ±1 nudge.
+3. **Blitz mode:** a preset built on step 2 (speed die, dealt lots, short round limit), aiming at about 20 minutes with 4 players. Done when the sim confirms the length.
+4. **Perk cards (the signature twist):** each time you pass Start you draft 1 of 3, holding at most 3. Instant cards (Flash Sale, Detour ±2, Double Rent Tonight, Eminent Domain) and reaction cards that can be played out of turn (Rent Shield, Insurance). A card fan in the shell and card juice when played; bots value and play cards.
+5. **City headlines:** each round, a headline for the next round is shown on a ticker (Heatwave: beach rents ×2, Rail strike, Construction boom, Audit on the richest). The board shows it (weather, lights, stopped trains).
+6. **City Council (no dead players):** a bankrupt player stays in and, each round, picks next round's headline from two or places a bounty on the leader.
+7. **Acceptance:** a play session against bots with each twist on its own and with all of them on; the sim metrics are recorded in D61 and show the twists keep games at least as close as Classic; bots never stall with any twist (fuzz).
+
+**Possible things for later in this milestone or after (menu, not committed)**
+
+- **District specialization:** completing a set lets you choose Tourist (spiky rent), Residential (income each lap), Commerce (boosts neighbours) or Industrial (cheap to build, lowers nearby rent); each looks different on the board.
+- **Adjacency combos:** neighbouring sets you own add bonuses, with chained number pops ("COMBO ×3").
+- **Skyscrapers:** a tier above hotels.
+- **Trade contracts:** a share of a set's rent for N laps, immunity for N laps, loans with interest; enforced by the engine.
+- **Shares** in other players' sets that pay dividends.
+- **Characters:** one passive and one active ability with a cooldown each (Developer, Lawyer, Banker, Courier).
+- **Secret goals:** draft 2 at the start (own both utilities, build 6 houses on one side); finishing them pays a bonus.
+- **Economy cycles:** boom and bust phases city-wide, shown by the day/night light.
+- **Cheat cards** with a penalty if you are caught.
+- **Skyline Run (solo roguelike):** a series of games against bots with a net-worth target by round N, perks picked between games, and rising stakes levels.
+- **Daily City:** the same seed and bots for everyone each day, with a leaderboard.
+- **Cosmetic unlocks only:** tokens, city themes and palettes; never pay to win.
+
 ## Milestone 10: Bot v2 and search
 
 Order (the developer, 2026-10-26): fun and polish come first, so Milestone 11 is done before this one (see `docs/NEXT.md`).
@@ -201,9 +247,10 @@ A real first game against two bots, about 10 minutes, with a coach that teaches 
 
 Later, the same coach framework can show one-time "first time" tips in normal games (first auction, first chance to build).
 
-## Later: "++" and learned bots
+## Later: learned bots
 
-- New mechanics as rule modules: city events per round, player characters, and more (to be designed).
+The "++" mechanics moved to Milestone 13. Neural-network bots come later, after Milestone 10, and must learn to play the twists too (each twist widens the action space; the policy's input should include `GameConfig.twists`).
+
 - Learned policy: self-play using the engine as environment, model exported for in-browser inference. Plan: `docs/LEARNED_BOTS.md`.
 
 ## Cross-cutting risks and how to retire them early

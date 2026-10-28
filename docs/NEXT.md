@@ -32,9 +32,9 @@ The developer wants fun prioritized: polish (Milestone 11 items) comes before Mi
 2. **Open items from earlier milestones:** D38 dice (throw from the active player's side, white tray dice), the React style warning below, anything from the developer's Milestone 8 review.
 3. **Milestone 11 items:** mobile layout (portrait shell), persistence (settings, stats, PWA install), performance audit, trademark and naming check; the Wails desktop wrapper and replays later.
 
-Then Milestone 10 (bots) and the learned bots (`docs/LEARNED_BOTS.md`).
+Then **Milestone 13, twists** (modern modes: dice control, Blitz, perk cards, city headlines, City Council; `docs/ROADMAP.md`, DECISIONS.md D61). The developer wants this soon, ahead of the bots. After that Milestone 10 (bots), and the learned bots last (`docs/LEARNED_BOTS.md`).
 
-Game variant and "++" feature ideas are parked in `docs/IDEAS.md` (not planned yet).
+Remaining variant ideas are still in `docs/IDEAS.md`.
 
 ## Loose ends
 
