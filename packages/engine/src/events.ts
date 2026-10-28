@@ -52,6 +52,9 @@ export type GameEvent =
   | { type: 'RELEASED'; playerId: PlayerId; how: 'doubles' | 'fine' | 'card' }
   | { type: 'DEBT_INCURRED'; playerId: PlayerId; amount: number; creditor: Counterparty }
   | { type: 'DEBT_SETTLED'; playerId: PlayerId }
+  /** Second Wind: the bank lent `amount`; `owed` (interest at `rate` included) is repaid from income. */
+  | { type: 'LOAN_TAKEN'; playerId: PlayerId; amount: number; owed: number; rate: number }
+  | { type: 'LOAN_REPAID'; playerId: PlayerId }
   | { type: 'BANKRUPT'; playerId: PlayerId; to: Counterparty }
   | { type: 'FINAL_ROUND'; round: number }
   | { type: 'GAME_OVER'; winner: PlayerId; reason: 'lastStanding' | 'roundLimit' }

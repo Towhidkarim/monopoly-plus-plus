@@ -32,6 +32,10 @@ export interface GameConfig {
   speedDie?: boolean
   /** Twist (D63): passing Start pays extra the further a player trails the leader in net worth. */
   underdogSalary?: boolean
+  /** The most the underdog bonus adds, as a share of the salary (0.5 to 4; absent means 2). */
+  underdogMax?: number
+  /** Twist (D63): a player who cannot pay may take a bank loan, repaid from half of their income. */
+  secondWind?: boolean
 }
 
 const CLASSIC: GameConfig = {

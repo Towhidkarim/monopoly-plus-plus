@@ -6,7 +6,8 @@
  *
  * Matchups rotate seats every game so seat order cannot bias win rates. Bot names: random,
  * simple, heuristic (balanced), or heuristic:<personality> (balanced, banker, tycoon, shark).
- * `--speed` turns on the Speed die twist (DECISIONS.md D62); `--underdog` the underdog salary (D63).
+ * `--speed` turns on the Speed die twist (DECISIONS.md D62); `--underdog` the underdog salary (`--underdog-max 4` sets its cap in salaries), `--second-wind`
+ * the bank loans (D63).
  * `--fuzz` plays random-legal-action games and checks invariants (Milestone 2 harness).
  */
 import { writeFileSync } from 'node:fs'
@@ -30,6 +31,8 @@ const config = {
   ...PRESETS[preset],
   ...(process.argv.includes('--speed') ? { speedDie: true } : {}),
   ...(process.argv.includes('--underdog') ? { underdogSalary: true } : {}),
+  ...(process.argv.includes('--underdog-max') ? { underdogMax: Number(arg('underdog-max', '2')) } : {}),
+  ...(process.argv.includes('--second-wind') ? { secondWind: true } : {}),
 }
 const started = performance.now()
 const perMinute = () => ((games / ((performance.now() - started) / 1000)) * 60).toFixed(0)
@@ -46,6 +49,8 @@ function makeBot(name: string): Bot {
   if (kind !== 'heuristic' || !params) throw new Error(`unknown bot "${name}"`)
   return createHeuristicBot(params)
 }
+
+const pct = (v: number, of: number) => (of > 0 ? `${((v / of) * 100).toFixed(0)}%` : '-')
 
 if (process.argv.includes('--fuzz')) fuzz()
 else matchups()
@@ -68,6 +73,10 @@ function matchups(): void {
   /** Finished games that reached round 10, and those the round-10 leader went on to win. */
   let reached10 = 0
   let leaderWon = 0
+  let trailerWon = 0
+  let loans = 0
+  let borrowers = 0
+  let borrowersWon = 0
   for (let g = 0; g < games; g++) {
     // Seat k is played by names[(k + g) % n]: every bot sits in every seat equally often.
     const order = Array.from({ length: n }, (_, k) => (k + g) % n)
@@ -85,9 +94,16 @@ function matchups(): void {
     if (alone) lastStanding++
     rejected += r.rejected
     if (r.violations.length > 0) violations++
+    loans += r.loans.reduce((a, b) => a + b, 0)
+    r.loans.forEach((k, seat) => {
+      if (k === 0) return
+      borrowers++
+      if (seat === r.winner) borrowersWon++
+    })
     if (r.finished && r.leaderAt10 >= 0) {
       reached10++
       if (r.leaderAt10 === r.winner) leaderWon++
+      if (r.trailerAt10 === r.winner) trailerWon++
     }
     rows.push(
       [
@@ -109,7 +125,7 @@ function matchups(): void {
   const minutes = (humans: number) =>
     ((turnsPerGame * ((humans * HUMAN_TURN_S + (n - humans) * BOT_TURN_S) / n)) / 60).toFixed(0)
   console.log(
-    `preset ${preset}${config.speedDie ? ' + speed die' : ''}${config.underdogSalary ? ' + underdog salary' : ''}, ${games} games, seats rotate each game`,
+    `preset ${preset}${config.speedDie ? ' + speed die' : ''}${config.underdogSalary ? ' + underdog salary' : ''}${config.secondWind ? ' + second wind' : ''}, ${games} games, seats rotate each game`,
   )
   names.forEach((name, i) => {
     const share = names.filter((x) => x === name).length
@@ -124,8 +140,12 @@ function matchups(): void {
     `last player standing ${((lastStanding / games) * 100).toFixed(0)}%   unfinished ${unfinished}   rejected bot actions ${rejected}   games with violations ${violations}`,
   )
   console.log(
-    `round-10 leader went on to win ${reached10 > 0 ? ((leaderWon / reached10) * 100).toFixed(0) : '-'}% (of ${reached10} games that reached round 10)`,
+    `round-10 leader went on to win ${pct(leaderWon, reached10)}, last place ${pct(trailerWon, reached10)} (of ${reached10} games that reached round 10)`,
   )
+  if (config.secondWind)
+    console.log(
+      `loans ${avg(loans)} per game   players who borrowed ${avg(borrowers)} per game, ${pct(borrowersWon, borrowers)} of them won`,
+    )
   console.log(
     `estimated length: 1 human + ${n - 1} bots ~${minutes(1)} min, ${n} humans ~${minutes(n)} min (assumes ${HUMAN_TURN_S}s per human turn, ${BOT_TURN_S}s per bot turn)`,
   )

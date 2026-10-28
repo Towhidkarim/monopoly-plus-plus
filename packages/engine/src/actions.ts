@@ -23,6 +23,10 @@ export type Action =
   | { type: 'USE_JAIL_CARD' }
   | { type: 'END_TURN' }
   | { type: 'DECLARE_BANKRUPTCY' }
+  /** Second Wind (config.secondWind): borrow what you are short of instead of raising it. */
+  | { type: 'TAKE_LOAN' }
+  /** Second Wind: pay off as much of your loan as your cash allows. */
+  | { type: 'REPAY_LOAN' }
   /** Time is an input: sent by a timer for the player expected to act; maps to a default choice. */
   | { type: 'TIMEOUT' }
 

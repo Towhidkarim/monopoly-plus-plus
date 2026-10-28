@@ -19,6 +19,10 @@ export interface PlayerState {
   /** Held get-out-of-jail cards, by the deck they came from. */
   jailCards: Deck[]
   bankrupt: boolean
+  /** Second Wind: what is still owed on the open bank loan, interest included (D63). */
+  loan?: number
+  /** Second Wind: loans taken so far (sets the next loan's interest). */
+  loans?: number
 }
 
 /** What a trade side hands over. */
@@ -57,6 +61,9 @@ export type CashReason =
   | 'trade'
   | 'bankruptcy'
   | 'pot'
+  /** Second Wind: a bank loan paid out, and repayments of it (D63). */
+  | 'loan'
+  | 'loanRepay'
 
 export interface Debt {
   debtor: number

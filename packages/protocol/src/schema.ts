@@ -48,6 +48,8 @@ export const ActionSchema = v.variant('type', [
   simple('USE_JAIL_CARD'),
   simple('END_TURN'),
   simple('DECLARE_BANKRUPTCY'),
+  simple('TAKE_LOAN'),
+  simple('REPAY_LOAN'),
   // TIMEOUT is not here: only the room's timers send it.
 ])
 
@@ -71,6 +73,8 @@ const RulesSchema = v.strictObject({
   maxOpenTrades: v.exactOptional(int(1, 20)),
   speedDie: v.exactOptional(v.boolean()),
   underdogSalary: v.exactOptional(v.boolean()),
+  underdogMax: v.exactOptional(v.pipe(v.number(), v.minValue(0.5), v.maxValue(4))),
+  secondWind: v.exactOptional(v.boolean()),
 })
 
 export const RoomSettingsSchema = v.strictObject({

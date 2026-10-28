@@ -4,6 +4,7 @@ import { legalAuction } from './rules/auction.ts'
 import { legalBankruptcy } from './rules/bankruptcy.ts'
 import { legalBuilding } from './rules/building.ts'
 import { legalBuy } from './rules/buy.ts'
+import { legalLoan } from './rules/loan.ts'
 import { legalMortgage } from './rules/mortgage.ts'
 import { legalTrade } from './rules/trade.ts'
 import { legalTurn } from './rules/turn.ts'
@@ -21,6 +22,7 @@ export function legalActions(state: GameState, playerId: PlayerId): Action[] {
     ...legalAuction(state, seat),
     ...legalBankruptcy(state, seat),
     ...legalBuy(state, seat),
+    ...legalLoan(state, seat),
     ...legalTurn(state, seat),
     ...legalBuilding(state, seat),
     ...legalMortgage(state, seat),

@@ -4,6 +4,7 @@ import type { GameEvent } from './events.ts'
 import { randFrom, type Rand } from './rng.ts'
 import type { CashReason, GameState } from './state.ts'
 import { drawCard } from './rules/cards.ts'
+import { repayFromIncome } from './rules/loan.ts'
 import { underdogBonus } from './rules/underdog.ts'
 
 /**
@@ -53,6 +54,7 @@ export function addCash(
     reason,
     ...(counterparty !== undefined ? { counterparty: party(ctx.s, counterparty) } : {}),
   })
+  repayFromIncome(ctx, seat, delta, reason)
 }
 
 /** Moves money now. Bank side (seat -1) is infinite; taxes/fines may feed the pot. */
@@ -241,9 +243,9 @@ export function land(ctx: Ctx, seat: number, diceTotal: number, mod: RentModifie
 
 // ---- scoring ----------------------------------------------------------------
 
-/** Cash plus property value (mortgaged at mortgage value) plus buildings at cost. */
+/** Cash plus property value (mortgaged at mortgage value) plus buildings at cost, less any loan. */
 export function netWorth(s: GameState, seat: number): number {
-  let total = s.players[seat]!.cash
+  let total = s.players[seat]!.cash - (s.players[seat]!.loan ?? 0)
   for (let i = 0; i < BOARD_SIZE; i++) {
     if (s.owner[i] !== seat) continue
     total += s.mortgaged[i] ? mortgageValue(i) : SPACES[i]!.price

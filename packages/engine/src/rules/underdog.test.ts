@@ -26,15 +26,22 @@ describe('underdog salary', () => {
   })
 
   it('pays the trailing player a bonus after the salary', () => {
-    // 1200 of the leader's 2000 is 60%: the bonus is 0.75 x 40% = 30% of the salary.
+    // 1200 of the leader's 2000 is a 40% gap: the bonus grows to the full 2x at a 2/3 gap,
+    // so it is 0.4 / (2/3) x 2 = 1.2 salaries.
     expect(cashEvents(atStart(1200, 2000))).toEqual([
       { reason: 'salary', delta: 200 },
-      { reason: 'underdog', delta: 60 },
+      { reason: 'underdog', delta: 240 },
     ])
   })
 
-  it('caps the bonus at half the salary', () => {
-    expect(underdogBonus(atStart(100, 5000), 0)).toBe(100)
+  it('caps the bonus at twice the salary by default', () => {
+    expect(underdogBonus(atStart(100, 5000), 0)).toBe(400)
+  })
+
+  it('takes its cap from the config', () => {
+    expect(underdogBonus(atStart(1200, 2000, { ...on, underdogMax: 0.5 }), 0)).toBe(60)
+    expect(underdogBonus(atStart(100, 5000, { ...on, underdogMax: 0.5 }), 0)).toBe(100)
+    expect(underdogBonus(atStart(100, 5000, { ...on, underdogMax: 4 }), 0)).toBe(800)
   })
 
   it('pays the leader nothing extra', () => {
@@ -43,7 +50,7 @@ describe('underdog salary', () => {
 
   it('measures net worth, not cash', () => {
     const s = edit(atStart(1200, 2000), (d) => (d.owner[39] = 0)) // a's lot is worth 400
-    expect(underdogBonus(s, 0)).toBe(Math.round((200 * 0.75 * (1 - 1600 / 2000)) / 10) * 10)
+    expect(underdogBonus(s, 0)).toBe(120) // a 20% gap: 0.2 / (2/3) x 2 = 0.6 salaries
   })
 
   it('ignores bankrupt players when finding the leader', () => {

@@ -31,9 +31,9 @@ export const simpleBot: Bot = {
 
     if (expectedActor(view) !== seat) return null
 
-    // In debt: sell buildings first, then mortgage, else give up.
+    // In debt: borrow (Second Wind), else sell buildings, then mortgage, else give up.
     if (view.debts[0]?.debtor === seat) {
-      return has('SELL_BUILDING') ?? has('MORTGAGE') ?? has('DECLARE_BANKRUPTCY') ?? null
+      return has('TAKE_LOAN') ?? has('SELL_BUILDING') ?? has('MORTGAGE') ?? has('DECLARE_BANKRUPTCY') ?? null
     }
 
     if (view.pending?.kind === 'auction') {

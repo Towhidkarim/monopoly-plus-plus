@@ -5,6 +5,7 @@ import { applyBid, applyPassBid, checkBid, checkPassBid } from './rules/auction.
 import { applyBankruptcy, checkBankruptcy } from './rules/bankruptcy.ts'
 import { applyBuild, applySellBuilding, checkBuild, checkSellBuilding } from './rules/building.ts'
 import { applyBuy, applyDecline, checkBuy, checkDecline } from './rules/buy.ts'
+import { applyRepayLoan, applyTakeLoan, checkRepayLoan, checkTakeLoan } from './rules/loan.ts'
 import { applyChooseMove, checkChooseMove, resolveScout } from './rules/speed.ts'
 import { applyMortgage, applyUnmortgage, checkMortgage, checkUnmortgage } from './rules/mortgage.ts'
 import {
@@ -41,6 +42,7 @@ const ANY_TIME: ReadonlySet<ActionType> = new Set([
   'CANCEL_TRADE',
   'ACCEPT_TRADE',
   'REJECT_TRADE',
+  'REPAY_LOAN',
 ])
 
 /**
@@ -55,7 +57,7 @@ export function gate(s: GameState, seat: number, type: ActionType): string | nul
   if (type === 'BID' || type === 'PASS_BID') return 'no auction in progress'
   if (s.debts.length > 0) {
     const debtor = s.debts[0]!.debtor
-    if (type === 'DECLARE_BANKRUPTCY') return null
+    if (type === 'DECLARE_BANKRUPTCY' || type === 'TAKE_LOAN') return null
     if (seat === debtor && (type === 'BUILD' || type === 'UNMORTGAGE')) return 'settle your debt first'
     return ANY_TIME.has(type) ? null : 'waiting for a debt to be settled'
   }
@@ -127,6 +129,10 @@ export function check(s: GameState, seat: number, action: Action): string | null
       return checkEndTurn(s, seat)
     case 'DECLARE_BANKRUPTCY':
       return checkBankruptcy(s, seat)
+    case 'TAKE_LOAN':
+      return checkTakeLoan(s, seat)
+    case 'REPAY_LOAN':
+      return checkRepayLoan(s, seat)
   }
 }
 
@@ -171,6 +177,10 @@ function apply(ctx: Ctx, seat: number, action: Action): void {
       return applyEndTurn(ctx)
     case 'DECLARE_BANKRUPTCY':
       return applyBankruptcy(ctx, seat)
+    case 'TAKE_LOAN':
+      return applyTakeLoan(ctx, seat)
+    case 'REPAY_LOAN':
+      return applyRepayLoan(ctx, seat)
   }
 }
 

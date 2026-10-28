@@ -42,6 +42,10 @@ export interface MatchResult {
   bankruptcies: number
   /** Seat with the highest net worth when round 10 began, or -1 if the game ended earlier. */
   leaderAt10: number
+  /** Active seat with the lowest net worth when round 10 began, or -1 if the game ended earlier. */
+  trailerAt10: number
+  /** Second Wind loans taken, per seat. */
+  loans: number[]
   violations: string[]
 }
 
@@ -64,6 +68,8 @@ export function playMatch(opts: MatchOptions): MatchResult {
     sets: 0,
     bankruptcies: 0,
     leaderAt10: -1,
+    trailerAt10: -1,
+    loans: opts.bots.map(() => 0),
     violations: [],
   }
   const tally = (events: GameEvent[]) => {
@@ -72,6 +78,7 @@ export function playMatch(opts: MatchOptions): MatchResult {
       else if (e.type === 'TRADE_PROPOSED') out.proposed++
       else if (e.type === 'MONOPOLY_COMPLETED') out.sets++
       else if (e.type === 'BANKRUPT') out.bankruptcies++
+      else if (e.type === 'LOAN_TAKEN') out.loans[ids.indexOf(e.playerId)]!++
     }
   }
   const apply = (seat: number, action: Action): boolean => {
@@ -80,7 +87,10 @@ export function playMatch(opts: MatchOptions): MatchResult {
     s = r.state
     out.actions++
     tally(r.events)
-    if (out.leaderAt10 < 0 && s.round >= 10 && s.phase !== 'gameOver') out.leaderAt10 = richestSeat(s)
+    if (out.leaderAt10 < 0 && s.round >= 10 && s.phase !== 'gameOver') {
+      out.leaderAt10 = rankedSeat(s, 1)
+      out.trailerAt10 = rankedSeat(s, -1)
+    }
     return true
   }
   const ask = (seat: number) => opts.bots[seat]!.decide(observe(s, ids[seat]!), ids[seat]!, rngs[seat]!)
@@ -109,10 +119,11 @@ export function playMatch(opts: MatchOptions): MatchResult {
   return out
 }
 
-function richestSeat(s: GameState): number {
+/** The active seat with the highest (`sign` 1) or lowest (`sign` -1) net worth. */
+function rankedSeat(s: GameState, sign: 1 | -1): number {
   let best = -1
   s.players.forEach((p, i) => {
-    if (!p.bankrupt && (best < 0 || netWorth(s, i) > netWorth(s, best))) best = i
+    if (!p.bankrupt && (best < 0 || sign * netWorth(s, i) > sign * netWorth(s, best))) best = i
   })
   return best
 }

@@ -7,10 +7,10 @@ import type { GameState } from '../state.ts'
  * shown to everyone, and never taken from the leader.
  */
 
-/** Share of the salary added per unit of the gap (1 - mine / leader's). */
-const SLOPE = 0.75
-/** The most the bonus can add, as a share of the salary. */
-const MAX_SHARE = 0.5
+/** The most the bonus adds, as a share of the salary, when config.underdogMax is absent. */
+export const UNDERDOG_MAX = 2
+/** The full bonus is reached at this gap (two thirds behind the leader); it grows linearly to it. */
+const FULL_GAP = 2 / 3
 
 /** Extra salary for `seat` passing Start now (0 when off or not behind), rounded to ₵10. */
 export function underdogBonus(s: GameState, seat: number): number {
@@ -21,6 +21,7 @@ export function underdogBonus(s: GameState, seat: number): number {
   })
   if (leader <= 0) return 0
   const gap = 1 - Math.max(0, netWorth(s, seat)) / leader
-  const share = Math.min(MAX_SHARE, Math.max(0, gap) * SLOPE)
+  const max = s.config.underdogMax ?? UNDERDOG_MAX
+  const share = Math.min(max, (Math.max(0, gap) * max) / FULL_GAP)
   return Math.round((s.config.goSalary * share) / 10) * 10
 }

@@ -62,6 +62,7 @@ export function applyBankruptcy(ctx: Ctx, seat: number): void {
   }
   p.jailCards = []
   p.bankrupt = true
+  p.loan = 0 // the bank writes off an open Second Wind loan
   p.inJail = false
 
   s.debts = s.debts.filter((d) => d.debtor !== seat && d.creditor !== seat)

@@ -7,6 +7,7 @@ import {
   expectedActor,
   isOwnable,
   legalActions,
+  loanRate,
   rentFor,
   seatOf,
   unmortgageCost,
@@ -66,7 +67,18 @@ export function createHeuristicBot(params: BotParams = BALANCED, options: Heuris
 
       if (view.debts[0]?.debtor === seat) {
         const owed = view.debts.filter((d) => d.debtor === seat).reduce((t, d) => t + d.amount, 0)
-        return raisePlan(view, playerId, owed - me.cash).actions[0] ?? { type: 'DECLARE_BANKRUPTCY' }
+        const plan = raisePlan(view, playerId, owed - me.cash)
+        // Second Wind: borrow rather than go broke or tear down a set; cheap first loans always.
+        const loan = find('TAKE_LOAN')
+        const hurts = plan.actions.some(
+          (a) =>
+            a.type === 'SELL_BUILDING' ||
+            (a.type === 'MORTGAGE' &&
+              SPACES[a.space]!.group >= 0 &&
+              ownsGroup(view, seat, SPACES[a.space]!.group)),
+        )
+        if (loan && (plan.amount < owed - me.cash || hurts || loanRate(view, seat) <= 0.1)) return loan
+        return plan.actions[0] ?? { type: 'DECLARE_BANKRUPTCY' }
       }
 
       if (view.pending?.kind === 'auction') {
