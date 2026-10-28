@@ -6,7 +6,7 @@
  *
  * Matchups rotate seats every game so seat order cannot bias win rates. Bot names: random,
  * simple, heuristic (balanced), or heuristic:<personality> (balanced, banker, tycoon, shark).
- * `--speed` turns on the Speed die twist (DECISIONS.md D62).
+ * `--speed` turns on the Speed die twist (DECISIONS.md D62); `--underdog` the underdog salary (D63).
  * `--fuzz` plays random-legal-action games and checks invariants (Milestone 2 harness).
  */
 import { writeFileSync } from 'node:fs'
@@ -26,7 +26,11 @@ const games = Number(arg('games', '1000'))
 const preset = arg('preset', 'standard')
 const isPreset = (p: string): p is PresetName => p === 'standard' || p === 'turbo' || p === 'classic'
 if (!isPreset(preset)) throw new Error(`unknown preset ${preset}; use standard, turbo, or classic`)
-const config = process.argv.includes('--speed') ? { ...PRESETS[preset], speedDie: true } : PRESETS[preset]
+const config = {
+  ...PRESETS[preset],
+  ...(process.argv.includes('--speed') ? { speedDie: true } : {}),
+  ...(process.argv.includes('--underdog') ? { underdogSalary: true } : {}),
+}
 const started = performance.now()
 const perMinute = () => ((games / ((performance.now() - started) / 1000)) * 60).toFixed(0)
 
@@ -61,6 +65,9 @@ function matchups(): void {
   let unfinished = 0
   let rejected = 0
   let violations = 0
+  /** Finished games that reached round 10, and those the round-10 leader went on to win. */
+  let reached10 = 0
+  let leaderWon = 0
   for (let g = 0; g < games; g++) {
     // Seat k is played by names[(k + g) % n]: every bot sits in every seat equally often.
     const order = Array.from({ length: n }, (_, k) => (k + g) % n)
@@ -78,6 +85,10 @@ function matchups(): void {
     if (alone) lastStanding++
     rejected += r.rejected
     if (r.violations.length > 0) violations++
+    if (r.finished && r.leaderAt10 >= 0) {
+      reached10++
+      if (r.leaderAt10 === r.winner) leaderWon++
+    }
     rows.push(
       [
         g,
@@ -98,7 +109,7 @@ function matchups(): void {
   const minutes = (humans: number) =>
     ((turnsPerGame * ((humans * HUMAN_TURN_S + (n - humans) * BOT_TURN_S) / n)) / 60).toFixed(0)
   console.log(
-    `preset ${preset}${config.speedDie ? ' + speed die' : ''}, ${games} games, seats rotate each game`,
+    `preset ${preset}${config.speedDie ? ' + speed die' : ''}${config.underdogSalary ? ' + underdog salary' : ''}, ${games} games, seats rotate each game`,
   )
   names.forEach((name, i) => {
     const share = names.filter((x) => x === name).length
@@ -111,6 +122,9 @@ function matchups(): void {
   )
   console.log(
     `last player standing ${((lastStanding / games) * 100).toFixed(0)}%   unfinished ${unfinished}   rejected bot actions ${rejected}   games with violations ${violations}`,
+  )
+  console.log(
+    `round-10 leader went on to win ${reached10 > 0 ? ((leaderWon / reached10) * 100).toFixed(0) : '-'}% (of ${reached10} games that reached round 10)`,
   )
   console.log(
     `estimated length: 1 human + ${n - 1} bots ~${minutes(1)} min, ${n} humans ~${minutes(n)} min (assumes ${HUMAN_TURN_S}s per human turn, ${BOT_TURN_S}s per bot turn)`,

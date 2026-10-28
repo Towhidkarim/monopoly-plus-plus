@@ -426,15 +426,17 @@ function Toast({ entry: e, snap, store }: { entry: LogEntry; snap: Snapshot; sto
     const label =
       m.reason === 'salary'
         ? 'Launch salary'
-        : m.reason === 'tax'
-          ? 'Tax to the bank'
-          : m.reason === 'fine'
-            ? 'Lockup fine'
-            : iGet
-              ? `Rent from ${nameOf(m.from)}`
-              : iPay
-                ? `Rent to ${nameOf(m.to)}`
-                : `${nameOf(m.from)} paid rent to ${nameOf(m.to)}`
+        : m.reason === 'underdog'
+          ? 'Underdog bonus'
+          : m.reason === 'tax'
+            ? 'Tax to the bank'
+            : m.reason === 'fine'
+              ? 'Lockup fine'
+              : iGet
+                ? `Rent from ${nameOf(m.from)}`
+                : iPay
+                  ? `Rent to ${nameOf(m.to)}`
+                  : `${nameOf(m.from)} paid rent to ${nameOf(m.to)}`
     return (
       <div className={base}>
         <span className="flex items-center gap-[3px]">

@@ -30,6 +30,8 @@ export interface GameConfig {
    * Optional so configs saved before it existed still load (missing means off).
    */
   speedDie?: boolean
+  /** Twist (D63): passing Start pays extra the further a player trails the leader in net worth. */
+  underdogSalary?: boolean
 }
 
 const CLASSIC: GameConfig = {

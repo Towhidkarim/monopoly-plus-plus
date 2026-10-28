@@ -60,7 +60,7 @@ export function landing(s: GameState, seat: number, space: number, diceTotal: nu
     case 'goToJail':
       return withSalary({ ...base, tag: 'Go to the Lockup', tone: 'bad', score: -150 })
     case 'go':
-      return withSalary({ ...base, tag: 'Start', tone: 'plain', score: 0 })
+      return withSalary({ ...base, tag: 'Launch', tone: 'plain', score: 0 })
     case 'parking':
       return withSalary({
         ...base,

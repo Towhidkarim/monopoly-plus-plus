@@ -13,6 +13,7 @@ describe('fuzz: random legal playouts', () => {
       PRESETS.classic,
       { ...PRESETS.standard, speedDie: true },
       { ...PRESETS.turbo, speedDie: true },
+      { ...PRESETS.standard, underdogSalary: true },
     ]
     for (let seed = 1; seed <= 120; seed++) {
       const r = playout({

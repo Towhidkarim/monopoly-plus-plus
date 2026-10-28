@@ -7,6 +7,7 @@ import {
   SPACES,
   netWorth,
   ownsGroup,
+  type GameConfig,
   type GameState,
 } from '@skyline/engine'
 import type { CursorPref } from '../../cursors.ts'
@@ -513,6 +514,10 @@ const RULES: [string, string][] = [
 ]
 
 /** Rules for twists, shown when the game has them on (DECISIONS.md D61). */
+const UNDERDOG_RULE: [string, string] = [
+  'Comeback',
+  'Behind the leader? Your Launch salary grows with the gap: up to +50% for whoever trails far behind. The leader gets the normal salary.',
+]
 const SPEED_DIE_RULE: [string, string] = [
   'Speed die',
   'A third die rolls with yours. 1–3 adds to your move. The Bus lets you move by one die or both: pick on the board. The Scout moves you as usual, then on to the nearest lot for sale. Triples: go to any space.',
@@ -522,7 +527,12 @@ const cap =
   'flex h-[26px] min-w-[22px] items-center justify-center rounded-md border border-[#d8cfbb] bg-white px-[7px] font-display text-xs font-bold shadow-[0_3px_0_#d8cfbb]'
 
 /** The rulebook: rules on the left page, shortcuts on the right. */
-export function HelpOverlay({ onClose, speedDie = false }: { onClose: () => void; speedDie?: boolean }) {
+export function HelpOverlay({ onClose, config }: { onClose: () => void; config?: GameConfig }) {
+  const rules = [
+    ...RULES,
+    ...(config?.speedDie ? [SPEED_DIE_RULE] : []),
+    ...(config?.underdogSalary ? [UNDERDOG_RULE] : []),
+  ]
   usePanelSound()
   const dialog = useDialogFocus()
   return (
@@ -545,7 +555,7 @@ export function HelpOverlay({ onClose, speedDie = false }: { onClose: () => void
           <h2 id={dialog.titleId} className="m-0 font-card text-[34px] font-extrabold">
             How to play
           </h2>
-          {(speedDie ? [...RULES, SPEED_DIE_RULE] : RULES).map(([title, body], i) => (
+          {rules.map(([title, body], i) => (
             <div key={title} className="flex gap-3">
               <span className="flex size-7 flex-none items-center justify-center rounded-full bg-card-ink font-display text-[13px] font-bold text-card">
                 {i + 1}

@@ -4,6 +4,7 @@ import type { GameEvent } from './events.ts'
 import { randFrom, type Rand } from './rng.ts'
 import type { CashReason, GameState } from './state.ts'
 import { drawCard } from './rules/cards.ts'
+import { underdogBonus } from './rules/underdog.ts'
 
 /**
  * Shared engine machinery. Handlers mutate `ctx.s`, a private draft cloned by `reduce`,
@@ -165,7 +166,11 @@ export function moveBy(ctx: Ctx, seat: number, steps: number): void {
   const passedGo = dir > 0 && p.position + steps >= BOARD_SIZE
   p.position = path[path.length - 1] ?? p.position
   ctx.events.push({ type: 'MOVED', playerId: idOf(s, seat), path, passedGo })
-  if (passedGo) addCash(ctx, seat, s.config.goSalary, 'salary', -1)
+  if (passedGo) {
+    const bonus = underdogBonus(s, seat) // measured before the payday
+    addCash(ctx, seat, s.config.goSalary, 'salary', -1)
+    addCash(ctx, seat, bonus, 'underdog', -1)
+  }
 }
 
 /** Walks forward until reaching `target`. */

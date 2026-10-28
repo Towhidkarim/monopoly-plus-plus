@@ -11,7 +11,7 @@ export interface LogEntry {
     from: string | null
     to: string | null
     amount: number
-    reason: 'rent' | 'salary' | 'tax' | 'fine'
+    reason: 'rent' | 'salary' | 'underdog' | 'tax' | 'fine'
   }
   /** A space this entry is about (buy toasts show its color band). */
   space?: number
@@ -52,6 +52,12 @@ function describeRaw(e: GameEvent, name: (id: string) => string): Omit<LogEntry,
           text: `${name(e.playerId)} collected ₵${e.delta} salary`,
           tone: 'good',
           money: { from: null, to: e.playerId, amount: e.delta, reason: 'salary' },
+        }
+      if (e.reason === 'underdog' && e.delta > 0)
+        return {
+          text: `${name(e.playerId)} got a ₵${e.delta} underdog bonus`,
+          tone: 'good',
+          money: { from: null, to: e.playerId, amount: e.delta, reason: 'underdog' },
         }
       if (e.reason === 'rent' && e.delta < 0 && e.counterparty)
         return {

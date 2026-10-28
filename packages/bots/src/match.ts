@@ -2,6 +2,7 @@ import {
   checkInvariants,
   createGame,
   expectedActor,
+  netWorth,
   observe,
   reduce,
   type Action,
@@ -39,6 +40,8 @@ export interface MatchResult {
   proposed: number
   sets: number
   bankruptcies: number
+  /** Seat with the highest net worth when round 10 began, or -1 if the game ended earlier. */
+  leaderAt10: number
   violations: string[]
 }
 
@@ -60,6 +63,7 @@ export function playMatch(opts: MatchOptions): MatchResult {
     proposed: 0,
     sets: 0,
     bankruptcies: 0,
+    leaderAt10: -1,
     violations: [],
   }
   const tally = (events: GameEvent[]) => {
@@ -76,6 +80,7 @@ export function playMatch(opts: MatchOptions): MatchResult {
     s = r.state
     out.actions++
     tally(r.events)
+    if (out.leaderAt10 < 0 && s.round >= 10 && s.phase !== 'gameOver') out.leaderAt10 = richestSeat(s)
     return true
   }
   const ask = (seat: number) => opts.bots[seat]!.decide(observe(s, ids[seat]!), ids[seat]!, rngs[seat]!)
@@ -102,4 +107,12 @@ export function playMatch(opts: MatchOptions): MatchResult {
   out.winner = out.finished ? s.winner : -1
   out.violations = checkInvariants(s)
   return out
+}
+
+function richestSeat(s: GameState): number {
+  let best = -1
+  s.players.forEach((p, i) => {
+    if (!p.bankrupt && (best < 0 || netWorth(s, i) > netWorth(s, best))) best = i
+  })
+  return best
 }

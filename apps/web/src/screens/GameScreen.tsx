@@ -480,9 +480,7 @@ export function GameScreen({
                 onClose={() => setTrade(null)}
               />
             )}
-            {help && (
-              <HelpOverlay onClose={() => setHelp(false)} speedDie={snap.state.config.speedDie === true} />
-            )}
+            {help && <HelpOverlay onClose={() => setHelp(false)} config={snap.state.config} />}
           </div>
           <GameOver snap={snap} store={store} onRestart={onRestart} onQuit={onQuit} />
         </BoardCanvas>

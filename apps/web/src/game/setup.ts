@@ -19,6 +19,7 @@ export interface SeatSetup {
 /** Optional twists on top of the preset (DECISIONS.md D61); all off when absent. */
 export interface Twists {
   speedDie?: boolean
+  underdogSalary?: boolean
 }
 
 /** The twists the setup screens offer, in order. */
@@ -28,6 +29,11 @@ export const TWISTS: readonly { key: keyof Twists; label: string; blurb: string 
     label: 'Speed die',
     blurb:
       'A third die. The Bus lets you pick where to go; the Scout grabs the nearest free lot. Faster games.',
+  },
+  {
+    key: 'underdogSalary',
+    label: 'Comeback',
+    blurb: 'Players behind the leader collect a bigger salary at Launch, up to +50%.',
   },
 ]
 

@@ -70,6 +70,7 @@ const RulesSchema = v.strictObject({
   hotels: v.exactOptional(int(0, 100)),
   maxOpenTrades: v.exactOptional(int(1, 20)),
   speedDie: v.exactOptional(v.boolean()),
+  underdogSalary: v.exactOptional(v.boolean()),
 })
 
 export const RoomSettingsSchema = v.strictObject({

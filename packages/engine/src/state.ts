@@ -42,6 +42,8 @@ export interface TradeOffer {
 
 export type CashReason =
   | 'salary'
+  /** Underdog salary: the extra paid with the salary to a player behind (D63). */
+  | 'underdog'
   | 'rent'
   | 'tax'
   | 'card'
