@@ -25,6 +25,11 @@ export interface GameConfig {
   hotels: number
   /** Open outgoing trade offers per player. */
   maxOpenTrades: number
+  /**
+   * Twist (DECISIONS.md D61, D62): a third die with 1, 2, 3, Bus and two Scout faces.
+   * Optional so configs saved before it existed still load (missing means off).
+   */
+  speedDie?: boolean
 }
 
 const CLASSIC: GameConfig = {

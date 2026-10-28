@@ -1,11 +1,12 @@
 /**
  * Simulation harness.
  *
- *   pnpm sim [--bots heuristic,heuristic,simple,random] [--games 1000] [--preset standard] [--csv out.csv]
+ *   pnpm sim [--bots heuristic,heuristic,simple,random] [--games 1000] [--preset standard] [--speed] [--csv out.csv]
  *   pnpm sim --fuzz [--games 1000] [--players 4] [--preset standard] [--check]
  *
  * Matchups rotate seats every game so seat order cannot bias win rates. Bot names: random,
  * simple, heuristic (balanced), or heuristic:<personality> (balanced, banker, tycoon, shark).
+ * `--speed` turns on the Speed die twist (DECISIONS.md D62).
  * `--fuzz` plays random-legal-action games and checks invariants (Milestone 2 harness).
  */
 import { writeFileSync } from 'node:fs'
@@ -25,7 +26,7 @@ const games = Number(arg('games', '1000'))
 const preset = arg('preset', 'standard')
 const isPreset = (p: string): p is PresetName => p === 'standard' || p === 'turbo' || p === 'classic'
 if (!isPreset(preset)) throw new Error(`unknown preset ${preset}; use standard, turbo, or classic`)
-const config = PRESETS[preset]
+const config = process.argv.includes('--speed') ? { ...PRESETS[preset], speedDie: true } : PRESETS[preset]
 const started = performance.now()
 const perMinute = () => ((games / ((performance.now() - started) / 1000)) * 60).toFixed(0)
 
@@ -96,7 +97,9 @@ function matchups(): void {
   const turnsPerGame = turns / games
   const minutes = (humans: number) =>
     ((turnsPerGame * ((humans * HUMAN_TURN_S + (n - humans) * BOT_TURN_S) / n)) / 60).toFixed(0)
-  console.log(`preset ${preset}, ${games} games, seats rotate each game`)
+  console.log(
+    `preset ${preset}${config.speedDie ? ' + speed die' : ''}, ${games} games, seats rotate each game`,
+  )
   names.forEach((name, i) => {
     const share = names.filter((x) => x === name).length
     console.log(

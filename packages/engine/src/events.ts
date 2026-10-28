@@ -4,14 +4,17 @@
  */
 
 import type { Deck } from './cards.ts'
-import type { CashReason, PlayerId } from './state.ts'
+import type { CashReason, PlayerId, SpeedFace } from './state.ts'
 
 /** A player id, or `'bank'` (reserved: createGame rejects it as a player id). */
 export type Counterparty = string
 
 export type GameEvent =
   | { type: 'TURN_STARTED'; playerId: PlayerId; round: number }
-  | { type: 'DICE_ROLLED'; playerId: PlayerId; dice: readonly [number, number] }
+  /** `speed` is the Speed die face, present only when that twist is on and it was rolled. */
+  | { type: 'DICE_ROLLED'; playerId: PlayerId; dice: readonly [number, number]; speed?: SpeedFace }
+  /** Speed die Scout: the player is about to walk to `to` (then a MOVED follows). */
+  | { type: 'SCOUTED'; playerId: PlayerId; to: number }
   /** Step-by-step walk; `path` lists every space entered, ending on the landing space. */
   | { type: 'MOVED'; playerId: PlayerId; path: readonly number[]; passedGo: boolean }
   /** Direct relocation (go to jail): no walking. */

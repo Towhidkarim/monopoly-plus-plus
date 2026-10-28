@@ -20,8 +20,8 @@ export function newGame(n = 2, config: Partial<GameConfig> = {}, seed = 1): Game
   )
 }
 
-/** Sets the RNG so the next rolls produce exactly `rolls` (each a pair of dice). */
-export function rigDice(s: GameState, ...rolls: [number, number][]): GameState {
+/** Sets the RNG so the next rolls produce exactly `rolls` (pairs of dice, or three with the Speed die). */
+export function rigDice(s: GameState, ...rolls: readonly number[][]): GameState {
   const want = rolls.flat()
   for (let start = 0; start < 50_000_000; start++) {
     let st = start

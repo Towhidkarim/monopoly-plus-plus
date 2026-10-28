@@ -177,6 +177,30 @@ describe('heuristic bot decisions', () => {
   })
 })
 
+describe('heuristic bot with the speed die', () => {
+  it('takes the bus to a lot it wants instead of paying rent', () => {
+    const s = game((d) => {
+      d.phase = 'preRoll'
+      own(d, 1, [GROUPS[0]![1]!]) // space 3 charges rent
+      d.pending = { kind: 'move', reason: 'bus', options: [3, 1], diceTotal: 3 }
+    })
+    expect(decide(s)).toEqual({ type: 'CHOOSE_MOVE', space: 1 })
+  })
+
+  it('plays whole games with it', () => {
+    for (let seed = 1; seed <= 6; seed++) {
+      const r = playMatch({
+        bots: [createHeuristicBot(), createHeuristicBot(), randomBot],
+        config: { ...PRESETS.turbo, speedDie: true },
+        seed,
+      })
+      expect(r.finished, `seed ${seed}`).toBe(true)
+      expect(r.rejected).toBe(0)
+      expect(r.violations).toEqual([])
+    }
+  }, 60_000)
+})
+
 describe('heuristic bot in full games', () => {
   it('beats random bots decisively and never makes an illegal move', () => {
     let wins = 0

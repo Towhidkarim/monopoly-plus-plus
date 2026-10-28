@@ -5,6 +5,7 @@ import { applyBid, applyPassBid, checkBid, checkPassBid } from './rules/auction.
 import { applyBankruptcy, checkBankruptcy } from './rules/bankruptcy.ts'
 import { applyBuild, applySellBuilding, checkBuild, checkSellBuilding } from './rules/building.ts'
 import { applyBuy, applyDecline, checkBuy, checkDecline } from './rules/buy.ts'
+import { applyChooseMove, checkChooseMove, resolveScout } from './rules/speed.ts'
 import { applyMortgage, applyUnmortgage, checkMortgage, checkUnmortgage } from './rules/mortgage.ts'
 import {
   applyAcceptTrade,
@@ -73,6 +74,7 @@ function timeoutAction(s: GameState): Action {
   if (s.debts.length > 0) return { type: 'DECLARE_BANKRUPTCY' }
   if (s.pending?.kind === 'auction') return { type: 'PASS_BID' }
   if (s.pending?.kind === 'buy') return { type: 'DECLINE_BUY' }
+  if (s.pending?.kind === 'move') return { type: 'CHOOSE_MOVE', space: s.pending.options[0]! }
   return s.phase === 'preRoll' ? { type: 'ROLL' } : { type: 'END_TURN' }
 }
 
@@ -115,6 +117,8 @@ export function check(s: GameState, seat: number, action: Action): string | null
       return checkAcceptTrade(s, seat, action.tradeId)
     case 'REJECT_TRADE':
       return checkRejectTrade(s, seat, action.tradeId)
+    case 'CHOOSE_MOVE':
+      return checkChooseMove(s, seat, action.space)
     case 'PAY_JAIL_FINE':
       return checkPayJailFine(s, seat)
     case 'USE_JAIL_CARD':
@@ -157,6 +161,8 @@ function apply(ctx: Ctx, seat: number, action: Action): void {
       return applyAcceptTrade(ctx, seat, action.tradeId)
     case 'REJECT_TRADE':
       return applyRejectTrade(ctx, seat, action.tradeId)
+    case 'CHOOSE_MOVE':
+      return applyChooseMove(ctx, seat, action.space)
     case 'PAY_JAIL_FINE':
       return applyPayJailFine(ctx, seat)
     case 'USE_JAIL_CARD':
@@ -191,6 +197,11 @@ export function reduce(state: GameState, playerId: PlayerId, action: Action): Re
   apply(ctx, seat, action)
   if (ctx.s.phase !== 'gameOver') {
     settleDebts(ctx)
+    // A Scout jump waits for the first landing to resolve; its own landing may owe rent.
+    if (ctx.s.scoutDue) {
+      resolveScout(ctx)
+      settleDebts(ctx)
+    }
     pruneTrades(ctx)
   }
   return { ok: true, state: ctx.s, events: ctx.events }

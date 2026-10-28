@@ -12,6 +12,7 @@ import {
   type Ctx,
 } from '../core.ts'
 import type { GameState } from '../state.ts'
+import { rollSpeed } from './speed.ts'
 
 /** Turn flow: rolling, doubles, jail, ending the turn, round limits. */
 
@@ -32,6 +33,8 @@ export function applyRoll(ctx: Ctx, seat: number): void {
   const total = d1 + d2
   const isDouble = d1 === d2
   s.lastDice = [d1, d2]
+  // The Speed die is rolled with the white dice, except when trying to leave jail.
+  if (s.config.speedDie && !p.inJail) return rollSpeed(ctx, seat, d1, d2)
   ctx.events.push({ type: 'DICE_ROLLED', playerId: idOf(s, seat), dice: [d1, d2] })
 
   if (p.inJail) {
@@ -126,6 +129,8 @@ export function advanceTurn(ctx: Ctx): void {
   s.pending = null
   s.doubles = 0
   s.lastDice = null
+  s.lastSpeed = null
+  s.scoutDue = false
   // The game ends before the turn passes, so `current` never changes without an event.
   if (wrapped && limit > 0 && s.round + 1 > limit) {
     endGame(ctx, richest(s), 'roundLimit')
@@ -161,5 +166,7 @@ export function legalTurn(s: GameState, seat: number): Action[] {
   if (!checkPayJailFine(s, seat)) out.push({ type: 'PAY_JAIL_FINE' })
   if (!checkUseJailCard(s, seat)) out.push({ type: 'USE_JAIL_CARD' })
   if (!checkEndTurn(s, seat)) out.push({ type: 'END_TURN' })
+  if (seat === s.current && s.pending?.kind === 'move')
+    for (const space of s.pending.options) out.push({ type: 'CHOOSE_MOVE', space })
   return out
 }

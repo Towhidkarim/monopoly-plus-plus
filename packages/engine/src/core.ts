@@ -186,6 +186,7 @@ export function sendToJail(ctx: Ctx, seat: number): void {
   if (seat === s.current) {
     s.doubles = 0
     s.phase = 'postRoll'
+    s.scoutDue = false
   }
 }
 

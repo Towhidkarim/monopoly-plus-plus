@@ -67,6 +67,11 @@ export interface Debt {
 export type Pending =
   /** The active player landed on an unowned space and must buy or decline. */
   | { kind: 'buy'; space: number }
+  /**
+   * Speed die: the active player picks a destination. Bus: one white die or both (the sum first);
+   * triples: any other space (the normal move first). `options[0]` is the timeout default.
+   */
+  | { kind: 'move'; reason: 'bus' | 'triples'; options: number[]; diceTotal: number }
   | {
       kind: 'auction'
       space: number
@@ -78,6 +83,9 @@ export type Pending =
       /** Seat of the high bidder, -1 if no bid yet. */
       highBidder: number
     }
+
+/** A Speed die face: a number added to the move, the Bus, or the Scout. */
+export type SpeedFace = 1 | 2 | 3 | 'bus' | 'scout'
 
 export type Phase = 'preRoll' | 'postRoll' | 'gameOver'
 
@@ -110,6 +118,10 @@ export interface GameState {
   trades: TradeOffer[]
   nextTradeId: number
   lastDice: [number, number] | null
+  /** The Speed die face of the last roll (only with config.speedDie). */
+  lastSpeed?: SpeedFace | null
+  /** A Scout roll still owes its jump, made once the first landing is fully resolved. */
+  scoutDue?: boolean
   /** Free-parking pot (only used when config.freeParkingPot). */
   pot: number
   /** Winner seat once the game is over, else -1. */
@@ -133,7 +145,9 @@ export function cloneState(s: GameState): GameState {
 }
 
 function clonePending(p: Pending): Pending {
-  return p.kind === 'auction' ? { ...p, bidders: [...p.bidders] } : { ...p }
+  if (p.kind === 'auction') return { ...p, bidders: [...p.bidders] }
+  if (p.kind === 'move') return { ...p, options: [...p.options] }
+  return { ...p }
 }
 
 function cloneBundle(b: Bundle): Bundle {

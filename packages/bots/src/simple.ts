@@ -1,4 +1,12 @@
-import { SPACES, expectedActor, legalActions, seatOf, type Action, type PlayerView } from '@skyline/engine'
+import {
+  SPACES,
+  expectedActor,
+  legalActions,
+  rentFor,
+  seatOf,
+  type Action,
+  type PlayerView,
+} from '@skyline/engine'
 import type { Bot, BotRng } from './bot.ts'
 
 /**
@@ -39,6 +47,20 @@ export const simpleBot: Bot = {
     if (view.pending?.kind === 'buy') {
       const price = SPACES[view.pending.space]!.price
       return me.cash - price >= reserve ? (has('BUY') ?? has('DECLINE_BUY')!) : has('DECLINE_BUY')!
+    }
+
+    if (view.pending?.kind === 'move') {
+      // Speed die: avoid rent and taxes, prefer something to buy.
+      const m = view.pending
+      const score = (space: number) => {
+        const owner = view.owner[space]!
+        const info = SPACES[space]!
+        if (owner >= 0 && owner !== seat) return -rentFor(view, space, m.diceTotal)
+        if (owner < 0 && info.price > 0 && me.cash - info.price >= reserve) return 50
+        return info.kind === 'tax' ? -info.tax : info.kind === 'goToJail' ? -100 : 0
+      }
+      const best = m.options.reduce((a, b) => (score(b) > score(a) ? b : a))
+      return { type: 'CHOOSE_MOVE', space: best }
     }
 
     if (view.phase === 'preRoll' && me.inJail) {

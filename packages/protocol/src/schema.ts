@@ -43,6 +43,7 @@ export const ActionSchema = v.variant('type', [
   v.strictObject({ type: v.literal('CANCEL_TRADE'), tradeId: int(0, 1e9) }),
   v.strictObject({ type: v.literal('ACCEPT_TRADE'), tradeId: int(0, 1e9) }),
   v.strictObject({ type: v.literal('REJECT_TRADE'), tradeId: int(0, 1e9) }),
+  v.strictObject({ type: v.literal('CHOOSE_MOVE'), space }),
   simple('PAY_JAIL_FINE'),
   simple('USE_JAIL_CARD'),
   simple('END_TURN'),
@@ -68,6 +69,7 @@ const RulesSchema = v.strictObject({
   houses: v.exactOptional(int(0, 200)),
   hotels: v.exactOptional(int(0, 100)),
   maxOpenTrades: v.exactOptional(int(1, 20)),
+  speedDie: v.exactOptional(v.boolean()),
 })
 
 export const RoomSettingsSchema = v.strictObject({

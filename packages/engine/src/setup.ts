@@ -49,6 +49,8 @@ export function createGame(
     trades: [],
     nextTradeId: 1,
     lastDice: null,
+    lastSpeed: null,
+    scoutDue: false,
     pot: 0,
     winner: -1,
   }

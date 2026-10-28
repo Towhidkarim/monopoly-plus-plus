@@ -17,6 +17,8 @@ export type Action =
   | { type: 'CANCEL_TRADE'; tradeId: number }
   | { type: 'ACCEPT_TRADE'; tradeId: number }
   | { type: 'REJECT_TRADE'; tradeId: number }
+  /** Speed die: pick one of the offered destinations (`pending.kind === 'move'`). */
+  | { type: 'CHOOSE_MOVE'; space: number }
   | { type: 'PAY_JAIL_FINE' }
   | { type: 'USE_JAIL_CARD' }
   | { type: 'END_TURN' }

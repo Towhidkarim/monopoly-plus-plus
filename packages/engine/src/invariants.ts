@@ -72,6 +72,8 @@ export function checkInvariants(s: GameState): string[] {
     if (a.bidders.length === 0 || a.current < 0 || a.current >= a.bidders.length)
       out.push('auction bidder state invalid')
   }
+  if (s.scoutDue && !s.pending && s.debts.length === 0) out.push('scout jump left unresolved')
+  if (s.pending?.kind === 'move' && s.pending.options.length === 0) out.push('move choice without options')
   const actor = expectedActor(s)
   if (legalActions(s, s.players[actor]!.id).length === 0)
     out.push(`expected actor ${actor} has no legal action`)

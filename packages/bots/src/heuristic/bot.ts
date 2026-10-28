@@ -92,6 +92,18 @@ export function createHeuristicBot(params: BotParams = BALANCED, options: Heuris
         return buy && gain > 0 && (comfortable || important) ? buy : find('DECLINE_BUY')!
       }
 
+      if (view.pending?.kind === 'move') {
+        // Speed die Bus or triples: go where landing is worth the most.
+        const m = view.pending
+        let best = m.options[0]!
+        let bestScore = -Infinity
+        for (const space of m.options) {
+          const score = landingScore(view, seat, space, m.diceTotal, p) + 10 * p.noise * rng()
+          if (score > bestScore) [best, bestScore] = [space, score]
+        }
+        return { type: 'CHOOSE_MOVE', space: best }
+      }
+
       if (view.phase === 'preRoll' && me.inJail) {
         // Early on, get out and keep buying; once the board is built up, jail is the safest seat.
         const unowned = SPACES.filter((_, i) => isOwnable(i) && view.owner[i]! < 0).length
@@ -150,6 +162,23 @@ function rivalGain(s: GameState, seat: number, space: number, p: BotParams): num
     if (other !== seat) best = Math.max(best, gainOf(s, other, space, 0, p) - SPACES[space]!.price)
   }
   return best
+}
+
+/** Rough worth of landing on `space` right now (Speed die choices): a buy, rent, tax, salary. */
+function landingScore(s: GameState, seat: number, space: number, diceTotal: number, p: BotParams): number {
+  const me = s.players[seat]!
+  const info = SPACES[space]!
+  const salary = space < me.position ? s.config.goSalary : 0
+  if (isOwnable(space)) {
+    const owner = s.owner[space]!
+    if (owner < 0)
+      return salary + (me.cash >= info.price ? Math.max(0, gainOf(s, seat, space, info.price, p)) : 0)
+    return owner === seat ? salary : salary - rentFor(s, space, diceTotal)
+  }
+  if (info.kind === 'tax') return salary - info.tax
+  // Jail is a safe seat once rents are high (as when choosing to stay in).
+  if (info.kind === 'goToJail') return maxRivalRent(s, seat) >= 200 ? 0 : -100
+  return salary
 }
 
 /** Highest rent anyone else currently charges. */

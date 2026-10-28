@@ -80,6 +80,8 @@ function ownedBare(s: GameState, seat: number, g: number): number[] {
   return spaces.filter((j) => s.owner[j] === seat && !s.mortgaged[j])
 }
 
+const hasBuildings = (s: GameState, g: number) => g >= 0 && GROUPS[g]!.some((j) => s.houses[j]! > 0)
+
 const sortedIds = (v: number[]) => v.toSorted((a, b) => a - b).join(',')
 
 /** Identity of an offer without its cash, for cooldowns: same partner, same properties. */
@@ -107,6 +109,8 @@ export function candidates(
   /** cash > 0: I pay; cash < 0: they pay me. */
   const add = (give: number[], get: number[], cash: number) => {
     if (cash > Math.max(0, spare) || -cash > Math.max(0, partnerSpare)) return
+    // The engine refuses any property whose color group has buildings.
+    if ([...give, ...get].some((i) => hasBuildings(s, SPACES[i]!.group))) return
     out.push({
       from: seat,
       to: x,

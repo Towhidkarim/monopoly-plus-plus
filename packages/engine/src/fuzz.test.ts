@@ -7,7 +7,13 @@ import { createGame } from './setup.ts'
 
 describe('fuzz: random legal playouts', () => {
   it('keeps every invariant across many games and presets', () => {
-    const presets = [PRESETS.standard, PRESETS.turbo, PRESETS.classic]
+    const presets = [
+      PRESETS.standard,
+      PRESETS.turbo,
+      PRESETS.classic,
+      { ...PRESETS.standard, speedDie: true },
+      { ...PRESETS.turbo, speedDie: true },
+    ]
     for (let seed = 1; seed <= 120; seed++) {
       const r = playout({
         players: 2 + (seed % 5),
