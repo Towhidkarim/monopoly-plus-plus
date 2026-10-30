@@ -263,7 +263,7 @@ Seamless play on phones, portrait first. The developer pulled this ahead of the 
 3. Bottom sheet component; decision panels (buy, auction, debt, offer, card) move onto it; log and My city as full-height sheets. (done 2026-10-30; a tapped tile opens its deed in a sheet too)
 4. Tapping a player chip opens a player sheet (holdings, loan Pay off); the hover tooltip stays away after a touch (a tap opens the tile); the two newest toasts hang under the turn banner on phones. (done 2026-10-30; a closer portrait default zoom was left out: moves already zoom to the piece and pinch works) Portrait framing: the board is width-limited, so tiles are small; try a closer default zoom that follows the active piece.
 5. Trade composer as a full-screen view with your side / their side tabs. (done 2026-10-30)
-6. PWA: manifest, icons, service worker, install, fullscreen launch.
+6. PWA: manifest, icons, service worker, install, fullscreen launch. (done 2026-10-30)
 7. Mobile performance profile: device pixel density, idle frame rate, fewer ambient effects, a "Battery saver" setting; checked on a real phone.
 
 Acceptance: a full game against bots and an online game are playable one-handed on a 390×844 and a 360×780 screen in portrait, and on a phone held sideways, with nothing clipped or overlapping and no page scroll; desktop is unchanged.
