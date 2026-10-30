@@ -222,19 +222,25 @@ export function InfoSheet({
   )
 }
 
-/** Phones: the newest two activity toasts, hanging under the turn banner; each fades on its own. */
-export function CompactToasts({ snap, store }: { snap: Snapshot; store: GameStore }) {
+/**
+ * Phones: the newest entry as a slim one-line pill under the turn banner, only when it is news the
+ * screen does not already show (money moving, good or bad turns); moves and turn changes are left to
+ * the board and the banner. It fades on its own; the log keeps everything.
+ */
+export function CompactToasts({ snap }: { snap: Snapshot }) {
+  const e = snap.log[0]
+  if (!e || (e.money === undefined && (e.tone === 'normal' || e.tone === 'muted'))) return null
+  const dot = { normal: 'bg-sky', good: 'bg-teal', bad: 'bg-alert', muted: 'bg-ink-muted' }
   return (
-    <div className="pointer-events-none flex flex-col items-center gap-1.5 px-3 pt-2">
-      {snap.log.slice(0, 2).map((e) => (
-        <div
-          key={e.id}
-          className="w-full max-w-80 animate-toast"
-          style={{ animationDuration: `${TIMINGS.toastLife}ms` }}
-        >
-          <Toast entry={e} snap={snap} store={store} />
-        </div>
-      ))}
+    <div className="pointer-events-none flex justify-center px-3 pt-1.5">
+      <div
+        key={e.id}
+        className="flex max-w-full animate-toast items-center gap-2 rounded-full border border-line bg-panel/90 px-3 py-1 text-xs font-semibold shadow-panel backdrop-blur"
+        style={{ animationDuration: `${TIMINGS.toastLife}ms` }}
+      >
+        <span className={`size-1.5 shrink-0 rounded-full ${dot[e.tone]}`} />
+        <span className="truncate">{e.text}</span>
+      </div>
     </div>
   )
 }

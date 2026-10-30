@@ -104,6 +104,8 @@ export function GameScreen({
   const [infoOpen, setInfoOpen] = useState(false)
   const [infoSeen, setInfoSeen] = useState<string | null>(null)
   const [playerSheet, setPlayerSheet] = useState<number | null>(null)
+  // Phones: the newest log entry when the log was last opened (for the log button's dot).
+  const [logSeen, setLogSeen] = useState<number | null>(null)
 
   // "While you waited": a recap when a human's turn on this screen comes back (game/recap.ts).
   const [recap, setRecap] = useState<Recap | null>(null)
@@ -369,7 +371,11 @@ export function GameScreen({
                 landscape={landscape}
                 onHelp={() => setHelp(true)}
                 onMenu={() => setMenu((v) => !v)}
-                onLog={() => setShowLog(true)}
+                onLog={() => {
+                  setLogSeen(snap.log[0]?.id ?? null)
+                  setShowLog(true)
+                }}
+                logDot={snap.log.length > 0 && snap.log[0]!.id !== logSeen && !showLog}
                 onInfo={
                   infoKey
                     ? () => {
@@ -384,7 +390,7 @@ export function GameScreen({
                 banner={
                   <>
                     <TurnBanner snap={snap} store={store} turn={turn} cityOpen={cityOpen} compact />
-                    {!focus && <CompactToasts snap={snap} store={store} />}
+                    {!focus && <CompactToasts snap={snap} />}
                   </>
                 }
               />

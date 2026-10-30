@@ -270,6 +270,7 @@ export function CompactHud({
   onHelp,
   onMenu,
   onLog,
+  logDot = false,
   onInfo,
   infoDot,
   onPlayer,
@@ -283,6 +284,8 @@ export function CompactHud({
   onMenu: () => void
   /** Opens the game log sheet. */
   onLog: () => void
+  /** New log entries since the log was last opened. */
+  logDot?: boolean
   /** Opens the hint or recap sheet; null when there is nothing to show. */
   onInfo: (() => void) | null
   /** Something new behind the hint button (a fresh recap or hint). */
@@ -315,6 +318,9 @@ export function CompactHud({
       </HudButton>
       <HudButton touch onClick={onLog} label="Game log" title="Game log">
         <Icon name="log" size={18} />
+        {logDot && (
+          <span className="absolute top-1.5 right-1.5 size-2.5 animate-pop rounded-full bg-sky shadow-[0_0_0_2px_var(--color-panel)]" />
+        )}
       </HudButton>
       <HudButton
         touch
@@ -363,24 +369,21 @@ export function CompactHud({
                 : 'inset 0 1px 0 rgba(255,255,255,0.06)',
             }}
           >
-            <div className="@container flex min-w-0 items-center gap-1.5">
+            {/* Avatar and name on top, the cash on its own line below: a narrow chip never clips the cash. */}
+            <div className="flex min-w-0 items-center gap-1.5">
               <TokenAvatar
                 color={color}
                 piece={info.piece}
-                size={24}
+                size={18}
                 halo={active ? 'rgba(245,181,74,0.6)' : 'rgba(255,255,255,0.1)'}
                 className={tag === 'THINKING' ? 'animate-pulse' : ''}
               />
-              <span className="flex min-w-0 flex-col">
-                <span className="truncate text-[11px] leading-tight font-bold @max-[64px]:sr-only">
-                  {pl.name}
-                </span>
-                <TickingMoney
-                  value={pl.cash}
-                  className={`font-display text-[13px] leading-tight font-bold whitespace-nowrap ${low ? 'text-alert' : 'text-gold'}`}
-                />
-              </span>
+              <span className="truncate text-[11px] leading-tight font-bold">{pl.name}</span>
             </div>
+            <TickingMoney
+              value={pl.cash}
+              className={`font-display text-[15px] leading-none font-bold whitespace-nowrap ${low ? 'text-alert' : 'text-gold'}`}
+            />
             <SetBars seat={seat} owner={p.owner} mortgaged={p.mortgaged} />
             {pl.loan > 0 && !pl.bankrupt && (
               <LoanBar loan={pl.loan} total={pl.loanTotal} onRepay={null} compact />
