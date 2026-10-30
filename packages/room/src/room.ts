@@ -6,6 +6,7 @@
 import { PERSONALITIES } from '@skyline/bots'
 import {
   PRESETS,
+  PRESET_TWISTS,
   createGame,
   expectedActor,
   observe,
@@ -69,7 +70,7 @@ export interface RoomDeps {
 
 export const DEFAULT_SETTINGS: RoomSettings = {
   preset: 'standard',
-  rules: {},
+  rules: { ...PRESET_TWISTS.standard },
   turnSeconds: 0,
   botTakeover: false,
 }

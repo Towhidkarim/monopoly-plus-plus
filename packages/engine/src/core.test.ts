@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { GROUPS, JAIL_INDEX, SPACES } from './board.ts'
-import { PRESETS } from './config.ts'
+import { PRESETS, PRESET_TWISTS } from './config.ts'
 import { rentFor } from './core.ts'
 import { legalActions } from './legal.ts'
 import { observe } from './observe.ts'
@@ -331,10 +331,11 @@ describe('debt and bankruptcy', () => {
       expect(s.players[2]!.cash).toBe(1550)
     })
 
-    it('is on in Standard and Turbo, off in Classic', () => {
-      expect(PRESETS.standard.bankTakesEstate).toBe(true)
-      expect(PRESETS.turbo.bankTakesEstate).toBe(true)
-      expect(PRESETS.classic.bankTakesEstate).toBeUndefined()
+    it('is a default twist in Standard and Turbo, off in Classic (D66)', () => {
+      expect(PRESET_TWISTS.standard.bankTakesEstate).toBe(true)
+      expect(PRESET_TWISTS.turbo.bankTakesEstate).toBe(true)
+      expect(PRESET_TWISTS.classic.bankTakesEstate).toBe(false)
+      expect(PRESETS.standard.bankTakesEstate).toBeUndefined()
     })
   })
 })

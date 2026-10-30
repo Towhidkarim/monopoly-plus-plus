@@ -68,6 +68,23 @@ export type PresetName = 'standard' | 'turbo' | 'classic'
  */
 export const PRESETS: Record<PresetName, GameConfig> = {
   classic: CLASSIC,
-  standard: { ...CLASSIC, dealtProperties: 2, roundLimit: 30, bankTakesEstate: true },
-  turbo: { ...CLASSIC, dealtProperties: 4, goSalary: 300, roundLimit: 20, bankTakesEstate: true },
+  standard: { ...CLASSIC, dealtProperties: 2, roundLimit: 30 },
+  turbo: { ...CLASSIC, dealtProperties: 4, goSalary: 300, roundLimit: 20 },
+}
+
+/** The optional rules a player switches on or off at setup (twists, D61). */
+export type TwistConfig = Pick<
+  GameConfig,
+  'speedDie' | 'underdogSalary' | 'underdogMax' | 'secondWind' | 'bankTakesEstate'
+>
+
+/**
+ * Twists the setup screens switch on when a mode is picked (D66); players can still turn them off.
+ * Kept out of PRESETS so saved games replay with the rules they were started with.
+ * Standard: Comeback (underdog salary up to 2x) and Second Wind, the fairest setup in the sims.
+ */
+export const PRESET_TWISTS: Record<PresetName, TwistConfig> = {
+  standard: { underdogSalary: true, underdogMax: 2, secondWind: true, bankTakesEstate: true },
+  turbo: { underdogSalary: false, secondWind: false, bankTakesEstate: true },
+  classic: { underdogSalary: false, secondWind: false, bankTakesEstate: false },
 }

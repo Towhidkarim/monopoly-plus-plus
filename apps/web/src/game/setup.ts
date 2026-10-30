@@ -23,10 +23,12 @@ export interface Twists {
   /** Cap of the underdog bonus in salaries (D63); absent means the engine default, 2. */
   underdogMax?: number
   secondWind?: boolean
+  /** D65: the bank pays a bankrupt player's creditors and takes the properties back. */
+  bankTakesEstate?: boolean
 }
 
 /** The on/off twists (the rest are their settings). */
-export type TwistKey = 'speedDie' | 'underdogSalary' | 'secondWind'
+export type TwistKey = 'speedDie' | 'underdogSalary' | 'secondWind' | 'bankTakesEstate'
 
 /** The twists the setup screens offer, in order. */
 export const TWISTS: readonly { key: TwistKey; label: string; blurb: string }[] = [
@@ -45,6 +47,12 @@ export const TWISTS: readonly { key: TwistKey; label: string; blurb: string }[] 
     key: 'secondWind',
     label: 'Second Wind',
     blurb: "Can't pay? Take a bank loan instead of selling your city. Half of what you earn pays it back.",
+  },
+  {
+    key: 'bankTakesEstate',
+    label: 'Bank takes the city',
+    blurb:
+      "A bankrupt player's debts are paid in full by the bank, and their properties go back on sale. No one inherits a city.",
   },
 ]
 

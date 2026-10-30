@@ -24,6 +24,10 @@ One step per commit, restate acceptance criteria first. Done: 1 landing odds (D5
 
 Testing note: Orca throttles background tabs (no animation frames), so scripted play stalls on board animations unless the tab is in front; use `instant` for flow tests (events still reach `onApplied`), and turn CSS animations off before screenshots of panels with entrance animations.
 
+## Later: tune Turbo for comebacks (developer, 2026-10-30)
+
+Sims (D65, D66; 1,000 games, four heuristic bots): in Turbo the round-10 leader wins 75% (Standard 55%, Standard with its default twists 46%), and Comeback + Second Wind + Speed die only bring it to 63%: about 10 rounds are left to catch up. Ideas to try with `pnpm sim --preset turbo`: a stronger underdog cap (3x to 4x), more rounds (24 to 26) or fewer dealt properties, then make the winner a default twist in `PRESET_TWISTS.turbo`. Target: leader near 50%, last place 10% or more, about 15 min for one human against three bots.
+
 ## Done 2026-10-28: juice and atmosphere pass
 
 D48 raised for-sale lots dressed per district; D49 paper cards; D50 moments (rent approach warning, breathing active piece, bidding-war heartbeat, bankrupt beat); D51 code-generated city ambience. Waiting on the developer: a feel review of all four in real play, and a background music track (CC0) to wire in. Not done yet: the for-sale sign wobbling on hover and popping off when bought.

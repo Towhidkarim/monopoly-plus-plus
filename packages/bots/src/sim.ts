@@ -11,7 +11,7 @@
  * `--fuzz` plays random-legal-action games and checks invariants (Milestone 2 harness).
  */
 import { writeFileSync } from 'node:fs'
-import { PRESETS, playout, type PresetName } from '@skyline/engine'
+import { PRESETS, PRESET_TWISTS, playout, type PresetName } from '@skyline/engine'
 import type { Bot } from './bot.ts'
 import { createHeuristicBot } from './heuristic/bot.ts'
 import { PERSONALITIES } from './heuristic/params.ts'
@@ -27,8 +27,10 @@ const games = Number(arg('games', '1000'))
 const preset = arg('preset', 'standard')
 const isPreset = (p: string): p is PresetName => p === 'standard' || p === 'turbo' || p === 'classic'
 if (!isPreset(preset)) throw new Error(`unknown preset ${preset}; use standard, turbo, or classic`)
+// What a new game of this mode starts with (its default twists, D66) unless --no-twists.
 const config = {
   ...PRESETS[preset],
+  ...(process.argv.includes('--no-twists') ? {} : PRESET_TWISTS[preset]),
   ...(process.argv.includes('--speed') ? { speedDie: true } : {}),
   ...(process.argv.includes('--underdog') ? { underdogSalary: true } : {}),
   ...(process.argv.includes('--underdog-max') ? { underdogMax: Number(arg('underdog-max', '2')) } : {}),
@@ -125,7 +127,7 @@ function matchups(): void {
   const minutes = (humans: number) =>
     ((turnsPerGame * ((humans * HUMAN_TURN_S + (n - humans) * BOT_TURN_S) / n)) / 60).toFixed(0)
   console.log(
-    `preset ${preset}${config.speedDie ? ' + speed die' : ''}${config.underdogSalary ? ' + underdog salary' : ''}${config.secondWind ? ' + second wind' : ''}, ${games} games, seats rotate each game`,
+    `preset ${preset}${config.speedDie ? ' + speed die' : ''}${config.underdogSalary ? ' + underdog salary' : ''}${config.secondWind ? ' + second wind' : ''}${config.bankTakesEstate ? ' + bank takes the city' : ''}, ${games} games, seats rotate each game`,
   )
   names.forEach((name, i) => {
     const share = names.filter((x) => x === name).length

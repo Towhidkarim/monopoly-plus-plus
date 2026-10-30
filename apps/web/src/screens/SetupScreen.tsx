@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { PIECES, tokenColors, type PieceKind } from '@skyline/board'
-import { PRESETS, type PresetName } from '@skyline/engine'
+import { PRESETS, PRESET_TWISTS, type PresetName } from '@skyline/engine'
 import { loadGame, type GameSetup, type SavedGame, type SeatSetup, type Twists } from '../game/setup.ts'
 import { cssHex } from '../spaceInfo.ts'
 import { Icon } from './game/icons.tsx'
@@ -66,7 +66,7 @@ export function SetupScreen({
   const [preset, setPreset] = useState<PresetName>('standard')
   const [seats, setSeats] = useState<SeatSetup[]>(() => defaultSeats(4))
   const [seed, setSeed] = useState(randomSeed)
-  const [twists, setTwists] = useState<Twists>({})
+  const [twists, setTwists] = useState<Twists>(PRESET_TWISTS.standard)
   const [citySeed, setCitySeed] = useState(randomSeed)
 
   const resize = (n: number) =>
@@ -141,7 +141,10 @@ export function SetupScreen({
                     key={m.preset}
                     type="button"
                     aria-pressed={on}
-                    onClick={() => setPreset(m.preset)}
+                    onClick={() => {
+                      setPreset(m.preset)
+                      setTwists((t) => ({ ...t, ...PRESET_TWISTS[m.preset] }))
+                    }}
                     className={`relative flex flex-col overflow-hidden rounded-[14px] bg-card text-left font-card-body text-card-ink transition-[translate,box-shadow,scale] duration-200 ease-spring active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
                       on
                         ? '-translate-y-1 shadow-[0_0_0_3px_#f5b54a,0_14px_26px_rgba(2,6,16,0.5)]'

@@ -1,6 +1,6 @@
 import { useState, useSyncExternalStore } from 'react'
 import { PERSONALITIES } from '@skyline/bots'
-import { PRESETS } from '@skyline/engine'
+import { PRESETS, PRESET_TWISTS } from '@skyline/engine'
 import { MIN_SEATS, type ErrorCode, type LobbyInfo, type SeatInfo } from '@skyline/protocol'
 import { citySeedOf, type RoomConnection, type RoomView } from '../../net/connection.ts'
 import {
@@ -214,7 +214,9 @@ function Lobby({
               type="button"
               disabled={!host}
               aria-pressed={settings.preset === m.preset}
-              onClick={() => setSettings({ preset: m.preset })}
+              onClick={() =>
+                setSettings({ preset: m.preset, rules: { ...settings.rules, ...PRESET_TWISTS[m.preset] } })
+              }
               className={`rounded-full px-3.5 py-1.5 text-sm font-extrabold transition-colors disabled:cursor-default ${
                 settings.preset === m.preset
                   ? 'bg-card text-card-ink'
