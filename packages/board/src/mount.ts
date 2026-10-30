@@ -33,16 +33,22 @@ export interface BoardHandle {
  * Creates the Pixi application inside `host`, keeps it sized to it, and builds the board.
  * Resolves to a handle whose `destroy()` removes the canvas and frees GPU resources.
  */
+/**
+ * Never below 2x: on standard-density screens the zoomed-out board has few pixels per shape,
+ * so thin lines and edges shimmer. Rendering at 2x and letting the browser scale the canvas
+ * down is cheap supersampling for flat vector art (cost: 4x the pixels on a 1x screen).
+ */
+export function defaultResolution(): number {
+  return Math.max(2, Math.min(window.devicePixelRatio, 2))
+}
+
 export async function mountBoard(host: HTMLElement, options: BoardOptions = {}): Promise<BoardHandle> {
   const app = new Application()
   await app.init({
     resizeTo: host,
     background: options.background ?? palette.table,
     antialias: true,
-    // Never below 2x: on standard-density screens the zoomed-out board has few pixels per shape,
-    // so thin lines and edges shimmer. Rendering at 2x and letting the browser scale the canvas
-    // down is cheap supersampling for flat vector art (cost: 4x the pixels on a 1x screen).
-    resolution: Math.max(2, Math.min(window.devicePixelRatio, 2)),
+    resolution: defaultResolution(),
     autoDensity: true,
   })
   host.appendChild(app.canvas)

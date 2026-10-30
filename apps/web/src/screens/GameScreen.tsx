@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { SPACES } from '@skyline/engine'
-import type { BoardHandle } from '@skyline/board'
+import { defaultResolution, type BoardHandle } from '@skyline/board'
 import { BoardCanvas } from '../BoardCanvas.tsx'
 import { useLayout } from '../layout.ts'
 import { connectSound } from '../audio/connect.ts'
@@ -89,6 +89,7 @@ export function GameScreen({
   const [botOffers, setBotOffers] = useState(store.settings.botOffers)
   const [odds, setOdds] = useState(store.settings.odds)
   const [cityLife, setCityLife] = useState(store.settings.cityLife)
+  const [batterySaver, setBatterySaver] = useState(store.settings.batterySaver)
   const [dice3d, setDice3d] = useState(store.settings.dice3d)
   const [sky, setSky] = useState<SkyPref>(store.settings.sky)
   const [cursor, setCursor] = useState<CursorPref>(store.settings.cursor)
@@ -175,6 +176,13 @@ export function GameScreen({
       store.attach(null)
     }
   }, [handle, store])
+
+  // Battery saver (D64): fewer pixels always, and 30 fps while nothing plays (a touch lifts it).
+  useEffect(() => {
+    if (!handle) return
+    handle.board.setResolution(batterySaver ? Math.min(window.devicePixelRatio, 1.5) : defaultResolution())
+    handle.board.setFrameCap(batterySaver && !snap.busy ? 30 : 0)
+  }, [handle, batterySaver, snap.busy])
 
   // The one reduced-motion signal for CSS (see index.css): the in-game setting or the OS preference.
   useEffect(() => {
@@ -268,6 +276,7 @@ export function GameScreen({
       botOffers: s.botOffers,
       odds: s.odds,
       cityLife: s.cityLife,
+      batterySaver: s.batterySaver,
       sky: s.sky,
       cursor: s.cursor,
       dice3d: s.dice3d,
@@ -514,6 +523,12 @@ export function GameScreen({
                 onDice3d={() => {
                   store.setSettings({ dice3d: !dice3d })
                   setDice3d(!dice3d)
+                  persist()
+                }}
+                batterySaver={batterySaver}
+                onBatterySaver={() => {
+                  store.setSettings({ batterySaver: !batterySaver })
+                  setBatterySaver(!batterySaver)
                   persist()
                 }}
                 cityLife={cityLife}

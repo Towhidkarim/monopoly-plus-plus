@@ -2,7 +2,7 @@
  * Pixi board world. Framework-agnostic: no React here, so any shell
  * (web, Wails desktop) can mount it. See docs/ARCHITECTURE.md section 5 and docs/BOARD.md.
  */
-export { mountBoard } from './mount.ts'
+export { defaultResolution, mountBoard } from './mount.ts'
 export type { BoardHandle, BoardOptions } from './mount.ts'
 export { BANKRUPT_HOLD_MS, Board, DEFAULT_TUNING } from './board.ts'
 export type {

@@ -254,7 +254,7 @@ The "++" mechanics moved to Milestone 13. Neural-network bots come later, after 
 
 - Learned policy: self-play using the engine as environment, model exported for in-browser inference. Plan: `docs/LEARNED_BOTS.md`.
 
-## Milestone 14: Mobile (started 2026-10-30, DECISIONS.md D64)
+## Milestone 14: Mobile (built 2026-10-30, DECISIONS.md D64; waiting on the developer's real-phone check)
 
 Seamless play on phones, portrait first. The developer pulled this ahead of the rest of Milestone 13. One step per commit:
 
@@ -264,7 +264,7 @@ Seamless play on phones, portrait first. The developer pulled this ahead of the 
 4. Tapping a player chip opens a player sheet (holdings, loan Pay off); the hover tooltip stays away after a touch (a tap opens the tile); the two newest toasts hang under the turn banner on phones. (done 2026-10-30; a closer portrait default zoom was left out: moves already zoom to the piece and pinch works) Portrait framing: the board is width-limited, so tiles are small; try a closer default zoom that follows the active piece.
 5. Trade composer as a full-screen view with your side / their side tabs. (done 2026-10-30)
 6. PWA: manifest, icons, service worker, install, fullscreen launch. (done 2026-10-30)
-7. Mobile performance profile: device pixel density, idle frame rate, fewer ambient effects, a "Battery saver" setting; checked on a real phone.
+7. Mobile performance profile: a "Battery saver" setting (resolution at most 1.5x, 30 fps while nothing plays, a touch lifts the cap), on by default for low-power touch devices; City life already turns the traffic off. (done 2026-10-30; the real-phone check is the developer's)
 
 Acceptance: a full game against bots and an online game are playable one-handed on a 390×844 and a 360×780 screen in portrait, and on a phone held sideways, with nothing clipped or overlapping and no page scroll; desktop is unchanged.
 

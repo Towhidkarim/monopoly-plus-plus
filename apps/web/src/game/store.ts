@@ -108,6 +108,8 @@ export interface StoreSettings {
   odds: boolean
   /** Cars and trains moving on the board city (cosmetic). */
   cityLife: boolean
+  /** Lighter rendering and 30 fps while nothing plays (D64); on by default on low-power phones. */
+  batterySaver: boolean
   /** Day/night: follow the round count, or hold day or night. */
   sky: SkyPref
   /** Custom game cursor, or the system one. */
@@ -169,6 +171,7 @@ export class GameStore {
     botOffers: true,
     odds: true,
     cityLife: true,
+    batterySaver: false,
     sky: 'auto',
     cursor: 'game',
     dice3d: true,

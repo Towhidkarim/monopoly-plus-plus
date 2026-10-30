@@ -212,6 +212,26 @@ export class Board {
 
   // ---- public API --------------------------------------------------------
 
+  /**
+   * Battery saver (D64): the most frames a second while nothing plays (0 = no cap). A finger or
+   * button held on the board lifts the cap, so pans and pinches stay fluid.
+   */
+  setFrameCap(fps: number): void {
+    this.frameCap = fps
+    this.applyFrameCap()
+  }
+
+  /** Render resolution (pixels per CSS pixel); the canvas keeps its CSS size. */
+  setResolution(resolution: number): void {
+    const r = this.app.renderer
+    if (r.resolution === resolution) return
+    r.resize(this.app.screen.width, this.app.screen.height, resolution)
+  }
+
+  private applyFrameCap(): void {
+    this.app.ticker.maxFPS = this.pointersDown > 0 ? 0 : this.frameCap
+  }
+
   setTuning(tuning: Partial<BoardTuning>): void {
     Object.assign(this.tuning, tuning)
     this.city.life.setOn(this.tuning.ambient)
@@ -767,6 +787,14 @@ export class Board {
 
   // ---- frame loop --------------------------------------------------------
 
+  private frameCap = 0
+  private pointersDown = 0
+
+  private releasePointer(): void {
+    this.pointersDown = Math.max(0, this.pointersDown - 1)
+    this.applyFrameCap()
+  }
+
   private readonly tick = (ticker: { deltaMS: number }): void => {
     const real = ticker.deltaMS
     // Hit-stop: the world nearly freezes for a beat; the camera (and its shake) keeps going.
@@ -896,17 +924,23 @@ export class Board {
     const stage = this.app.stage
     stage.eventMode = 'static'
     stage.hitArea = this.app.screen
-    stage.on('pointerdown', (e) => this.camera.onPointerDown(e))
+    stage.on('pointerdown', (e) => {
+      this.pointersDown++
+      this.applyFrameCap()
+      this.camera.onPointerDown(e)
+    })
     stage.on('globalpointermove', (e) => {
       this.camera.onPointerMove(e)
       this.pick(e)
       this.refreshCursor()
     })
     stage.on('pointerup', (e) => {
+      this.releasePointer()
       this.camera.onPointerUp(e)
       this.refreshCursor()
     })
     stage.on('pointerupoutside', (e) => {
+      this.releasePointer()
       this.camera.onPointerUp(e)
       this.refreshCursor()
     })

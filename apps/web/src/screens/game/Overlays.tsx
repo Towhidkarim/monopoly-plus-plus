@@ -661,6 +661,8 @@ export function GameMenu({
   onReducedMotion,
   cityLife,
   onCityLife,
+  batterySaver,
+  onBatterySaver,
   dice3d,
   onDice3d,
   sky,
@@ -683,6 +685,8 @@ export function GameMenu({
   onReducedMotion: () => void
   cityLife: boolean
   onCityLife: () => void
+  batterySaver: boolean
+  onBatterySaver: () => void
   dice3d: boolean
   onDice3d: () => void
   sky: SkyPref
@@ -758,6 +762,12 @@ export function GameMenu({
           onChange={onReducedMotion}
         />
         <Switch label="City life" hint="Cars and trains in the city" on={cityLife} onChange={onCityLife} />
+        <Switch
+          label="Battery saver"
+          hint="Fewer pixels and a calmer frame rate between moves"
+          on={batterySaver}
+          onChange={onBatterySaver}
+        />
         <Switch
           label="3D dice"
           hint="Thrown onto the board; off rolls in the tray"

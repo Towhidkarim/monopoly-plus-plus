@@ -13,6 +13,7 @@ export type Prefs = Pick<
   | 'botOffers'
   | 'odds'
   | 'cityLife'
+  | 'batterySaver'
   | 'sky'
   | 'cursor'
   | 'dice3d'
@@ -31,6 +32,7 @@ export function loadPrefs(): Partial<Prefs> {
       if (typeof r.botOffers === 'boolean') saved.botOffers = r.botOffers
       if (typeof r.odds === 'boolean') saved.odds = r.odds
       if (typeof r.cityLife === 'boolean') saved.cityLife = r.cityLife
+      if (typeof r.batterySaver === 'boolean') saved.batterySaver = r.batterySaver
       if (typeof r.dice3d === 'boolean') saved.dice3d = r.dice3d
       if (r.cursor === 'game' || r.cursor === 'system') saved.cursor = r.cursor satisfies CursorPref
       if (r.sky === 'auto' || r.sky === 'day' || r.sky === 'night') saved.sky = r.sky
@@ -42,7 +44,17 @@ export function loadPrefs(): Partial<Prefs> {
   const system = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
   // City life (cars and trains) is on unless reduced motion is, until the player chooses.
   const reducedMotion = saved.reducedMotion ?? system
-  return { reducedMotion, cityLife: !reducedMotion, ...saved }
+  return { reducedMotion, cityLife: !reducedMotion, batterySaver: lowPowerDevice(), ...saved }
+}
+
+/**
+ * Battery saver starts on for a touch device with little memory or few cores (D64), until the
+ * player chooses. `deviceMemory` is Chromium only; elsewhere the core count decides.
+ */
+export function lowPowerDevice(): boolean {
+  if (typeof matchMedia !== 'function' || !matchMedia('(pointer: coarse)').matches) return false
+  const nav = navigator as Navigator & { deviceMemory?: number }
+  return (nav.deviceMemory ?? 8) <= 4 || (navigator.hardwareConcurrency || 8) <= 4
 }
 
 /**
