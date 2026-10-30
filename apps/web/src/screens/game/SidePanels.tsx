@@ -1,7 +1,15 @@
 import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import type { Recap } from '../../game/recap.ts'
 import { RecapCard } from './RecapCard.tsx'
-import { SPACES, isOwnable, legalActions, mortgageValue, unmortgageCost, type Action } from '@skyline/engine'
+import {
+  SPACES,
+  isOwnable,
+  legalActions,
+  mortgageValue,
+  unmortgageCost,
+  type Action,
+  type SpeedFace,
+} from '@skyline/engine'
 import { hintFor, type Hint } from '../../game/hints.ts'
 import type { GameStore, Snapshot } from '../../game/store.ts'
 import { TIMINGS } from '../../game/timings.ts'
@@ -25,6 +33,9 @@ const NAME_RE = new RegExp(
 )
 
 /** Hint copy with any property name set in a teal chip. */
+/** The Speed die's face in a roll's breakdown (D62). */
+const SPEED_LABEL: Record<SpeedFace, string> = { 1: '1', 2: '2', 3: '3', bus: 'Bus', scout: 'Scout' }
+
 function HintText({ text }: { text: string }) {
   return text.split(NAME_RE).map((part, i) =>
     i % 2 === 1 ? (
@@ -76,20 +87,38 @@ export function LeftColumn({
             speed={store.settings.speed}
             reduced={store.settings.reducedMotion}
           />
-          <div className="flex min-w-0 flex-1 flex-col">
-            <Eyebrow className="text-ink-muted">Last roll</Eyebrow>
-            {/* While 3D dice are on the board the result is not shown here yet. */}
-            <span className="font-display text-xl leading-tight font-bold">
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
+            <Eyebrow className="truncate text-ink-muted">
               {snap.diceLanding
                 ? `${rollerName} ${rollerName === 'You' ? 'are' : 'is'} rolling…`
-                : `${rollerName} rolled ${snap.dice[0] + snap.dice[1] + (typeof snap.speedFace === 'number' ? snap.speedFace : 0)}`}
-            </span>
+                : `${rollerName} rolled`}
+            </Eyebrow>
+            {/* While 3D dice are on the board the result is not shown here yet. */}
+            {snap.diceLanding ? (
+              <span className="font-display text-[34px] leading-none font-bold text-ink-muted/50">…</span>
+            ) : (
+              <span className="flex min-w-0 items-baseline gap-2">
+                <span
+                  key={snap.diceRoll}
+                  className="animate-pop font-display text-[34px] leading-none font-bold text-gold tabular-nums"
+                >
+                  {snap.dice[0] + snap.dice[1] + (typeof snap.speedFace === 'number' ? snap.speedFace : 0)}
+                </span>
+                <span className="truncate text-xs font-semibold text-ink-muted tabular-nums">
+                  {[
+                    snap.dice[0],
+                    snap.dice[1],
+                    ...(snap.speedFace === null ? [] : [SPEED_LABEL[snap.speedFace]]),
+                  ].join(' + ')}
+                </span>
+              </span>
+            )}
             {doubles && !snap.diceLanding && (
               <span
                 key={snap.diceRoll}
-                className="mt-1 origin-left self-start animate-tag-pop rounded-full bg-accent px-2.5 py-0.5 font-display text-[11px] font-bold text-accent-ink shadow-[0_0_14px_rgba(245,181,74,0.45)]"
+                className="origin-left self-start animate-tag-pop rounded-full bg-accent px-2.5 py-0.5 font-display text-[11px] font-bold text-accent-ink shadow-[0_0_14px_rgba(245,181,74,0.45)]"
               >
-                Doubles!
+                {snap.speedFace === snap.dice[0] ? 'Triples!' : 'Doubles!'}
               </span>
             )}
           </div>
