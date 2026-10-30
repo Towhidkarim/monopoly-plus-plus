@@ -641,7 +641,17 @@ export class Board {
   /** Screen space covered by DOM UI (HUD, dock, side panels); the board frames itself around it. */
   setInsets(insets: Insets): void {
     this.camera.setInsets(insets)
-    this.camera.recenter(true)
+    // Phone bars resize with every phase (D64): reframing must not drop the follow on the action.
+    if (!this.camera.isFollowing) this.camera.recenter(true)
+  }
+
+  /**
+   * Lets the framing zoom past the board's width by this share (0 = whole board), so a narrow
+   * portrait screen shows the board bigger with the far corners just off the sides (D68).
+   */
+  setFitOverscan(share: number): void {
+    this.camera.setOverscan(share)
+    if (!this.camera.isFollowing) this.camera.recenter(true)
   }
 
   /** Zoom the camera onto a space. */
@@ -663,6 +673,7 @@ export class Board {
   }
 
   destroy(): void {
+    globalThis.removeEventListener('pointercancel', this.onPointerCancel, true)
     this.app.ticker.remove(this.tick)
     this.app.renderer.off('resize', this.onResize)
     this.animator.finishAll()
@@ -920,11 +931,23 @@ export class Board {
 
   // ---- input -------------------------------------------------------------
 
+  /**
+   * Pixi has no pointercancel; the browser sends it when it takes a touch back (an edge swipe, a
+   * system gesture). Without it the finger stayed down and every later drag became a pinch (D68).
+   */
+  private readonly onPointerCancel = (e: PointerEvent): void => {
+    this.releasePointer()
+    this.camera.onPointerUp(e)
+    this.refreshCursor()
+  }
+
   private bindInput(): void {
+    globalThis.addEventListener('pointercancel', this.onPointerCancel, true)
     const stage = this.app.stage
     stage.eventMode = 'static'
     stage.hitArea = this.app.screen
     stage.on('pointerdown', (e) => {
+      if (e.isPrimary) this.pointersDown = 0
       this.pointersDown++
       this.applyFrameCap()
       this.camera.onPointerDown(e)
@@ -944,9 +967,12 @@ export class Board {
       this.camera.onPointerUp(e)
       this.refreshCursor()
     })
-    stage.on('pointertap', () => {
+    stage.on('pointertap', (e) => {
       if (this.camera.dragging) return
+      // A finger has no hover before the tap: pick the tile under it now.
+      this.pick(e)
       this.select(this.hovered === this.selected ? null : this.hovered)
+      if (e.pointerType === 'touch') this.setHover(null)
     })
     stage.on('wheel', (e) => this.camera.onWheel(e))
     stage.on('pointerleave', () => this.setHover(null))

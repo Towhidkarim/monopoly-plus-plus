@@ -15,7 +15,7 @@ import type { GameStore, Snapshot } from '../../game/store.ts'
 import { TIMINGS } from '../../game/timings.ts'
 import type { LogEntry } from '../../game/log.ts'
 import { cssHex, spaceInfo } from '../../spaceInfo.ts'
-import { activeRow, familyOf } from './deed.ts'
+import { activeRow, familyName, familyOf } from './deed.ts'
 import { DiceTray } from './DiceTray.tsx'
 import { ConfirmBtn } from './ConfirmBtn.tsx'
 import { Icon } from './icons.tsx'
@@ -205,7 +205,7 @@ export function InfoSheet({
   const hint = snap.viewer !== null && !snap.busy ? hintFor(snap.state, snap.viewer) : null
   const body =
     selected !== null ? (
-      <SelectedSpace index={selected} snap={snap} store={store} onCity={onCity} onClose={onClose} />
+      <SelectedSpace index={selected} snap={snap} store={store} onCity={onCity} onClose={onClose} inSheet />
     ) : recap ? (
       <RecapCard recap={recap} store={store} onClose={onCloseRecap} />
     ) : hint ? (
@@ -273,12 +273,15 @@ function SelectedSpace({
   store,
   onCity,
   onClose,
+  inSheet = false,
 }: {
   index: number
   snap: Snapshot
   store: GameStore
   onCity: () => void
   onClose: () => void
+  /** Phones: the sheet scrolls, so the card keeps its full size instead of shrinking to fit. */
+  inSheet?: boolean
 }) {
   const s = snap.state
   const p = snap.presented
@@ -303,7 +306,10 @@ function SelectedSpace({
   const seatInfo = ownerSeat >= 0 ? store.setup.seats[ownerSeat] : undefined
   const deedOwner =
     owner && seatInfo ? { name: owner.name, color: cssHex(seatInfo.color), piece: seatInfo.piece } : null
-  const heldInSet = ownerSeat >= 0 ? familyOf(index).filter((i) => p.owner[i] === ownerSeat).length : 0
+  const family = familyOf(index)
+  const heldInSet = ownerSeat >= 0 ? family.filter((i) => p.owner[i] === ownerSeat).length : 0
+  const fullSet = ownerSeat >= 0 && heldInSet === family.length
+  const you = mine && soloHuman(store)
   // Houses for a property; for stations and utilities, the number owned minus one.
   const deedLevel = sp.kind === 'property' ? p.houses[index]! : Math.max(0, heldInSet - 1)
 
@@ -312,7 +318,7 @@ function SelectedSpace({
       type="button"
       onClick={onClose}
       aria-label="Close tile details"
-      className={`absolute flex size-8 items-center justify-center text-ink ${place} ${FX}`}
+      className={`flex size-8 items-center justify-center text-ink ${place} ${FX}`}
     >
       <Icon name="close" size={16} />
     </button>
@@ -322,7 +328,7 @@ function SelectedSpace({
     const info = spaceInfo(index)
     return (
       <div className="pointer-events-auto relative animate-rise rounded-[20px] border border-line bg-panel/95 px-4 py-3.5 shadow-panel">
-        {close('top-2 right-2 rounded-lg bg-table/40 enabled:hover:bg-table/70')}
+        {close('absolute top-2 right-2 rounded-lg bg-table/40 enabled:hover:bg-table/70')}
         <Eyebrow className="text-ink-muted">{info.kind}</Eyebrow>
         <div className="mt-0.5 text-lg font-bold">{info.name}</div>
         <p className="mt-1 text-sm leading-relaxed text-ink-muted">{describeSpace(index, snap)}</p>
@@ -330,8 +336,9 @@ function SelectedSpace({
     )
   }
 
+  const Frame = inSheet ? 'div' : FitHeight
   return (
-    <FitHeight className="pointer-events-auto relative flex animate-rise flex-col gap-2">
+    <Frame className="pointer-events-auto relative flex w-fit max-w-full animate-rise flex-col gap-2">
       <div className="relative">
         <DeedCard
           index={index}
@@ -343,20 +350,51 @@ function SelectedSpace({
           moment
           dealFrom={{ x: -160, y: 60 }}
         />
-        {/* A chip on the card's corner, clear of the header and the FOR SALE ribbon. */}
-        {close(
-          '-top-2.5 -right-2.5 z-10 rounded-full border border-line bg-panel shadow-panel enabled:hover:bg-panel-2',
-        )}
       </div>
-      <div className="rounded-[20px] border border-line bg-panel/95 px-4 py-3 text-sm shadow-panel">
-        {owner ? (
-          <>
-            Owned by <span className="font-semibold">{mine && soloHuman(store) ? 'you' : owner.name}</span>
-            {p.mortgaged[index] && <span className="text-alert"> · mortgaged</span>}
-          </>
-        ) : (
-          <span className="text-ink-muted">For sale · {fmtMoney(sp.price)}</span>
-        )}
+      {/* Who holds it and what you can do, in one compact strip; the close button lives here. */}
+      <div
+        // w-0 + min-w-full: exactly the card's width, whatever the buttons would like.
+        className={`w-0 min-w-full rounded-[18px] border border-line bg-panel/95 px-3 py-2.5 text-sm shadow-panel ${inSheet ? 'order-first' : ''}`}
+      >
+        <div className="flex items-center gap-2.5">
+          {deedOwner ? (
+            <TokenAvatar color={deedOwner.color} piece={deedOwner.piece} size={30} />
+          ) : (
+            <span className="flex size-7.5 shrink-0 items-center justify-center rounded-full border border-dashed border-gold/60 font-display text-xs font-bold text-gold">
+              ₵
+            </span>
+          )}
+          <div className="min-w-0 flex-1 leading-tight">
+            <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 font-bold">
+              {owner ? (you ? 'Yours' : `${owner.name}'s`) : `For sale · ${fmtMoney(sp.price)}`}
+              {fullSet && (
+                <span className="rounded-full bg-teal/15 px-2 py-0.5 text-[11px] text-teal">
+                  Full set{sp.kind === 'property' && p.houses[index] === 0 ? ' · ×2' : ''}
+                </span>
+              )}
+              {owner && p.mortgaged[index] && (
+                <span className="rounded-full bg-alert/15 px-2 py-0.5 text-[11px] text-alert">Mortgaged</span>
+              )}
+            </div>
+            <div className="mt-0.5 text-xs text-ink-muted">
+              {owner
+                ? `${heldInSet} of ${family.length} in ${familyName(index)}`
+                : 'Land on it to buy it, or win it at auction'}
+            </div>
+          </div>
+          {mine && (
+            <button
+              type="button"
+              onClick={onCity}
+              aria-label="Manage the whole set in My city"
+              title="Manage the set in My city"
+              className={`flex size-8 shrink-0 items-center justify-center rounded-lg border border-line text-accent ${FX} enabled:hover:bg-white/10`}
+            >
+              <Icon name="city" size={15} />
+            </button>
+          )}
+          {close('shrink-0 rounded-lg border border-line enabled:hover:bg-white/10')}
+        </div>
         {options.length > 0 && (
           <div className="mt-2.5 flex flex-wrap gap-2">
             {options.map((a) =>
@@ -375,7 +413,7 @@ function SelectedSpace({
                       : `Press again to sell ${p.houses[index] === 5 ? 'the hotel' : 'a house'} on ${sp.name} for ${sp.houseCost / 2}`
                   }
                   idleClass="border-line bg-transparent text-ink enabled:hover:bg-white/5"
-                  className="rounded-xl px-3 py-1.5 text-xs"
+                  className="shrink-0 grow rounded-xl px-2.5 py-2 text-[13px] whitespace-nowrap"
                 >
                   {label(a)}
                 </ConfirmBtn>
@@ -383,7 +421,7 @@ function SelectedSpace({
                 <Btn
                   key={a.type}
                   onClick={() => void store.dispatch(owner!.id, a)}
-                  className="px-3 py-1.5 text-xs"
+                  className="shrink-0 grow px-2.5 py-2 text-[13px] whitespace-nowrap"
                 >
                   {label(a)}
                 </Btn>
@@ -391,17 +429,8 @@ function SelectedSpace({
             )}
           </div>
         )}
-        {mine && (
-          <button
-            type="button"
-            onClick={onCity}
-            className="mt-2 rounded-md text-[13px] font-bold text-accent transition-colors hover:text-gold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-          >
-            Manage the whole set in My city →
-          </button>
-        )}
       </div>
-    </FitHeight>
+    </Frame>
   )
 }
 

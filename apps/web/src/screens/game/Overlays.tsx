@@ -250,14 +250,14 @@ export function GameOver({
       className="absolute inset-0 z-30 flex overflow-y-auto bg-[rgba(6,10,20,0.74)] p-4 backdrop-blur-[2px]"
     >
       {!reduced && <Confetti />}
-      <div className="relative m-auto flex flex-wrap items-start justify-center gap-9">
+      <div className="relative m-auto flex w-full flex-wrap items-start justify-center gap-5 sm:gap-9">
         <article className="relative w-[440px] max-w-full animate-pop overflow-hidden rounded-[20px] bg-card font-card-body text-card-ink shadow-[0_30px_70px_rgba(2,6,16,0.7),0_3px_0_var(--color-card-edge)]">
           <div aria-hidden="true" className="absolute inset-2.5 rounded-[13px] border-2 border-coin-dark" />
           <div
             aria-hidden="true"
             className="absolute inset-[15px] rounded-[10px] border border-coin-dark/40"
           />
-          <div className="relative flex flex-col items-center gap-3 px-10 pt-[38px] pb-[34px] text-center">
+          <div className="relative flex flex-col items-center gap-3 px-7 pt-[38px] pb-[34px] text-center sm:px-10">
             <span className="font-card text-[13px] font-extrabold tracking-[0.24em] text-[#8a6318] uppercase">
               Game over · Round {s.round}
             </span>
@@ -283,7 +283,10 @@ export function GameOver({
               />
             </div>
             <span className="text-sm text-card-muted">The city has a new mayor</span>
-            <h2 id={dialog.titleId} className="m-0 font-card text-[46px] leading-none font-extrabold">
+            <h2
+              id={dialog.titleId}
+              className="m-0 font-card text-[40px] leading-none font-extrabold sm:text-[46px]"
+            >
               {winner.name} won!
             </h2>
             <span className="font-card text-[22px] font-extrabold text-card-money">
@@ -309,11 +312,11 @@ export function GameOver({
           )}
         </article>
 
-        <Panel className="flex w-[420px] max-w-full animate-rise flex-col gap-4 rounded-3xl p-6 shadow-panel-lg [animation-delay:140ms] [animation-fill-mode:backwards]">
+        <Panel className="flex w-[420px] max-w-full animate-rise flex-col gap-4 rounded-3xl p-5 shadow-panel-lg sm:p-6 [animation-delay:140ms] [animation-fill-mode:backwards]">
           <Eyebrow className="text-ink-muted">Final standings</Eyebrow>
           <div className="flex h-[170px] items-end justify-center gap-2.5">
             {podium.map((p) => (
-              <div key={p.p.id} className="flex w-[104px] flex-col items-center gap-2">
+              <div key={p.p.id} className="flex w-[104px] min-w-0 shrink flex-col items-center gap-2">
                 <TokenAvatar color={cssHex(seats[p.seat]!.color)} piece={seats[p.seat]!.piece} size={40} />
                 <div
                   className="box-border flex w-full justify-center rounded-t-xl rounded-b-[4px] pt-2 font-display text-[22px] font-bold text-accent-ink shadow-[inset_0_2px_0_rgba(255,255,255,0.25),inset_0_-6px_0_rgba(0,0,0,0.15)]"
@@ -393,7 +396,7 @@ function GameStory({ snap, store }: { snap: Snapshot; store: GameStore }) {
     .map((p, seat) => ({ p, seat }))
     .toSorted((a, b) => (results.worth.at(-1)![b.seat] ?? 0) - (results.worth.at(-1)![a.seat] ?? 0))
   return (
-    <Panel className="flex w-[896px] max-w-full animate-rise flex-col gap-4 rounded-3xl p-6 shadow-panel-lg [animation-delay:260ms] [animation-fill-mode:backwards]">
+    <Panel className="flex w-[896px] max-w-full animate-rise flex-col gap-4 rounded-3xl p-5 shadow-panel-lg sm:p-6 [animation-delay:260ms] [animation-fill-mode:backwards]">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <Eyebrow className="text-ink-muted">How the game went</Eyebrow>
         <span className="text-sm text-ink-muted">
@@ -410,7 +413,44 @@ function GameStory({ snap, store }: { snap: Snapshot; store: GameStore }) {
         </span>
       </div>
       <WorthChart series={series} rounds={results.rounds} mark={results.turningPoint} />
-      <div className="overflow-x-auto">
+      {/* Phones: one small card per player; the full table needs about 560 px. */}
+      <ul className="flex flex-col gap-2 sm:hidden">
+        {order.map(({ p, seat }) => {
+          const st = results.stats[seat]!
+          return (
+            <li key={p.id} className="rounded-xl bg-white/[0.03] px-3 py-2.5 text-sm">
+              <div className="flex items-center gap-2 font-extrabold">
+                <span className="size-2.5 rounded-full" style={{ background: cssHex(seats[seat]!.color) }} />
+                {p.name}
+              </div>
+              <dl className="mt-1.5 grid grid-cols-5 gap-1 text-center">
+                {(
+                  [
+                    ['Rent in', <Money key="in" value={st.rentCollected} className="text-teal" />],
+                    ['Rent out', <Money key="out" value={st.rentPaid} />],
+                    ['Bought', st.bought],
+                    ['Built', st.built],
+                    ['Trades', st.trades],
+                  ] as const
+                ).map(([label, value]) => (
+                  <div key={label} className="flex flex-col">
+                    <dt className="text-[10px] font-bold tracking-[0.06em] text-ink-muted uppercase">
+                      {label}
+                    </dt>
+                    <dd className="m-0 font-bold tabular-nums">{value}</dd>
+                  </div>
+                ))}
+              </dl>
+              {st.bestSpace && (
+                <div className="mt-1.5 text-xs text-ink-muted">
+                  Best earner: {SPACES[st.bestSpace.space]!.name} · <Money value={st.bestSpace.rent} />
+                </div>
+              )}
+            </li>
+          )
+        })}
+      </ul>
+      <div className="hidden overflow-x-auto sm:block">
         <table className="w-full min-w-[560px] text-left text-sm">
           <caption className="sr-only">Game statistics per player</caption>
           <thead>

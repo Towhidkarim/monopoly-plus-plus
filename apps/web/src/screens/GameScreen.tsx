@@ -501,7 +501,10 @@ export function GameScreen({
                 snap={snap}
                 store={store}
                 seat={viewer}
-                onClose={() => setCityOpen(false)}
+                onClose={() => {
+                  setCityOpen(false)
+                  if (compact) select(null)
+                }}
                 onFocus={(i) => select(i)}
                 onAsk={
                   canTrade
@@ -509,6 +512,18 @@ export function GameScreen({
                         setTrade({ me: viewer, partner, get: { spaces: [space], cash: 0, jailCards: 0 } })
                     : null
                 }
+              />
+            )}
+            {/* Phones: a property tapped in My city opens its card on top; closing it returns to the city. */}
+            {compact && cityOpen && selected !== null && (
+              <InfoSheet
+                snap={snap}
+                store={store}
+                selected={selected}
+                recap={null}
+                onCity={() => select(null)}
+                onClose={() => select(null)}
+                onCloseRecap={() => {}}
               />
             )}
             {menu && (

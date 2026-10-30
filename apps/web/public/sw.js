@@ -5,7 +5,7 @@
 //   the background), then served from the cache, including the byte ranges audio elements ask for.
 // - Other files (sound pack, icons, manifest): the cached copy at once, refreshed in the background.
 // - /api/* (rooms, WebSockets) and other origins are never touched.
-const CACHE = 'skyline-v1'
+const CACHE = 'skyline-v2'
 const SHELL = '/'
 
 self.addEventListener('install', (event) => {

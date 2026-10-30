@@ -37,6 +37,8 @@ export class Camera {
   private width = 1
   private height = 1
   private insets: Insets = { top: 0, right: 0, bottom: 0, left: 0 }
+  /** Share of the board's width the fit may push off the sides (portrait phones, D68). */
+  private overscan = 0
 
   private follow: (() => { x: number; y: number }) | null = null
   private pointers = new Map<number, { x: number; y: number }>()
@@ -71,12 +73,20 @@ export class Camera {
     this.refit()
   }
 
+  setOverscan(share: number): void {
+    this.overscan = share
+    this.refit()
+  }
+
   private refit(): void {
     const b = this.bounds
     const bw = Math.max(1, b.maxX - b.minX)
     const bh = Math.max(1, b.maxY - b.minY)
     const { w, h } = this.safeSize()
-    this.fitZoom = Math.min(w / (bw * 1.04), h / (bh * 1.04))
+    const before = this.fitZoom
+    this.fitZoom = Math.min((w * (1 + this.overscan)) / (bw * 1.04), h / (bh * 1.04))
+    // Keep the current zoom relative to the fit, so a reframe mid-follow stays as close in.
+    this.tz *= this.fitZoom / before
   }
 
   /** The uncovered part of the screen (never collapses below a third of the viewport). */
@@ -147,6 +157,8 @@ export class Camera {
   }
 
   onPointerDown(e: FederatedPointerEvent): void {
+    // A first finger means no other is down: forget any whose release never arrived (D68).
+    if (e.isPrimary) this.pointers.clear()
     this.pointers.set(e.pointerId, { x: e.global.x, y: e.global.y })
     if (this.pointers.size === 1) {
       this.dragStart = { x: e.global.x, y: e.global.y }
@@ -183,7 +195,7 @@ export class Camera {
     this.cy -= dy
   }
 
-  onPointerUp(e: FederatedPointerEvent): void {
+  onPointerUp(e: { pointerId: number }): void {
     this.pointers.delete(e.pointerId)
     if (this.pointers.size === 0) this.dragStart = null
     this.pinchDist = this.pointers.size >= 2 ? this.pinchDistance() : 0

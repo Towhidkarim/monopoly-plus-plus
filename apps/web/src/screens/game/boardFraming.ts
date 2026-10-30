@@ -4,6 +4,8 @@ import { insetsFrom } from '../../layout.ts'
 
 /** Desktop framing: the board between the HUD and turn banner above and the action dock below. */
 const WIDE_INSETS = { top: 130, right: 0, bottom: 110, left: 0 }
+/** Portrait phones: zoom in until this share of the board's width is off the sides (D68). */
+const PORTRAIT_OVERSCAN = 0.25
 
 function span(el: Element): { top: number; bottom: number } {
   const r = el.getBoundingClientRect()
@@ -18,6 +20,7 @@ export function useBoardFraming(handle: BoardHandle | null, compact: boolean): v
   useEffect(() => {
     if (!handle) return
     if (!compact) {
+      handle.board.setFitOverscan(0)
       handle.board.setInsets(WIDE_INSETS)
       return
     }
@@ -27,9 +30,11 @@ export function useBoardFraming(handle: BoardHandle | null, compact: boolean): v
     const measure = () => {
       const bars = (side: string) => [...host.querySelectorAll(`[data-inset="${side}"]`)].map(span)
       const insets = insetsFrom(span(canvas), bars('top'), bars('bottom'))
-      const key = `${insets.top},${insets.bottom}`
+      const portrait = canvas.clientHeight > canvas.clientWidth
+      const key = `${insets.top},${insets.bottom},${portrait}`
       if (key === last) return
       last = key
+      handle.board.setFitOverscan(portrait ? PORTRAIT_OVERSCAN : 0)
       handle.board.setInsets(insets)
     }
     // At most one measurement a frame: mutations come in bursts while the shell animates.

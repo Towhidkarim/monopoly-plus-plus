@@ -633,10 +633,11 @@ function GoldBtn({ label, onClick, disabled }: { label: string; onClick: () => v
           )
         onClick()
       }}
-      className="inline-flex h-11.5 min-w-0 flex-1 items-center justify-center gap-2 rounded-[14px] bg-accent px-3 font-display text-sm font-bold text-accent-ink shadow-[inset_0_-3px_0_rgba(0,0,0,0.18)] transition-[translate,filter] duration-200 ease-spring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent enabled:hover:-translate-y-px enabled:hover:brightness-[1.06] disabled:pointer-events-none disabled:opacity-40"
+      className="inline-flex min-h-11.5 min-w-0 flex-1 items-center justify-center gap-2 rounded-[14px] bg-accent px-3 py-1.5 font-display text-sm font-bold text-accent-ink shadow-[inset_0_-3px_0_rgba(0,0,0,0.18)] transition-[translate,filter] duration-200 ease-spring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent enabled:hover:-translate-y-px enabled:hover:brightness-[1.06] disabled:pointer-events-none disabled:opacity-40"
     >
       <BuildIcon color="#1c1205" />
-      <span className="truncate">{label}</span>
+      {/* Wraps on narrow screens rather than cutting the price off. */}
+      <span className="leading-tight">{label}</span>
     </button>
   )
 }
