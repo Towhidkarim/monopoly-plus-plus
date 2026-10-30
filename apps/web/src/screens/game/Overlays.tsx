@@ -515,6 +515,18 @@ const RULES: [string, string][] = [
   ['Any time', 'Build, mortgage and trade whenever you like, even on other players’ turns.'],
 ]
 
+/** Who gets a bankrupt player's city (D65). */
+const bankruptcyRule = (config?: GameConfig): [string, string] =>
+  config?.bankTakesEstate
+    ? [
+        'Bankruptcy',
+        'The bank pays everyone a bankrupt player owed, in full. Their properties go back to the bank, free of mortgages and for sale again.',
+      ]
+    : [
+        'Bankruptcy',
+        'Go bankrupt to a player and they take all your cash and properties. Go bankrupt to the bank and your properties are for sale again.',
+      ]
+
 /** Rules for twists, shown when the game has them on (DECISIONS.md D61). */
 const underdogRule = (config: GameConfig): [string, string] => [
   'Comeback',
@@ -536,6 +548,7 @@ const cap =
 export function HelpOverlay({ onClose, config }: { onClose: () => void; config?: GameConfig }) {
   const rules = [
     ...RULES,
+    bankruptcyRule(config),
     ...(config?.speedDie ? [SPEED_DIE_RULE] : []),
     ...(config?.underdogSalary ? [underdogRule(config)] : []),
     ...(config?.secondWind ? [SECOND_WIND_RULE] : []),

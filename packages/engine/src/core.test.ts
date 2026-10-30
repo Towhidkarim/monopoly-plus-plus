@@ -5,6 +5,7 @@ import { rentFor } from './core.ts'
 import { legalActions } from './legal.ts'
 import { observe } from './observe.ts'
 import { createGame } from './setup.ts'
+import type { GameState } from './state.ts'
 import { act, edit, newGame, reject, rigDice, types } from './testkit.ts'
 
 describe('createGame', () => {
@@ -297,6 +298,44 @@ describe('debt and bankruptcy', () => {
     s = act(s, 'a', { type: 'DECLARE_BANKRUPTCY' }).s
     expect(s.owner[11]).toBe(-1)
     expect(s.mortgaged[11]).toBe(false)
+  })
+
+  describe('bankTakesEstate (D65)', () => {
+    const estate = (s: GameState) =>
+      edit(s, (d) => {
+        d.config.bankTakesEstate = true
+        d.mortgaged[11] = true
+        d.players[0]!.jailCards = ['chance']
+        d.decks.chance = d.decks.chance.filter((c) => c !== 8)
+      })
+
+    it('the bank pays the creditor in full and takes back the properties', () => {
+      let s = act(estate(trap(300)), 'a', { type: 'ROLL' }).s
+      const r = act(s, 'a', { type: 'DECLARE_BANKRUPTCY' })
+      s = r.s
+      expect(s.players[0]!).toMatchObject({ bankrupt: true, cash: 0, jailCards: [] })
+      expect(s.players[1]!.cash).toBe(1500 + 2000)
+      expect(s.owner[11]).toBe(-1)
+      expect(s.mortgaged[11]).toBe(false)
+      expect(s.decks.chance.at(-1)).toBe(8)
+      expect(s.debts).toEqual([])
+      expect(r.events).toContainEqual({ type: 'BANKRUPT', playerId: 'a', to: 'bank' })
+      expect(r.events).toContainEqual({ type: 'PROPERTY_TRANSFERRED', space: 11, from: 'a', to: 'bank' })
+    })
+
+    it('pays every player the bankrupt one owed', () => {
+      let s = act(estate(trap(300)), 'a', { type: 'ROLL' }).s
+      s = edit(s, (d) => d.debts.push({ debtor: 0, creditor: 2, amount: 50, reason: 'card' }))
+      s = act(s, 'a', { type: 'DECLARE_BANKRUPTCY' }).s
+      expect(s.players[1]!.cash).toBe(3500)
+      expect(s.players[2]!.cash).toBe(1550)
+    })
+
+    it('is on in Standard and Turbo, off in Classic', () => {
+      expect(PRESETS.standard.bankTakesEstate).toBe(true)
+      expect(PRESETS.turbo.bankTakesEstate).toBe(true)
+      expect(PRESETS.classic.bankTakesEstate).toBeUndefined()
+    })
   })
 })
 

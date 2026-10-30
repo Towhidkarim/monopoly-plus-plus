@@ -65,6 +65,8 @@ interface DebtView {
   planActions: Action[]
   /** Second Wind (D63): the loan on offer, or why there is none; null when the twist is off. */
   loan: { amount: number; owed: number; rate: number; legal: boolean; blocked: string | null } | null
+  /** D65: the bank pays the creditors and takes the properties back. */
+  bankTakesEstate: boolean
 }
 
 type Outcome = 'paid' | 'bankrupt'
@@ -130,6 +132,7 @@ function buildView(snap: Snapshot, store: GameStore, turn: TurnView, card: Drawn
     planAmount: plan.amount,
     planActions: plan.actions,
     loan: s.config.secondWind ? loanOffer(s, seat, turn.legal) : null,
+    bankTakesEstate: s.config.bankTakesEstate === true,
   }
 }
 
@@ -317,7 +320,9 @@ function Sheet({
         {confirm ? (
           <div className="flex flex-wrap items-center gap-2.5">
             <span className="mr-auto text-sm text-ink-muted">
-              Everything you own goes to {creditorName}. Sure?
+              {v.bankTakesEstate
+                ? `The bank pays ${creditorName} in full and takes back everything you own. Sure?`
+                : `Everything you own goes to ${creditorName}. Sure?`}
             </span>
             <Btn
               kind="danger"

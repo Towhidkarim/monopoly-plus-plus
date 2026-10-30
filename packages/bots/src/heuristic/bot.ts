@@ -219,23 +219,39 @@ function bestBuild(
     if (a.type !== 'BUILD') continue
     const sp = SPACES[a.space]!
     if (cash - sp.houseCost < reserve * p.buildCaution) continue
-    const level = s.houses[a.space]!
-    const now = level === 0 ? sp.rent[0]! * 2 : sp.rent[level]!
-    const roi = (LANDING[a.space]! * opps * (sp.rent[level + 1]! - now)) / sp.houseCost
-    if (roi * rounds < 0.6) continue
+    const roi = houseRoi(s, a.space, opps)
+    if (roi * rounds < PAYBACK) continue
     if (!best || roi > best.roi) best = { a, roi }
   }
   return best?.a ?? null
 }
 
-/** Complete, unmortgaged sets of the seat that still sit below three houses: [space at lowest level]. */
+/** Share of a house's cost its extra rent must earn back before the game ends. */
+const PAYBACK = 0.6
+
+/** Extra rent per round from the next house on `space`, per ₵ of house cost. */
+function houseRoi(s: GameState, space: number, opps: number): number {
+  const sp = SPACES[space]!
+  const level = s.houses[space]!
+  const now = level === 0 ? sp.rent[0]! * 2 : sp.rent[level]!
+  return (LANDING[space]! * opps * (sp.rent[level + 1]! - now)) / sp.houseCost
+}
+
+/**
+ * Complete, unmortgaged sets of the seat that still sit below three houses and where the next
+ * house can be bought and pays back in time: [space at lowest level]. Late in the game or with
+ * the bank out of houses this is empty, so the bot stops saving for houses it will never build.
+ */
 function houseTargets(s: GameState, seat: number): number[] {
   const out: number[] = []
+  if (s.bankHouses === 0) return out
+  const opps = activePlayers(s).length - 1
+  const rounds = horizon(s)
   for (let g = 0; g < GROUPS.length; g++) {
     const spaces = GROUPS[g]!
     if (!ownsGroup(s, seat, g) || spaces.some((i) => s.mortgaged[i])) continue
     const low = spaces.reduce((a, b) => (s.houses[b]! < s.houses[a]! ? b : a))
-    if (s.houses[low]! < 3) out.push(low)
+    if (s.houses[low]! < 3 && houseRoi(s, low, opps) * rounds >= PAYBACK) out.push(low)
   }
   return out
 }
@@ -258,9 +274,7 @@ function fundingMortgage(
   let best: { space: number; gain: number; cost: number } | null = null
   for (const i of houseTargets(s, seat)) {
     const sp = SPACES[i]!
-    const level = s.houses[i]!
-    const now = level === 0 ? sp.rent[0]! * 2 : sp.rent[level]!
-    const gain = LANDING[i]! * opps * (sp.rent[level + 1]! - now)
+    const gain = houseRoi(s, i, opps) * sp.houseCost
     if (!best || gain / sp.houseCost > best.gain / best.cost) best = { space: i, gain, cost: sp.houseCost }
   }
   if (!best) return null

@@ -75,6 +75,7 @@ const RulesSchema = v.strictObject({
   underdogSalary: v.exactOptional(v.boolean()),
   underdogMax: v.exactOptional(v.pipe(v.number(), v.minValue(0.5), v.maxValue(4))),
   secondWind: v.exactOptional(v.boolean()),
+  bankTakesEstate: v.exactOptional(v.boolean()),
 })
 
 export const RoomSettingsSchema = v.strictObject({

@@ -36,6 +36,11 @@ export interface GameConfig {
   underdogMax?: number
   /** Twist (D63): a player who cannot pay may take a bank loan, repaid from half of their income. */
   secondWind?: boolean
+  /**
+   * Bankruptcy (D65): the bank pays the bankrupt player's creditors in full and takes back their
+   * properties (unowned, unmortgaged). Off (absent) is the classic rule: a creditor inherits it all.
+   */
+  bankTakesEstate?: boolean
 }
 
 const CLASSIC: GameConfig = {
@@ -63,6 +68,6 @@ export type PresetName = 'standard' | 'turbo' | 'classic'
  */
 export const PRESETS: Record<PresetName, GameConfig> = {
   classic: CLASSIC,
-  standard: { ...CLASSIC, dealtProperties: 2, roundLimit: 30 },
-  turbo: { ...CLASSIC, dealtProperties: 4, goSalary: 300, roundLimit: 20 },
+  standard: { ...CLASSIC, dealtProperties: 2, roundLimit: 30, bankTakesEstate: true },
+  turbo: { ...CLASSIC, dealtProperties: 4, goSalary: 300, roundLimit: 20, bankTakesEstate: true },
 }

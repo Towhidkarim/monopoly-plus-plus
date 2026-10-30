@@ -64,6 +64,36 @@ describe('heuristic bot decisions', () => {
     expect(decide(s)).toEqual({ type: 'MORTGAGE', space: 39 })
   })
 
+  describe('lifts mortgages with spare cash, even while owning a set that could take houses', () => {
+    /** Seat 0: a complete set (GROUPS[3]) with no houses, a mortgaged railroad, plenty of cash. */
+    const rich = (edit: (x: GameState) => void) =>
+      game((x) => {
+        own(x, 0, [...GROUPS[3]!, 5])
+        x.mortgaged[5] = true
+        x.players[0]!.cash = 1500
+        edit(x)
+      })
+
+    it('builds first while houses still pay back', () => {
+      expect(decide(rich(() => {}))).toMatchObject({ type: 'BUILD' })
+    })
+
+    it('in the last rounds, when a house would not pay back', () => {
+      const s = rich((x) => {
+        x.config.roundLimit = 30
+        x.round = 30
+      })
+      expect(decide(s)).toEqual({ type: 'UNMORTGAGE', space: 5 })
+    })
+
+    it('when the bank is out of houses', () => {
+      const s = rich((x) => {
+        x.bankHouses = 0
+      })
+      expect(decide(s)).toEqual({ type: 'UNMORTGAGE', space: 5 })
+    })
+  })
+
   it('accepts a deal that completes its set and rejects one that gives a set away cheaply', () => {
     const [m1, m2, m3] = GROUPS[3]!
     const fair = game((x) => {

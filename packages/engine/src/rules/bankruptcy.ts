@@ -7,8 +7,10 @@ import { advanceTurn, jailCardId } from './turn.ts'
 
 /**
  * Declaring bankruptcy while in debt. Buildings are sold back to the bank at half cost first.
- * To a player: they get the cash, properties (mortgages kept), and jail cards.
- * To the bank: properties return unowned and unmortgaged; jail cards go back to their decks.
+ * Classic, to a player: they get the cash, properties (mortgages kept), and jail cards.
+ * Classic, to the bank: properties return unowned and unmortgaged; jail cards go back to their decks.
+ * With `bankTakesEstate` (D65) the estate always goes to the bank, which pays every player the
+ * bankrupt one owed in full, so no rival inherits a city.
  */
 
 export function checkBankruptcy(s: GameState, seat: number): string | null {
@@ -18,8 +20,9 @@ export function checkBankruptcy(s: GameState, seat: number): string | null {
 
 export function applyBankruptcy(ctx: Ctx, seat: number): void {
   const s = ctx.s
-  const creditor = s.debts[0]!.creditor
   const p = s.players[seat]!
+  const bankTakes = s.config.bankTakesEstate === true
+  const creditor = bankTakes ? -1 : s.debts[0]!.creditor
   const to = creditor >= 0 ? idOf(s, creditor) : ('bank' as const)
 
   for (let i = 0; i < BOARD_SIZE; i++) {
@@ -30,6 +33,12 @@ export function applyBankruptcy(ctx: Ctx, seat: number): void {
     s.houses[i] = 0
     ctx.events.push({ type: 'SOLD_BUILDING', playerId: p.id, space: i, level: 0 })
     addCash(ctx, seat, ((level === HOTEL ? 5 : level) * SPACES[i]!.houseCost) / 2, 'sellBuilding', -1)
+  }
+
+  if (bankTakes) {
+    for (const d of s.debts) {
+      if (d.debtor === seat && d.creditor >= 0) addCash(ctx, d.creditor, d.amount, 'bankruptcy', -1)
+    }
   }
 
   if (p.cash > 0) {
