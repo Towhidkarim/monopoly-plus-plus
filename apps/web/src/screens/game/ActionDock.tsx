@@ -10,6 +10,9 @@ import { Kbd, FX, FX_BRIGHT } from './ui.tsx'
 /**
  * Bottom dock: one big primary action (Space), My city on the left, Trade on the right.
  * While a bot plays or animations run, the primary slot becomes a status with Skip.
+ * Compact (phones, D64): a fixed-height bar in the thumb zone above the home bar; secondary
+ * actions and the Speed die's choices float above it, outside the measured bar, so the board
+ * does not move when they come and go.
  */
 export function ActionDock({
   snap,
@@ -21,6 +24,7 @@ export function ActionDock({
   onTrade,
   hoverSpace = null,
   onHoverSpace,
+  compact = false,
 }: {
   snap: Snapshot
   store: GameStore
@@ -33,6 +37,7 @@ export function ActionDock({
   onCity: () => void
   /** Opens the trade screen, or null when the viewer cannot trade. */
   onTrade: (() => void) | null
+  compact?: boolean
 }) {
   // The primary button is replaced (new key) whenever the action changes, for example Roll to End
   // turn. If keyboard focus was on it, put focus on its successor instead of dropping it on <body>.
@@ -51,6 +56,111 @@ export function ActionDock({
   )
     return null
   const { primary, secondary } = turn
+  const moves = turn.moves.map((m, i) => (
+    <MoveButton
+      key={m.space}
+      move={m}
+      hotkey={compact ? null : String(i + 1)}
+      hot={hoverSpace === m.space}
+      ownerColor={m.owner >= 0 ? cssHex(store.setup.seats[m.owner]!.color) : null}
+      onHover={(on) => onHoverSpace?.(on ? m.space : null)}
+      onClick={turn.secondary[i]!.run}
+    />
+  ))
+  if (compact) {
+    const extras = turn.moment === 'move' || secondary.length > 0
+    return (
+      <div data-inset="bottom" className="pointer-events-none absolute inset-x-0 bottom-0 px-safe pb-safe">
+        <div className="relative mx-auto max-w-lg px-3 pb-3">
+          {extras && (
+            <div className="pointer-events-auto absolute inset-x-3 bottom-full mb-2 flex flex-col gap-2">
+              {turn.moment === 'move' ? (
+                <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
+                  <legend className="sr-only">Where to go</legend>
+                  {moves}
+                </fieldset>
+              ) : (
+                <div className="flex gap-2">
+                  {secondary.map((c) => (
+                    <DockButton key={c.label} onClick={c.run} compact>
+                      {c.label}
+                    </DockButton>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          <nav
+            aria-label="Actions"
+            className="pointer-events-auto flex items-center gap-2 rounded-3xl border border-line bg-panel/95 p-2 shadow-panel-lg backdrop-blur"
+          >
+            <TileButton onClick={onCity} active={cityOpen} badge={cityBadge} icon="city" label="City" />
+            {primary && turn.moment !== 'move' ? (
+              <span key={primary.label} className="flex min-w-0 flex-1 animate-pop">
+                <button
+                  ref={adoptFocus}
+                  type="button"
+                  onFocus={() => (primaryHadFocus.current = true)}
+                  onBlur={(e) => {
+                    if (e.relatedTarget) primaryHadFocus.current = false
+                  }}
+                  onClick={primary.run}
+                  className={`flex h-14 min-w-0 flex-1 items-center justify-center gap-2 rounded-[18px] bg-accent px-4 font-display text-lg font-bold text-accent-ink shadow-gold ${FX_BRIGHT} ${store.settings.reducedMotion ? '' : 'animate-breathe'}`}
+                >
+                  {primary.label.startsWith('Roll') && <Icon name="dice" size={22} />}
+                  <span className="truncate">{primary.label}</span>
+                </button>
+              </span>
+            ) : (
+              <div className="flex h-14 min-w-0 flex-1 items-center justify-center gap-2 rounded-[18px] bg-panel-2 px-3 text-xs text-ink-muted">
+                <span className="size-2 shrink-0 animate-pulse rounded-full bg-ink-muted" />
+                <span className="truncate">
+                  {turn.moment === 'move'
+                    ? 'Pick where to go'
+                    : snap.fastForward
+                      ? 'Skipping to your turn…'
+                      : turn.human
+                        ? turn.moment === 'auction'
+                          ? 'Your bid is open above'
+                          : snap.busy
+                            ? 'Playing…'
+                            : 'Waiting…'
+                        : `${snap.presented.players[turn.actorSeat]?.name} is playing`}
+                </span>
+                {!turn.human && !snap.fastForward && store.canFastForward ? (
+                  <button
+                    type="button"
+                    onClick={() => store.skipToHuman()}
+                    className={`flex h-11 shrink-0 items-center gap-1 rounded-xl px-2.5 font-bold text-ink ${FX} enabled:hover:bg-white/10`}
+                  >
+                    <Icon name="skip" size={14} /> My turn
+                  </button>
+                ) : (
+                  snap.busy &&
+                  !snap.fastForward && (
+                    <button
+                      type="button"
+                      onClick={() => store.skip()}
+                      className={`flex h-11 shrink-0 items-center gap-1 rounded-xl px-2.5 font-bold text-ink ${FX} enabled:hover:bg-white/10`}
+                    >
+                      <Icon name="skip" size={14} /> Skip
+                    </button>
+                  )
+                )}
+              </div>
+            )}
+            <TileButton
+              onClick={onTrade ?? (() => {})}
+              disabled={!onTrade}
+              icon="trade"
+              label="Trade"
+              title={onTrade ? 'Propose a trade' : 'No one to trade with'}
+            />
+          </nav>
+        </div>
+      </div>
+    )
+  }
   return (
     <div
       data-inset="bottom"
@@ -68,17 +178,7 @@ export function ActionDock({
         {turn.moment === 'move' ? (
           <fieldset className="m-0 flex items-center gap-2 border-0 p-0">
             <legend className="sr-only">Where to go</legend>
-            {turn.moves.map((m, i) => (
-              <MoveButton
-                key={m.space}
-                move={m}
-                hotkey={String(i + 1)}
-                hot={hoverSpace === m.space}
-                ownerColor={m.owner >= 0 ? cssHex(store.setup.seats[m.owner]!.color) : null}
-                onHover={(on) => onHoverSpace?.(on ? m.space : null)}
-                onClick={turn.secondary[i]!.run}
-              />
-            ))}
+            {moves}
           </fieldset>
         ) : primary ? (
           // The wrapper pops in on each new primary; the button inside breathes while it waits.
@@ -190,7 +290,8 @@ function MoveButton({
   onClick,
 }: {
   move: MoveOption
-  hotkey: string
+  /** Null on phones (no keyboard). */
+  hotkey: string | null
   hot: boolean
   ownerColor: string | null
   onHover: (on: boolean) => void
@@ -216,7 +317,7 @@ function MoveButton({
           {move.tag}
         </span>
       </span>
-      <Kbd>{hotkey}</Kbd>
+      {hotkey && <Kbd>{hotkey}</Kbd>}
     </button>
   )
 }
@@ -229,6 +330,7 @@ function DockButton({
   disabled = false,
   hotkey,
   title,
+  compact = false,
 }: {
   children: ReactNode
   onClick: () => void
@@ -237,6 +339,8 @@ function DockButton({
   disabled?: boolean
   hotkey?: string | undefined
   title?: string | undefined
+  /** Phone: a floating button that shares the row with its siblings, no keycap. */
+  compact?: boolean
 }) {
   return (
     <button
@@ -245,12 +349,54 @@ function DockButton({
       disabled={disabled}
       title={title}
       aria-pressed={active || undefined}
-      className={`relative flex h-[58px] items-center gap-2.5 rounded-2xl border px-[18px] font-sans text-[15px] font-extrabold text-ink ${FX} disabled:pointer-events-none disabled:opacity-40 ${active ? 'border-accent bg-accent/10 enabled:hover:bg-accent/15' : 'border-line bg-transparent enabled:hover:bg-white/5'}`}
+      className={`relative flex items-center gap-2.5 rounded-2xl border font-sans font-extrabold text-ink ${FX} disabled:pointer-events-none disabled:opacity-40 ${compact ? 'h-12 min-w-0 flex-1 justify-center bg-panel/95 px-3 text-sm shadow-panel backdrop-blur' : 'h-[58px] px-[18px] text-[15px]'} ${active ? 'border-accent bg-accent/10 enabled:hover:bg-accent/15' : `border-line ${compact ? '' : 'bg-transparent'} enabled:hover:bg-white/5`}`}
     >
       {children}
-      {hotkey && <Kbd>{hotkey}</Kbd>}
+      {hotkey && !compact && <Kbd>{hotkey}</Kbd>}
       {badge > 0 && (
         // Keyed by the count, so the badge pops again whenever it changes.
+        <span
+          key={badge}
+          aria-label={`${badge} ${badge === 1 ? 'set' : 'sets'} ready to build`}
+          className="absolute -top-2 -right-1.5 flex h-[22px] min-w-[22px] animate-pop items-center justify-center rounded-full bg-accent px-1.5 text-xs font-extrabold text-accent-ink shadow-[0_0_0_3px_var(--color-panel)]"
+        >
+          {badge}
+        </span>
+      )}
+    </button>
+  )
+}
+
+/** Phone dock side button: an icon over a short label, a 56 px square. */
+function TileButton({
+  onClick,
+  icon,
+  label,
+  badge = 0,
+  active = false,
+  disabled = false,
+  title,
+}: {
+  onClick: () => void
+  icon: 'city' | 'trade'
+  label: string
+  badge?: number
+  active?: boolean
+  disabled?: boolean
+  title?: string
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      aria-pressed={active || undefined}
+      className={`relative flex size-14 shrink-0 flex-col items-center justify-center gap-0.5 rounded-2xl border text-[11px] font-extrabold text-ink ${FX} disabled:pointer-events-none disabled:opacity-40 ${active ? 'border-accent bg-accent/10' : 'border-line enabled:hover:bg-white/5'}`}
+    >
+      <Icon name={icon} size={20} />
+      {label}
+      {badge > 0 && (
         <span
           key={badge}
           aria-label={`${badge} ${badge === 1 ? 'set' : 'sets'} ready to build`}

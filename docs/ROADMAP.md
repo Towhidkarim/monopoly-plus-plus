@@ -259,14 +259,14 @@ The "++" mechanics moved to Milestone 13. Neural-network bots come later, after 
 Seamless play on phones, portrait first. The developer pulled this ahead of the rest of Milestone 13. One step per commit:
 
 1. Foundations: `viewport-fit=cover`, `100dvh`, no page scroll, pull-to-refresh or double-tap zoom, safe-area utilities, `useLayout()` (`compact` below 768 px wide or 500 px tall), board framing measured from the shell bars on compact screens. (done 2026-10-30)
-2. Compact HUD (player chips) and a thumb-zone action dock, 48 px touch targets.
-3. Bottom sheet component; decision panels (buy, auction, debt, offer, card) move onto it; log and My city as full-height sheets.
-4. Tap to inspect tiles (compact deed and landing odds), and an audit of hover-only information.
+2. Compact HUD (player chips) and a thumb-zone action dock, 48 px touch targets. (done 2026-10-30)
+3. Bottom sheet component; decision panels (buy, auction, debt, offer, card) move onto it; log and My city as full-height sheets; tapping a player chip opens a player sheet (holdings, loan Pay off).
+4. Tap to inspect tiles (compact deed and landing odds), and an audit of hover-only information. Portrait framing: the board is width-limited, so tiles are small; try a closer default zoom that follows the active piece.
 5. Trade composer as a full-screen view with your side / their side tabs.
 6. PWA: manifest, icons, service worker, install, fullscreen launch.
 7. Mobile performance profile: device pixel density, idle frame rate, fewer ambient effects, a "Battery saver" setting; checked on a real phone.
 
-Acceptance: a full game against bots and an online game are playable one-handed on a 390×844 and a 360×780 screen in portrait, and on a phone held sideways, with nothing clipped or overlapping and no page scroll; desktop is unchanged.
+Acceptance: a full game against bots and an online game are playable one-handed on a 390Ã—844 and a 360Ã—780 screen in portrait, and on a phone held sideways, with nothing clipped or overlapping and no page scroll; desktop is unchanged.
 
 ## Cross-cutting risks and how to retire them early
 

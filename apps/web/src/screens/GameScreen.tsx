@@ -26,7 +26,7 @@ import { BoardHandleContext } from './game/cardEnv.tsx'
 import { Announcer } from './game/Announcer.tsx'
 import { CalloutLayer, FxLayer } from './game/Fx.tsx'
 import { GameTooltip } from './game/GameTooltip.tsx'
-import { Hud } from './game/Hud.tsx'
+import { CompactHud, Hud } from './game/Hud.tsx'
 import { MyCity } from './game/MyCity.tsx'
 import { OfferPanel } from './game/OfferPanel.tsx'
 import { TradeComposer, type TradeDraft } from './game/TradeComposer.tsx'
@@ -65,7 +65,7 @@ export function GameScreen({
 }) {
   const snap = useSyncExternalStore(store.subscribe, store.getSnapshot)
   const [handle, setHandle] = useState<BoardHandle | null>(null)
-  const { compact } = useLayout()
+  const { compact, landscape } = useLayout()
   useBoardFraming(handle, compact)
   const [selected, setSelected] = useState<number | null>(null)
   /** Speed die move choice: the destination under the pointer (dock button). */
@@ -337,33 +337,48 @@ export function GameScreen({
             >
               Skip to actions
             </button>
-            <Hud
-              snap={snap}
-              store={store}
-              speedLabel={speed === 'instant' ? 'Instant' : `${speed}×`}
-              onSpeed={() => changeSpeed(SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length]!)}
-              onHelp={() => setHelp(true)}
-              onMenu={() => setMenu((v) => !v)}
-              barks={barks}
-            />
-            <Announcer snap={snap} store={store} turn={turn} />
-            <TurnBanner snap={snap} store={store} turn={turn} cityOpen={cityOpen} />
-            {/* Focus mode: during a decision the side panels slide away so nothing overlaps it. */}
-            <div
-              className={`absolute inset-0 transition-[opacity,translate] duration-300 ease-out ${focus ? '-translate-x-4 opacity-0' : ''}`}
-              {...(focus ? { inert: true } : {})}
-            >
-              <LeftColumn
+            {compact ? (
+              <CompactHud
                 snap={snap}
                 store={store}
-                selected={selected}
-                recap={preRoll ? recap : null}
-                onCity={() => setCityOpen(true)}
-                onDeselect={() => select(null)}
-                onCloseRecap={() => setRecap(null)}
+                landscape={landscape}
+                onHelp={() => setHelp(true)}
+                onMenu={() => setMenu((v) => !v)}
+                barks={barks}
+                banner={<TurnBanner snap={snap} store={store} turn={turn} cityOpen={cityOpen} compact />}
               />
-            </div>
-            {!cityOpen && (
+            ) : (
+              <Hud
+                snap={snap}
+                store={store}
+                speedLabel={speed === 'instant' ? 'Instant' : `${speed}×`}
+                onSpeed={() => changeSpeed(SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length]!)}
+                onHelp={() => setHelp(true)}
+                onMenu={() => setMenu((v) => !v)}
+                barks={barks}
+              />
+            )}
+            <Announcer snap={snap} store={store} turn={turn} />
+            {!compact && <TurnBanner snap={snap} store={store} turn={turn} cityOpen={cityOpen} />}
+            {/* Focus mode: during a decision the side panels slide away so nothing overlaps it. */}
+            {/* Phones: the side columns move into sheets (Milestone 14 step 3). */}
+            {!compact && (
+              <div
+                className={`absolute inset-0 transition-[opacity,translate] duration-300 ease-out ${focus ? '-translate-x-4 opacity-0' : ''}`}
+                {...(focus ? { inert: true } : {})}
+              >
+                <LeftColumn
+                  snap={snap}
+                  store={store}
+                  selected={selected}
+                  recap={preRoll ? recap : null}
+                  onCity={() => setCityOpen(true)}
+                  onDeselect={() => select(null)}
+                  onCloseRecap={() => setRecap(null)}
+                />
+              </div>
+            )}
+            {!cityOpen && !compact && (
               <div
                 className={`absolute inset-0 transition-[opacity,translate] duration-300 ease-out ${focus ? 'translate-x-4 opacity-0' : ''}`}
                 {...(focus ? { inert: true } : {})}
@@ -386,6 +401,7 @@ export function GameScreen({
               onTrade={openTrade}
               hoverSpace={hoverSpace}
               onHoverSpace={setHoverSpace}
+              compact={compact}
             />
             <CalloutLayer store={store} />
             <AuctionPanel snap={snap} store={store} turn={turn} />

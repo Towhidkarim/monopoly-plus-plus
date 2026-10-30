@@ -5,6 +5,11 @@ import { insetsFrom } from '../../layout.ts'
 /** Desktop framing: the board between the HUD and turn banner above and the action dock below. */
 const WIDE_INSETS = { top: 130, right: 0, bottom: 110, left: 0 }
 
+function span(el: Element): { top: number; bottom: number } {
+  const r = el.getBoundingClientRect()
+  return { top: r.top, bottom: r.bottom }
+}
+
 /**
  * Frames the board in the part of the screen the shell leaves free. Desktop keeps the tuned
  * insets; the compact layout measures the bars marked `data-inset="top"` / `"bottom"` (D64).
@@ -20,10 +25,6 @@ export function useBoardFraming(handle: BoardHandle | null, compact: boolean): v
     const host = canvas.parentElement?.parentElement ?? canvas
     let last = ''
     const measure = () => {
-      const span = (el: Element) => {
-        const r = el.getBoundingClientRect()
-        return { top: r.top, bottom: r.bottom }
-      }
       const bars = (side: string) => [...host.querySelectorAll(`[data-inset="${side}"]`)].map(span)
       const insets = insetsFrom(span(canvas), bars('top'), bars('bottom'))
       const key = `${insets.top},${insets.bottom}`

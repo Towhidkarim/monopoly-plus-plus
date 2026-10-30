@@ -13,7 +13,7 @@ Still needs the developer:
 
 ## In progress: Milestone 14, mobile (D64, started 2026-10-30)
 
-The developer pulled the mobile pass ahead. Steps and acceptance in `docs/ROADMAP.md` Milestone 14, one per commit; the PWA comes before the performance profile. Done: 1 foundations. Next: 2 compact HUD and dock. Screenshot at 390×844 and 360×780 in Orca; the developer checks on a real phone later.
+The developer pulled the mobile pass ahead. Steps and acceptance in `docs/ROADMAP.md` Milestone 14, one per commit; the PWA comes before the performance profile. Done: 1 foundations, 2 compact HUD and dock (the hint/recap column and the log are hidden on phones until step 3 brings them back as sheets). Next: 3 bottom sheets. Phone screenshots: `pnpm shot:headless <url> <steps.json> [port] --size 390x844` (also 360x780 and 844x390); the developer checks on a real phone later.
 
 ## In progress: UX and gameplay batch (developer's list, 2026-10-28)
 
