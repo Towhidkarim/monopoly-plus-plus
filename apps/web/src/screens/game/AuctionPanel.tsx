@@ -222,7 +222,10 @@ export function AuctionPanel({ snap, store, turn }: { snap: Snapshot; store: Gam
                 <GavelIcon color="var(--color-accent)" />
                 Auction
               </Eyebrow>
-              <h2 id={dialog.titleId} className="truncate font-display text-[30px] leading-tight font-bold">
+              <h2
+                id={dialog.titleId}
+                className="truncate font-display text-[30px] leading-tight font-bold max-[767px]:text-[24px] max-[767px]:whitespace-normal"
+              >
                 {sp.name}
               </h2>
               <span className="text-sm text-ink-muted">
@@ -311,7 +314,7 @@ export function AuctionPanel({ snap, store, turn }: { snap: Snapshot; store: Gam
                     ref={(el) => {
                       cardRefs.current[seat] = el
                     }}
-                    className={`flex flex-col items-center gap-2 rounded-[18px] border-[1.5px] px-2.5 py-3.5 transition-[opacity,translate,background-color,border-color] duration-300 ${
+                    className={`@container flex min-w-0 flex-col items-center gap-2 rounded-[18px] border-[1.5px] px-2.5 py-3.5 max-[767px]:px-1 transition-[opacity,translate,background-color,border-color] duration-300 ${
                       out ? 'translate-y-1 border-line bg-white/3 opacity-45' : 'border-line bg-white/3'
                     }`}
                     style={
@@ -325,7 +328,8 @@ export function AuctionPanel({ snap, store, turn }: { snap: Snapshot; store: Gam
                     <TokenAvatar color={color} piece={store.setup.seats[seat]!.piece} size={38} />
                     <span className="max-w-full truncate font-display text-sm font-bold">{nameOf(seat)}</span>
                     <span
-                      className={`rounded-full px-2.5 py-1 text-[11px] font-extrabold whitespace-nowrap ${pill} ${turnNow && !human(seat) ? 'animate-pulse' : ''}`}
+                      // Narrow cards (phones): tighter and allowed to wrap, so a state is never cut short.
+                      className={`max-w-full rounded-full px-2.5 py-1 text-center text-[11px] leading-tight font-extrabold whitespace-nowrap @max-[110px]:rounded-xl @max-[110px]:px-1.5 @max-[110px]:text-[10px] @max-[110px]:whitespace-normal ${pill} ${turnNow && !human(seat) ? 'animate-pulse' : ''}`}
                     >
                       {status}
                     </span>
