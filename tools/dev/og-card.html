@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+  <!--
+    Social preview card (1200 x 630) for apps/web/public/og-image.png. Not part of the app build.
+    Open it in Orca at a 1200 x 630 viewport, then `pnpm shot og-image --page <id>` and copy
+    .shots/og-image.png into apps/web/public/. Fonts and colours are the app's (src/index.css).
+  -->
+  <head>
+    <meta charset="UTF-8" />
+    <title>Skyline social card</title>
+    <style>
+      @font-face {
+        font-family: 'Sora Variable';
+        src: url('../../apps/web/node_modules/@fontsource-variable/sora/files/sora-latin-wght-normal.woff2')
+          format('woff2');
+        font-weight: 100 800;
+      }
+      @font-face {
+        font-family: 'Manrope Variable';
+        src: url('../../apps/web/node_modules/@fontsource-variable/manrope/files/manrope-latin-wght-normal.woff2')
+          format('woff2');
+        font-weight: 200 800;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+      }
+      html,
+      body {
+        width: 1200px;
+        height: 630px;
+        overflow: hidden;
+      }
+      body {
+        position: relative;
+        background:
+          radial-gradient(60% 80% at 80% 40%, rgba(96, 165, 250, 0.22), transparent 70%),
+          radial-gradient(50% 60% at 10% 100%, rgba(245, 181, 74, 0.14), transparent 70%), #0b1426;
+        color: #f4ede2;
+        font-family: 'Manrope Variable', system-ui, sans-serif;
+      }
+      .copy {
+        position: absolute;
+        left: 72px;
+        top: 0;
+        bottom: 0;
+        z-index: 1;
+        width: 520px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 22px;
+        padding-bottom: 60px;
+      }
+      .mark {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        font-family: 'Sora Variable', system-ui, sans-serif;
+        font-weight: 700;
+        font-size: 30px;
+        color: #cbd5e1;
+      }
+      .mark img {
+        width: 44px;
+        height: 44px;
+      }
+      h1 {
+        font-family: 'Sora Variable', system-ui, sans-serif;
+        font-weight: 800;
+        font-size: 150px;
+        line-height: 1;
+        letter-spacing: -0.04em;
+        margin-left: -6px;
+        padding-bottom: 10px;
+        background: linear-gradient(100deg, #f4ede2 30%, #5eead4 75%, #60a5fa);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      .headline {
+        font-family: 'Sora Variable', system-ui, sans-serif;
+        font-weight: 700;
+        font-size: 40px;
+        line-height: 1.15;
+        color: #f4ede2;
+      }
+      .tagline {
+        font-size: 24px;
+        line-height: 1.4;
+        color: #a8b1c4;
+        max-width: 520px;
+      }
+      .chips {
+        display: flex;
+        gap: 12px;
+      }
+      .chip {
+        padding: 10px 20px;
+        border-radius: 999px;
+        font-size: 22px;
+        font-weight: 700;
+        border: 1px solid rgba(255, 214, 150, 0.2);
+        background: rgba(18, 28, 51, 0.8);
+      }
+      .chip.roll {
+        color: #0b1426;
+        background: #f5b54a;
+        border-color: #f5b54a;
+      }
+      .chip.buy {
+        color: #5eead4;
+      }
+      .chip.build {
+        color: #60a5fa;
+      }
+      .chip.scheme {
+        color: #fb7185;
+      }
+      .board {
+        position: absolute;
+        right: -60px;
+        top: 110px;
+        width: 580px;
+        height: 470px;
+        border-radius: 28px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 214, 150, 0.18);
+        box-shadow: 0 40px 80px rgba(0, 0, 0, 0.55);
+        transform: rotate(-3deg);
+      }
+      .board img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: 38% 50%;
+      }
+      .url {
+        position: absolute;
+        left: 72px;
+        bottom: 44px;
+        font-size: 22px;
+        font-weight: 600;
+        color: #a8b1c4;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="copy">
+      <div class="mark">
+        <img src="../../apps/web/public/favicon.svg" alt="" />
+        Monopoly-style city game
+      </div>
+      <h1>Skyline</h1>
+      <p class="headline">Own the skyline.</p>
+      <p class="tagline">A juicy Monopoly-style city board game, with bots that actually play well.</p>
+      <div class="chips">
+        <span class="chip roll">Roll</span>
+        <span class="chip buy">Buy</span>
+        <span class="chip build">Build</span>
+        <span class="chip scheme">Scheme</span>
+      </div>
+    </div>
+    <div class="board">
+      <img src="../../docs/screenshots/readme-game.png" alt="" />
+    </div>
+    <div class="url">skyline.towhidkarim.dev</div>
+  </body>
+</html>
