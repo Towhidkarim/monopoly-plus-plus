@@ -11,6 +11,10 @@ Still needs the developer:
 - First deploy: `! npx wrangler login`, then `pnpm deploy`; then a real session across machines.
 - The hands-on review of Milestone 8 and the real-GPU 60 fps checks listed in the roadmap.
 
+## In progress: Milestone 14, mobile (D64, started 2026-10-30)
+
+The developer pulled the mobile pass ahead. Steps and acceptance in `docs/ROADMAP.md` Milestone 14, one per commit; the PWA comes before the performance profile. Done: 1 foundations. Next: 2 compact HUD and dock. Screenshot at 390×844 and 360×780 in Orca; the developer checks on a real phone later.
+
 ## In progress: UX and gameplay batch (developer's list, 2026-10-28)
 
 One step per commit, restate acceptance criteria first. Done: 1 landing odds (D54, rents only after review), 2 recap card (D55), 3 buy advice (D56), 4 skip to my turn (D57), 6 bot speech bubbles (D58), 7 bot trade proposals (D53), 8 results screen (D59). Left:

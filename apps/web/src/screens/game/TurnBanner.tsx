@@ -28,6 +28,7 @@ export function TurnBanner({
   // Centered by flex, not transform: the drop animation owns the inner element's transform.
   return (
     <div
+      data-inset="top"
       className={`pointer-events-none absolute inset-x-0 top-28 flex justify-center px-4 transition-opacity duration-300 ease-out ${cityOpen ? 'opacity-0' : ''}`}
     >
       <div

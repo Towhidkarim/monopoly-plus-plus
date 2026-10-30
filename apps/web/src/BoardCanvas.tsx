@@ -51,7 +51,7 @@ export function BoardCanvas({ onReady, citySeed, renderTooltip, children }: Prop
     <div className="relative min-w-0 flex-1 overflow-hidden select-none">
       <div
         ref={hostRef}
-        className="absolute inset-0 cursor-(--cur-grab) [&>canvas]:absolute [&>canvas]:inset-0"
+        className="absolute inset-0 cursor-(--cur-grab) touch-none [&>canvas]:absolute [&>canvas]:inset-0"
       />
       <div ref={tooltipRef} className="pointer-events-none absolute top-0 left-0 z-10 will-change-transform">
         {hovered !== null && (renderTooltip ? renderTooltip(hovered) : <TileTooltip index={hovered} />)}

@@ -2,7 +2,8 @@
  * Fallback when Orca is not running: a scripted headless Chrome run over CDP. Software rendering
  * (about 5 fps), so allow long waits. Usage: `pnpm shot:headless <url> <steps.json> [port]`, where
  * steps are ["wait", ms] | ["eval", js] | ["click", buttonText] | ["shot", name]; shots land in
- * .shots/<name>.png. Prints console errors and exceptions from the page.
+ * .shots/<name>.png. Prints console errors and exceptions from the page. `--size 390x844` emulates
+ * a phone (touch, mobile viewport, 2x density) instead of the 1440x900 desktop.
  */
 import { spawn } from 'node:child_process'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
@@ -19,8 +20,12 @@ interface CdpMessage {
 }
 
 const root = new URL('../../', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')
-const [url, stepsFile, port = '9334'] = process.argv.slice(2)
-if (!url || !stepsFile) throw new Error('usage: pnpm shot:headless <url> <steps.json> [port]')
+const argv = process.argv.slice(2)
+const sizeAt = argv.indexOf('--size')
+const size = sizeAt === -1 ? null : argv.splice(sizeAt, 2)[1]!.split('x').map(Number)
+const [width, height] = size ?? [1440, 900]
+const [url, stepsFile, port = '9334'] = argv
+if (!url || !stepsFile) throw new Error('usage: pnpm shot:headless <url> <steps.json> [port] [--size WxH]')
 const steps: Step[] = JSON.parse(readFileSync(stepsFile, 'utf8'))
 const shots = join(root, '.shots')
 mkdirSync(shots, { recursive: true })
@@ -34,7 +39,7 @@ const chrome = spawn('C:/Program Files/Google/Chrome/Application/chrome.exe', [
   `--remote-debugging-port=${port}`,
   `--user-data-dir=${profile}`,
   '--hide-scrollbars',
-  '--window-size=1440,900',
+  `--window-size=${width},${height}`,
   'about:blank',
 ])
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
@@ -77,11 +82,12 @@ const send = (method: string, params: object = {}) =>
 
 await send('Runtime.enable')
 await send('Emulation.setDeviceMetricsOverride', {
-  width: 1440,
-  height: 900,
-  deviceScaleFactor: 1,
-  mobile: false,
+  width,
+  height,
+  deviceScaleFactor: size ? 2 : 1,
+  mobile: !!size,
 })
+if (size) await send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 })
 await send('Page.navigate', { url })
 for (const [kind, arg] of steps) {
   if (kind === 'wait') await sleep(arg)

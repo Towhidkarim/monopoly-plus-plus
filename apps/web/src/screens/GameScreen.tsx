@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'reac
 import { SPACES } from '@skyline/engine'
 import type { BoardHandle } from '@skyline/board'
 import { BoardCanvas } from '../BoardCanvas.tsx'
+import { useLayout } from '../layout.ts'
 import { connectSound } from '../audio/connect.ts'
 import { CityAmbience } from '../audio/ambience.ts'
 import { sound } from '../audio/engine.ts'
@@ -19,6 +20,7 @@ import { ActionDock } from './game/ActionDock.tsx'
 import { AuctionPanel } from './game/AuctionPanel.tsx'
 import { bidAction, raiseOptions } from './game/auctionBids.ts'
 import { BuyMoment } from './game/BuyMoment.tsx'
+import { useBoardFraming } from './game/boardFraming.ts'
 import { DebtPanel } from './game/DebtPanel.tsx'
 import { BoardHandleContext } from './game/cardEnv.tsx'
 import { Announcer } from './game/Announcer.tsx'
@@ -63,6 +65,8 @@ export function GameScreen({
 }) {
   const snap = useSyncExternalStore(store.subscribe, store.getSnapshot)
   const [handle, setHandle] = useState<BoardHandle | null>(null)
+  const { compact } = useLayout()
+  useBoardFraming(handle, compact)
   const [selected, setSelected] = useState<number | null>(null)
   /** Speed die move choice: the destination under the pointer (dock button). */
   const [hoverSpace, setHoverSpace] = useState<number | null>(null)
@@ -149,8 +153,6 @@ export function GameScreen({
     })
     // A click on a highlighted tile during the Speed die's move choice goes there instead.
     handle?.board.setListeners({ select: (i) => pickRef.current(i) || setSelected(i), beat: audio.beat })
-    // Frame the board between the HUD and turn banner above and the action dock below.
-    handle?.board.setInsets({ top: 130, right: 0, bottom: 110, left: 0 })
     return () => {
       audio.disconnect()
       city.stop()

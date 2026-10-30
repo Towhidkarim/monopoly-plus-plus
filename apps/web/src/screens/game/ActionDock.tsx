@@ -52,7 +52,10 @@ export function ActionDock({
     return null
   const { primary, secondary } = turn
   return (
-    <div className="pointer-events-none absolute inset-x-0 bottom-6 flex flex-col items-center gap-2 px-4">
+    <div
+      data-inset="bottom"
+      className="pointer-events-none absolute inset-x-0 bottom-6 flex flex-col items-center gap-2 px-4"
+    >
       <nav
         aria-label="Actions"
         className="pointer-events-auto flex items-center gap-2.5 rounded-3xl border border-line bg-panel/95 p-2.5 shadow-panel-lg backdrop-blur"
