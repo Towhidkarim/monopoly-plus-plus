@@ -1,9 +1,10 @@
 import { useSyncExternalStore, type ReactNode } from 'react'
-import { GROUP_COUNT, GROUPS, SPACES, isOwnable, validate } from '@skyline/engine'
+import { GROUP_COUNT, GROUPS, SPACES, isOwnable } from '@skyline/engine'
 import { sound } from '../../audio/engine.ts'
 import type { GameStore, Snapshot } from '../../game/store.ts'
 import { cssHex, groupColor, groupName } from '../../spaceInfo.ts'
 import { fmtMoney } from './format.ts'
+import { repayOf } from './repay.ts'
 import { Icon } from './icons.tsx'
 import { TickingMoney, TokenAvatar, FX } from './ui.tsx'
 
@@ -257,18 +258,6 @@ function seatStatus(snap: Snapshot, store: GameStore, seat: number, solo: boolea
   return { active, low, tag, botTag, tagInk, label }
 }
 
-/** Pays off a seat's whole loan, or null when that is not allowed now. */
-function repayOf(snap: Snapshot, store: GameStore, seat: number): (() => void) | null {
-  const pl = snap.presented.players[seat]!
-  // Only a full payoff: a partial one would empty the wallet in one click.
-  return store.canAct(pl.id) &&
-    !snap.busy &&
-    pl.cash >= pl.loan &&
-    validate(snap.state, pl.id, { type: 'REPAY_LOAN' }) === null
-    ? () => store.run(pl.id, [{ type: 'REPAY_LOAN' }])
-    : null
-}
-
 /**
  * The phone top bar (D64): round, sound, help and menu, then one chip per player (avatar, name,
  * cash, set bars). Held sideways it is a single row. The turn banner hangs under it, outside the
@@ -283,6 +272,7 @@ export function CompactHud({
   onLog,
   onInfo,
   infoDot,
+  onPlayer,
   barks = {},
   banner,
 }: {
@@ -297,6 +287,8 @@ export function CompactHud({
   onInfo: (() => void) | null
   /** Something new behind the hint button (a fresh recap or hint). */
   infoDot: boolean
+  /** Opens a player's sheet (a tap on their chip). */
+  onPlayer: (seat: number) => void
   barks?: Readonly<Record<string, { text: string; key: number }>>
   banner?: ReactNode
 }) {
@@ -352,13 +344,13 @@ export function CompactHud({
         const { active, low, tag, label } = seatStatus(snap, store, seat, solo)
         const bark = barks[pl.id]
         return (
-          <div
+          <button
+            type="button"
             key={pl.id}
             data-seat-card={pl.id}
-            // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- a fieldset would bring form semantics and layout quirks
-            role="group"
             aria-label={label}
-            className={`pointer-events-auto relative flex min-w-0 flex-col gap-1 rounded-xl ${landscape ? 'max-w-48 flex-1' : ''} border-[1.5px] px-2 py-1.5 transition-[background-color,box-shadow,opacity] duration-300 ease-spring ${
+            onClick={() => onPlayer(seat)}
+            className={`pointer-events-auto relative flex min-w-0 flex-col gap-1 rounded-xl text-left active:scale-[0.97] ${landscape ? 'max-w-48 flex-1' : ''} border-[1.5px] px-2 py-1.5 transition-[background-color,box-shadow,opacity] duration-300 ease-spring ${
               pl.bankrupt
                 ? 'border-line bg-panel opacity-40'
                 : active
@@ -415,7 +407,7 @@ export function CompactHud({
                 {bark.text}
               </span>
             )}
-          </div>
+          </button>
         )
       })}
     </div>

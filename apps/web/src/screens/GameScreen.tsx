@@ -30,10 +30,18 @@ import { GameTooltip } from './game/GameTooltip.tsx'
 import { CompactHud, Hud } from './game/Hud.tsx'
 import { MyCity } from './game/MyCity.tsx'
 import { OfferPanel } from './game/OfferPanel.tsx'
+import { PlayerSheet } from './game/PlayerSheet.tsx'
 import { TradeComposer, type TradeDraft } from './game/TradeComposer.tsx'
 import { SPEEDS, fmtMoney, type SpeedChoice } from './game/format.ts'
 import { CardPopup, GameMenu, GameOver, HelpOverlay } from './game/Overlays.tsx'
-import { ActivityFeed, CompactDice, InfoSheet, LeftColumn, LogSheet } from './game/SidePanels.tsx'
+import {
+  ActivityFeed,
+  CompactDice,
+  CompactToasts,
+  InfoSheet,
+  LeftColumn,
+  LogSheet,
+} from './game/SidePanels.tsx'
 import { TurnBanner } from './game/TurnBanner.tsx'
 import { turnView, type TurnView } from './game/turn.ts'
 
@@ -94,6 +102,7 @@ export function GameScreen({
   // Phones: the hint or recap sheet, and what the hint button last showed (for its dot).
   const [infoOpen, setInfoOpen] = useState(false)
   const [infoSeen, setInfoSeen] = useState<string | null>(null)
+  const [playerSheet, setPlayerSheet] = useState<number | null>(null)
 
   // "While you waited": a recap when a human's turn on this screen comes back (game/recap.ts).
   const [recap, setRecap] = useState<Recap | null>(null)
@@ -361,8 +370,14 @@ export function GameScreen({
                     : null
                 }
                 infoDot={infoKey !== null && infoKey !== infoSeen}
+                onPlayer={setPlayerSheet}
                 barks={barks}
-                banner={<TurnBanner snap={snap} store={store} turn={turn} cityOpen={cityOpen} compact />}
+                banner={
+                  <>
+                    <TurnBanner snap={snap} store={store} turn={turn} cityOpen={cityOpen} compact />
+                    {!focus && <CompactToasts snap={snap} store={store} />}
+                  </>
+                }
               />
             ) : (
               <Hud
@@ -444,6 +459,18 @@ export function GameScreen({
               />
             )}
             {compact && showLog && !focus && <LogSheet snap={snap} onClose={() => setShowLog(false)} />}
+            {compact && playerSheet !== null && !focus && selected === null && (
+              <PlayerSheet
+                snap={snap}
+                store={store}
+                seat={playerSheet}
+                onTile={(i) => {
+                  setPlayerSheet(null)
+                  select(i)
+                }}
+                onClose={() => setPlayerSheet(null)}
+              />
+            )}
             <CalloutLayer store={store} />
             <AuctionPanel snap={snap} store={store} turn={turn} />
             <BuyMoment snap={snap} store={store} turn={turn} onCity={() => setCityOpen(true)} />

@@ -31,7 +31,7 @@ export function TurnBanner({
   // Centered by flex, not transform: the drop animation owns the inner element's transform.
   return (
     <div
-      className={`pointer-events-none absolute inset-x-0 flex justify-center transition-opacity ${compact ? 'top-0 px-3' : 'top-28 px-4'} duration-300 ease-out ${cityOpen ? 'opacity-0' : ''}`}
+      className={`pointer-events-none flex justify-center transition-opacity ${compact ? 'px-3' : 'absolute inset-x-0 top-28 px-4'} duration-300 ease-out ${cityOpen ? 'opacity-0' : ''}`}
     >
       <div
         key={`${seat}-${snap.presented.round}`}

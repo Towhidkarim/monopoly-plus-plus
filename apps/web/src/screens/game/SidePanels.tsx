@@ -193,6 +193,23 @@ export function InfoSheet({
   )
 }
 
+/** Phones: the newest two activity toasts, hanging under the turn banner; each fades on its own. */
+export function CompactToasts({ snap, store }: { snap: Snapshot; store: GameStore }) {
+  return (
+    <div className="pointer-events-none flex flex-col items-center gap-1.5 px-3 pt-2">
+      {snap.log.slice(0, 2).map((e) => (
+        <div
+          key={e.id}
+          className="w-full max-w-80 animate-toast"
+          style={{ animationDuration: `${TIMINGS.toastLife}ms` }}
+        >
+          <Toast entry={e} snap={snap} store={store} />
+        </div>
+      ))}
+    </div>
+  )
+}
+
 /** Phones: the game log as a sheet, newest first. */
 export function LogSheet({ snap, onClose }: { snap: Snapshot; onClose: () => void }) {
   const dot = { normal: 'bg-sky', good: 'bg-teal', bad: 'bg-alert', muted: 'bg-ink-muted' }

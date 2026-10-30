@@ -17,6 +17,8 @@ export function BoardCanvas({ onReady, citySeed, renderTooltip, children }: Prop
   const hostRef = useRef<HTMLDivElement>(null)
   const tooltipRef = useRef<HTMLDivElement>(null)
   const [hovered, setHovered] = useState<number | null>(null)
+  // A finger has no hover: after a touch the tooltip stays away (a tap opens the tile instead).
+  const [touch, setTouch] = useState(false)
 
   useEffect(() => {
     const host = hostRef.current! // effects run after the ref is attached
@@ -48,13 +50,18 @@ export function BoardCanvas({ onReady, citySeed, renderTooltip, children }: Prop
 
   // Canvas is absolutely positioned so it never feeds back into the host's size (resizeTo loop).
   return (
-    <div className="relative min-w-0 flex-1 overflow-hidden select-none">
+    <div
+      className="relative min-w-0 flex-1 overflow-hidden select-none"
+      onPointerDownCapture={(e) => setTouch(e.pointerType === 'touch')}
+    >
       <div
         ref={hostRef}
         className="absolute inset-0 cursor-(--cur-grab) touch-none [&>canvas]:absolute [&>canvas]:inset-0"
       />
       <div ref={tooltipRef} className="pointer-events-none absolute top-0 left-0 z-10 will-change-transform">
-        {hovered !== null && (renderTooltip ? renderTooltip(hovered) : <TileTooltip index={hovered} />)}
+        {hovered !== null &&
+          !touch &&
+          (renderTooltip ? renderTooltip(hovered) : <TileTooltip index={hovered} />)}
       </div>
       {children}
     </div>

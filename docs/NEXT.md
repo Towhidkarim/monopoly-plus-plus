@@ -13,7 +13,7 @@ Still needs the developer:
 
 ## In progress: Milestone 14, mobile (D64, started 2026-10-30)
 
-The developer pulled the mobile pass ahead. Steps and acceptance in `docs/ROADMAP.md` Milestone 14, one per commit; the PWA comes before the performance profile. Done: 1 foundations, 2 compact HUD and dock (the hint/recap column and the log are hidden on phones until step 3 brings them back as sheets). 3 bottom sheets (`Sheet.tsx`). Next: 4 player sheet, tap paths for hover-only info, toasts on phones. Phone screenshots: `pnpm shot:headless <url> <steps.json> [port] --size 390x844` (also 360x780 and 844x390); the developer checks on a real phone later.
+The developer pulled the mobile pass ahead. Steps and acceptance in `docs/ROADMAP.md` Milestone 14, one per commit; the PWA comes before the performance profile. Done: 1 foundations, 2 compact HUD and dock (the hint/recap column and the log are hidden on phones until step 3 brings them back as sheets). 3 bottom sheets (`Sheet.tsx`). 4 player sheet, touch tooltips, toasts. Next: 5 mobile trade composer. Phone screenshots in Orca only (no headless Chrome): `orca exec --command "set viewport 390 844" --page <id>`, then `pnpm shot <name> --page <id>` (also 360x780 and 844x390); the developer checks on a real phone later.
 
 ## In progress: UX and gameplay batch (developer's list, 2026-10-28)
 
