@@ -438,7 +438,7 @@ During a decision (buy, auction, debt, offer, trade) the left column and activit
 
 - One looping track, "Warm Drinks and Dice" (developer-generated with Google's AI music tool, see docs/ASSETS.md), served from `public/audio/music/`. `MusicPlayer` (`apps/web/src/audio/music.ts`) streams it through an audio element (never decoded whole) into the engine's music bus via a media-element source, so master volume and mute apply. Nothing is fetched before audio unlocks on the first click; it fades in over ~2.5 s on the game screen and out when leaving, and pauses while muted.
 - `music` level (default 0.45, "Music" slider in the game menu) times a fixed `MUSIC_TRIM` of 0.35: the track is mastered loud and should sit under the game's sounds at any slider position.
-- Not done: ducking the music under big moments, and more tracks.
+- Not done: ducking the music under big moments. A night track came with D67.
 
 ## D53. Bot trade proposals (2026-10-28)
 
@@ -550,3 +550,10 @@ During a decision (buy, auction, debt, offer, trade) the left column and activit
 - `pnpm sim` uses a mode's default twists too (`--no-twists` for the bare preset), so its numbers match what players get.
 - Why Standard (sims, 1,000 games, four heuristic bots): with these twists the round-10 leader wins 46% instead of 55% and last place 13% instead of 10%; games last about 10% more turns (~19 min for one human and three bots); knockouts become rare (3% of games end with one player left instead of 24%). The Speed die stays off: with it the leader is back to 52%.
 - Turbo stays as it is for now (leader wins 75%); tuning it is noted in `docs/NEXT.md`.
+
+## D67. Night music and a shorter day/night cycle (2026-10-30)
+
+- **Two tracks by sky:** "Warm Drinks and Dice" by day, "Skyscraper Lullaby" (lofi, developer-generated, docs/ASSETS.md) by night. `MusicPlayer.setNight` follows the same sky level as the board and the city ambience; the night track plays from level 0.5, so the switch happens at dusk (0.6) and dawn (0.3). Each track loops and resumes where it left off.
+- **Smooth switch:** the new track starts, and only once it is actually playing (buffered) do both fade over 6 s, a little slower than the board's ~4 s sky fade; the old track pauses after. The music never goes silent while the new track loads. The night track downloads only when night first falls.
+- **Shorter cycle:** `SKY_CYCLE` goes from 8 rounds (four days, dusk, two nights, dawn) to 6 (two days, dusk, two nights, dawn). The first night falls in round 4 instead of 6 (with four players about 12 turns in instead of 20), and a 30-round game sees five nights instead of three or four. The developer found night came too late.
+- **Offline music (fixes D64's service worker):** audio elements fetch byte ranges, and the old "cached copy, refreshed in the background" path could not cache those 206 responses, so music likely never reached the cache and was fetched again on each play. Now `/audio/music/*` streams from the network the first time while one full copy is fetched into the cache in the background (so the first play downloads the track twice); after that the service worker serves the ranges from the cached copy, offline too.

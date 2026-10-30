@@ -149,6 +149,7 @@ export function GameScreen({
   }, [store])
 
   const ambience = useRef<CityAmbience | null>(null)
+  const musicRef = useRef<MusicPlayer | null>(null)
   useEffect(() => {
     const audio = connectSound(store)
     const city = new CityAmbience(sound)
@@ -156,6 +157,7 @@ export function GameScreen({
     ambience.current = city
     const music = new MusicPlayer(sound)
     music.start()
+    musicRef.current = music
     // Dev console handle (and for scripted screenshots).
     if (import.meta.env.DEV) Object.assign(window, { skylineStore: store })
     store.attach(handle?.board ?? null)
@@ -173,6 +175,7 @@ export function GameScreen({
       audio.disconnect()
       city.stop()
       music.stop()
+      musicRef.current = null
       ambience.current = null
       store.setDiceTray(null)
       store.attach(null)
@@ -197,6 +200,7 @@ export function GameScreen({
   const skyDone = useRef(false)
   useEffect(() => {
     ambience.current?.setNight(skyLevel(round, sky))
+    musicRef.current?.setNight(skyLevel(round, sky))
     if (!handle) return
     handle.board.setNight(skyLevel(round, sky), !skyDone.current)
     skyDone.current = true
