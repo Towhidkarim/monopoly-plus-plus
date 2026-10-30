@@ -17,6 +17,7 @@ import {
 import { cssHex, groupName } from '../../spaceInfo.ts'
 import { useReducedMotion } from './cardEnv.tsx'
 import { useDialogFocus } from './useDialogFocus.ts'
+import { useLayout } from '../../layout.ts'
 import { Icon } from './icons.tsx'
 import {
   CardSlot,
@@ -69,6 +70,9 @@ export function TradeComposer({
   usePanelSound()
   const reduced = useReducedMotion()
   const wide = useWide()
+  const { compact } = useLayout()
+  // Phones: which side of the table is showing.
+  const [side, setSide] = useState<'give' | 'get'>(draft.get?.spaces.length ? 'get' : 'give')
   const s = snap.state
   const seats = store.setup.seats
   const others = s.players.flatMap((p, i) => (i !== me && !p.bankrupt ? [i] : []))
@@ -248,12 +252,96 @@ export function TradeComposer({
       </label>
     )
 
+  // The four parts of the table, shared by the desktop layout and the phone tabs.
+  const myHand = (
+    <Hand
+      s={s}
+      seats={seats}
+      seat={me}
+      title="Your cards"
+      avatar={<TokenAvatar color={cssHex(seats[me]!.color)} piece={seats[me]!.piece} size={32} />}
+      inDeal={give.spaces}
+      onCard={(space, rect) => toggle('give', space, rect)}
+      fly={fly}
+      locked={settled}
+    />
+  )
+  const giveMat = (
+    <Mat
+      tone="give"
+      footer={
+        <div className="flex flex-col gap-2.5">
+          {lockup('give', give, meP.jailCards.length)}
+          <CashEditor
+            label="You give: cash"
+            value={give.cash}
+            max={settled ? give.cash : meP.cash}
+            locked={settled}
+            onChange={(cash) => edit(setGive, { ...give, cash })}
+          />
+        </div>
+      }
+    >
+      {matCards('give', give)}
+      {give.spaces.length === 0 && (
+        <CardSlot k={matK}>{compact ? 'Tap' : 'Click'} your cards to add them</CardSlot>
+      )}
+      {give.cash > 0 && <CoinStack value={give.cash} reg={reg('give', 'cash')} />}
+    </Mat>
+  )
+  const getMat = (
+    <Mat
+      tone="get"
+      footer={
+        <div className="flex flex-col gap-2.5">
+          {lockup('get', get, them.jailCards.length)}
+          <CashEditor
+            label="You get: cash"
+            value={get.cash}
+            max={settled ? get.cash : them.cash}
+            locked={settled}
+            onChange={(cash) => edit(setGet, { ...get, cash })}
+          />
+        </div>
+      }
+    >
+      {matCards('get', get)}
+      {get.spaces.length === 0 && (
+        <CardSlot k={matK}>
+          {compact ? 'Tap' : 'Click'} {them.name}&apos;s cards to add them
+        </CardSlot>
+      )}
+      {get.cash > 0 && <CoinStack value={get.cash} reg={reg('get', 'cash')} />}
+    </Mat>
+  )
+  const theirHand = (
+    <Hand
+      s={s}
+      seats={seats}
+      seat={partner}
+      title={`${them.name}'s cards`}
+      avatar={<TokenAvatar color={cssHex(seats[partner]!.color)} piece={seats[partner]!.piece} size={40} />}
+      tag={bot ? `${personality ?? 'Balanced'} bot` : null}
+      bubble={bot ? <SpeechBubble text={line ?? ''} mood={lineMood} /> : null}
+      inDeal={get.spaces}
+      onCard={(space, rect) => toggle('get', space, rect)}
+      fly={fly}
+      locked={settled}
+    />
+  )
+
   return (
     <section
       {...dialog.props}
-      className="pointer-events-auto absolute inset-x-0 top-24 bottom-0 z-30 flex items-center justify-center bg-table/65 p-3 backdrop-blur-sm min-[1180px]:p-4"
+      className={
+        compact
+          ? 'pointer-events-auto absolute inset-0 z-40 flex bg-table pt-safe px-safe'
+          : 'pointer-events-auto absolute inset-x-0 top-24 bottom-0 z-30 flex items-center justify-center bg-table/65 p-3 backdrop-blur-sm min-[1180px]:p-4'
+      }
     >
-      <Panel className="relative flex h-full max-h-200 w-full max-w-340 animate-pop flex-col overflow-hidden rounded-[28px]!">
+      <Panel
+        className={`relative flex h-full w-full flex-col overflow-hidden ${compact ? 'animate-sheet rounded-none! border-0! bg-panel!' : 'max-h-200 max-w-340 animate-pop rounded-[28px]!'}`}
+      >
         {outcome && (
           <ResultStamp
             outcome={outcome}
@@ -263,7 +351,9 @@ export function TradeComposer({
           />
         )}
 
-        <header className="flex flex-wrap items-center gap-x-4 gap-y-2.5 border-b border-line px-5 py-3.5 min-[1180px]:px-6 min-[1180px]:py-4">
+        <header
+          className={`relative flex flex-wrap items-center gap-x-4 gap-y-2.5 border-b border-line ${compact ? 'px-4 pt-3 pb-3' : 'px-5 py-3.5 min-[1180px]:px-6 min-[1180px]:py-4'}`}
+        >
           <div className="flex flex-col gap-0.5">
             <Eyebrow className="text-accent">
               {draft.replaces !== undefined ? 'Counter-offer' : 'Trade'}
@@ -299,7 +389,7 @@ export function TradeComposer({
                 type="button"
                 onClick={() => suggest(m.space, m.owner)}
                 disabled={settled}
-                className={`flex h-9 items-center gap-2 rounded-full border border-dashed border-accent/60 bg-accent/8 px-3 text-[13px] font-bold text-gold ${FX_BRIGHT} enabled:hover:bg-accent/16 disabled:opacity-30`}
+                className={`flex items-center gap-2 rounded-full border border-dashed border-accent/60 bg-accent/8 px-3 text-[13px] font-bold text-gold ${compact ? 'min-h-10 w-full py-1.5 text-left' : 'h-9'} ${FX_BRIGHT} enabled:hover:bg-accent/16 disabled:opacity-30`}
               >
                 <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
                   <path
@@ -316,92 +406,70 @@ export function TradeComposer({
             onClick={onClose}
             aria-label="Close trade"
             title="Close (Esc)"
-            className={`flex size-10 items-center justify-center rounded-xl border border-line text-ink ${FX} enabled:hover:bg-white/8`}
+            className={`flex size-10 items-center justify-center rounded-xl border border-line text-ink ${compact ? 'absolute top-3 right-4 size-11' : ''} ${FX} enabled:hover:bg-white/8`}
           >
             <Icon name="close" size={16} />
           </button>
         </header>
 
-        {/* One scroll area for the whole table, so a card can fly from a hand to a mat unclipped. */}
-        <div className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto min-[700px]:grid-cols-[140px_minmax(0,1fr)_140px] min-[1180px]:grid-cols-[276px_minmax(0,1fr)_276px]">
-          <Hand
-            s={s}
-            seats={seats}
-            seat={me}
-            title="Your cards"
-            avatar={<TokenAvatar color={cssHex(seats[me]!.color)} piece={seats[me]!.piece} size={32} />}
-            inDeal={give.spaces}
-            onCard={(space, rect) => toggle('give', space, rect)}
-            fly={fly}
-            locked={settled}
-          />
-
-          <div className="p-3 min-[700px]:sticky min-[700px]:top-0 min-[700px]:self-start min-[1180px]:p-4.5">
-            <Felt className="p-3 min-[1180px]:p-5">
-              <div className="grid grid-cols-1 items-stretch min-[700px]:grid-cols-[minmax(0,1fr)_36px_minmax(0,1fr)] min-[1180px]:grid-cols-[minmax(0,1fr)_54px_minmax(0,1fr)]">
-                <Mat
-                  tone="give"
-                  footer={
-                    <div className="flex flex-col gap-2.5">
-                      {lockup('give', give, meP.jailCards.length)}
-                      <CashEditor
-                        label="You give: cash"
-                        value={give.cash}
-                        max={settled ? give.cash : meP.cash}
-                        locked={settled}
-                        onChange={(cash) => edit(setGive, { ...give, cash })}
-                      />
-                    </div>
-                  }
-                >
-                  {matCards('give', give)}
-                  {give.spaces.length === 0 && <CardSlot k={matK}>Click your cards to add them</CardSlot>}
-                  {give.cash > 0 && <CoinStack value={give.cash} reg={reg('give', 'cash')} />}
-                </Mat>
-                <SwapArrows />
-                <Mat
-                  tone="get"
-                  footer={
-                    <div className="flex flex-col gap-2.5">
-                      {lockup('get', get, them.jailCards.length)}
-                      <CashEditor
-                        label="You get: cash"
-                        value={get.cash}
-                        max={settled ? get.cash : them.cash}
-                        locked={settled}
-                        onChange={(cash) => edit(setGet, { ...get, cash })}
-                      />
-                    </div>
-                  }
-                >
-                  {matCards('get', get)}
-                  {get.spaces.length === 0 && (
-                    <CardSlot k={matK}>Click {them.name}&apos;s cards to add them</CardSlot>
-                  )}
-                  {get.cash > 0 && <CoinStack value={get.cash} reg={reg('get', 'cash')} />}
-                </Mat>
-              </div>
-            </Felt>
+        {compact ? (
+          // Phones: one side at a time. Each tab is its mat over the hand it takes cards from.
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+            <div
+              role="tablist"
+              aria-label="Sides"
+              className="sticky top-0 z-10 flex gap-1.5 bg-panel px-3 pt-2 pb-1"
+            >
+              {(['give', 'get'] as const).map((k) => {
+                const deal = k === 'give' ? give : get
+                const n = deal.spaces.length + (deal.cash > 0 ? 1 : 0) + deal.jailCards
+                return (
+                  <button
+                    key={k}
+                    type="button"
+                    role="tab"
+                    aria-selected={side === k}
+                    onClick={() => setSide(k)}
+                    className={`flex h-11 flex-1 items-center justify-center gap-2 rounded-xl text-sm font-extrabold ${FX} ${side === k ? 'bg-accent/15 text-gold' : 'text-ink-muted'}`}
+                  >
+                    {k === 'give' ? 'You give' : 'You get'}
+                    {n > 0 && (
+                      <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1.5 text-[11px] text-accent-ink">
+                        {n}
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+            <div className="p-3">
+              <Felt className="p-3">{side === 'give' ? giveMat : getMat}</Felt>
+            </div>
+            {side === 'give' ? myHand : theirHand}
           </div>
+        ) : (
+          <>
+            {/* One scroll area for the whole table, so a card can fly from a hand to a mat unclipped. */}
+            <div className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto min-[700px]:grid-cols-[140px_minmax(0,1fr)_140px] min-[1180px]:grid-cols-[276px_minmax(0,1fr)_276px]">
+              {myHand}
 
-          <Hand
-            s={s}
-            seats={seats}
-            seat={partner}
-            title={`${them.name}'s cards`}
-            avatar={
-              <TokenAvatar color={cssHex(seats[partner]!.color)} piece={seats[partner]!.piece} size={40} />
-            }
-            tag={bot ? `${personality ?? 'Balanced'} bot` : null}
-            bubble={bot ? <SpeechBubble text={line ?? ''} mood={lineMood} /> : null}
-            inDeal={get.spaces}
-            onCard={(space, rect) => toggle('get', space, rect)}
-            fly={fly}
-            locked={settled}
-          />
-        </div>
+              <div className="p-3 min-[700px]:sticky min-[700px]:top-0 min-[700px]:self-start min-[1180px]:p-4.5">
+                <Felt className="p-3 min-[1180px]:p-5">
+                  <div className="grid grid-cols-1 items-stretch min-[700px]:grid-cols-[minmax(0,1fr)_36px_minmax(0,1fr)] min-[1180px]:grid-cols-[minmax(0,1fr)_54px_minmax(0,1fr)]">
+                    {giveMat}
+                    <SwapArrows />
+                    {getMat}
+                  </div>
+                </Felt>
+              </div>
 
-        <footer className="flex flex-wrap items-center gap-x-4 gap-y-3 border-t border-line bg-white/2 px-5 py-3.5 min-[1180px]:px-6 min-[1180px]:py-4">
+              {theirHand}
+            </div>
+          </>
+        )}
+        <footer
+          className={`flex flex-wrap items-center gap-x-4 gap-y-3 border-t border-line bg-white/2 ${compact ? 'px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]' : 'px-5 py-3.5 min-[1180px]:px-6 min-[1180px]:py-4'}`}
+        >
           {/* The notes block keeps its width when empty, so the footer does not jump. */}
           <div className="flex min-h-9 w-60 flex-col justify-center">
             {empty ? (
