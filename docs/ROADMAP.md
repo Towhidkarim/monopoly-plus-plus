@@ -260,8 +260,8 @@ Seamless play on phones, portrait first. The developer pulled this ahead of the 
 
 1. Foundations: `viewport-fit=cover`, `100dvh`, no page scroll, pull-to-refresh or double-tap zoom, safe-area utilities, `useLayout()` (`compact` below 768 px wide or 500 px tall), board framing measured from the shell bars on compact screens. (done 2026-10-30)
 2. Compact HUD (player chips) and a thumb-zone action dock, 48 px touch targets. (done 2026-10-30)
-3. Bottom sheet component; decision panels (buy, auction, debt, offer, card) move onto it; log and My city as full-height sheets; tapping a player chip opens a player sheet (holdings, loan Pay off).
-4. Tap to inspect tiles (compact deed and landing odds), and an audit of hover-only information. Portrait framing: the board is width-limited, so tiles are small; try a closer default zoom that follows the active piece.
+3. Bottom sheet component; decision panels (buy, auction, debt, offer, card) move onto it; log and My city as full-height sheets. (done 2026-10-30; a tapped tile opens its deed in a sheet too)
+4. Tapping a player chip opens a player sheet (holdings, loan Pay off); landing odds and the other hover-only information get a tap path; recent toasts on phones. Portrait framing: the board is width-limited, so tiles are small; try a closer default zoom that follows the active piece.
 5. Trade composer as a full-screen view with your side / their side tabs.
 6. PWA: manifest, icons, service worker, install, fullscreen launch.
 7. Mobile performance profile: device pixel density, idle frame rate, fewer ambient effects, a "Battery saver" setting; checked on a real phone.

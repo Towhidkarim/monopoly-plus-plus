@@ -25,6 +25,8 @@ import { DeedSwatch, TickingMoney, FX, FX_BRIGHT, FX_GHOST } from './ui.tsx'
 import { ARMED, ConfirmBar, ConfirmBtn } from './ConfirmBtn.tsx'
 import { useConfirmPress } from './useConfirmPress.ts'
 import { fmtMoney } from './format.ts'
+import { useLayout } from '../../layout.ts'
+import { Sheet } from './Sheet.tsx'
 
 interface Family {
   key: string
@@ -71,6 +73,7 @@ export function MyCity({
   usePanelSound()
   // A drawer beside the board, not a modal: the board stays usable, so Tab is not trapped.
   const dialog = useDialogFocus({ modal: false })
+  const { compact } = useLayout()
   const s = snap.state
   const p = snap.presented
   const me = p.players[seat]!
@@ -94,12 +97,8 @@ export function MyCity({
 
   const seatInfo = store.setup.seats[seat]!
 
-  return (
-    // z-20: above the buy and auction layers (z-10) so you can raise cash mid-decision; below trade (z-30).
-    <aside
-      {...dialog.props}
-      className="pointer-events-auto absolute top-26 right-4 bottom-35 z-20 flex w-120 max-w-[calc(100%-2rem)] animate-slide-in flex-col overflow-hidden rounded-[26px] border border-line bg-panel shadow-[inset_0_1px_0_rgba(255,255,255,0.08),-20px_0_60px_rgba(2,6,16,0.55)]"
-    >
+  const content = (
+    <>
       <header className="flex items-center justify-between px-5 pt-4.5 pb-3 [@media(max-height:760px)]:pt-3 [@media(max-height:760px)]:pb-2">
         <h2 id={dialog.titleId} className="flex items-center gap-2.5 font-display text-2xl font-bold">
           <SkylineIcon />
@@ -163,6 +162,22 @@ export function MyCity({
       <p className="border-t border-line/50 px-5 pt-3 pb-4 text-xs leading-relaxed text-ink-muted [@media(max-height:760px)]:hidden">
         Build, sell and mortgage any time, even on other players' turns. Mortgaged properties earn no rent.
       </p>
+    </>
+  )
+  // Phones: a sheet that closes on a drag down; its body scrolls as one list.
+  if (compact)
+    return (
+      <Sheet as="aside" kind="browse" onClose={onClose} {...dialog.props}>
+        <div className="flex flex-col">{content}</div>
+      </Sheet>
+    )
+  return (
+    // z-20: above the buy and auction layers (z-10) so you can raise cash mid-decision; below trade (z-30).
+    <aside
+      {...dialog.props}
+      className="pointer-events-auto absolute top-26 right-4 bottom-35 z-20 flex w-120 max-w-[calc(100%-2rem)] animate-slide-in flex-col overflow-hidden rounded-[26px] border border-line bg-panel shadow-[inset_0_1px_0_rgba(255,255,255,0.08),-20px_0_60px_rgba(2,6,16,0.55)]"
+    >
+      {content}
     </aside>
   )
 }

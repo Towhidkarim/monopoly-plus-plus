@@ -68,7 +68,7 @@ export function Btn({
 /** Keyboard hint: a cream keycap. */
 export function Kbd({ children }: { children: ReactNode; onAccent?: boolean }) {
   return (
-    <kbd className="rounded-md bg-card px-1.5 py-0.5 font-sans text-[11px] font-extrabold text-card-ink shadow-keycap">
+    <kbd className="rounded-md pointer-coarse:hidden bg-card px-1.5 py-0.5 font-sans text-[11px] font-extrabold text-card-ink shadow-keycap">
       {children}
     </kbd>
   )

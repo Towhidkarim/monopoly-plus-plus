@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import type { Recap } from '../../game/recap.ts'
 import { RecapCard } from './RecapCard.tsx'
 import { SPACES, isOwnable, legalActions, mortgageValue, unmortgageCost, type Action } from '@skyline/engine'
-import { hintFor } from '../../game/hints.ts'
+import { hintFor, type Hint } from '../../game/hints.ts'
 import type { GameStore, Snapshot } from '../../game/store.ts'
 import { TIMINGS } from '../../game/timings.ts'
 import type { LogEntry } from '../../game/log.ts'
@@ -14,6 +14,7 @@ import { Icon } from './icons.tsx'
 import { DeedCard } from './TitleDeed.tsx'
 import { Btn, Eyebrow, Kbd, Panel, TokenAvatar, FX } from './ui.tsx'
 import { fmtMoney } from './format.ts'
+import { Sheet } from './Sheet.tsx'
 
 /** Property names, longest first, so a hint can highlight the one it talks about. */
 const NAME_RE = new RegExp(
@@ -60,7 +61,6 @@ export function LeftColumn({
   const roller = snap.presented.players[snap.presented.current]!
   const rollerName = soloHuman(store) && store.seatKind(roller.id) === 'human' ? 'You' : roller.name
   const doubles = snap.dice !== null && snap.dice[0] === snap.dice[1]
-  const warn = hint?.tone === 'warn'
   return (
     <div className="pointer-events-none absolute top-32 left-5 flex w-72 flex-col gap-3">
       {snap.dice && (
@@ -101,35 +101,116 @@ export function LeftColumn({
       ) : recap ? (
         <RecapCard recap={recap} store={store} onClose={onCloseRecap} />
       ) : (
-        hint && (
-          <Panel
-            key={hint.text}
-            className={`flex animate-rise flex-col gap-2 px-4 py-3.5 ${warn ? 'border-alert/35' : ''}`}
-          >
-            <Eyebrow className={`flex items-center gap-2 ${warn ? 'text-alert' : 'text-accent'}`}>
-              <span
-                className={`flex size-6 items-center justify-center rounded-full ${warn ? 'bg-alert/15' : 'bg-accent/15'}`}
-              >
-                <Icon name={warn ? 'alert' : 'bulb'} size={13} />
-              </span>
-              {hint.title}
-            </Eyebrow>
-            <p className="text-sm leading-[1.45]">
-              <HintText text={hint.text} />
-            </p>
-            {hint.city && (
-              <button
-                type="button"
-                onClick={onCity}
-                className="self-start rounded-md text-[13px] font-bold text-accent transition-colors hover:text-gold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-              >
-                Open My city →
-              </button>
-            )}
-          </Panel>
-        )
+        hint && <HintCard key={hint.text} hint={hint} onCity={onCity} />
       )}
     </div>
+  )
+}
+
+/** The current tip: what to watch out for or do next. */
+function HintCard({ hint, onCity }: { hint: Hint; onCity: () => void }) {
+  const warn = hint.tone === 'warn'
+  return (
+    <Panel className={`flex animate-rise flex-col gap-2 px-4 py-3.5 ${warn ? 'border-alert/35' : ''}`}>
+      <Eyebrow className={`flex items-center gap-2 ${warn ? 'text-alert' : 'text-accent'}`}>
+        <span
+          className={`flex size-6 items-center justify-center rounded-full ${warn ? 'bg-alert/15' : 'bg-accent/15'}`}
+        >
+          <Icon name={warn ? 'alert' : 'bulb'} size={13} />
+        </span>
+        {hint.title}
+      </Eyebrow>
+      <p className="text-sm leading-[1.45]">
+        <HintText text={hint.text} />
+      </p>
+      {hint.city && (
+        <button
+          type="button"
+          onClick={onCity}
+          className="self-start rounded-md text-[13px] font-bold text-accent transition-colors hover:text-gold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
+          Open My city →
+        </button>
+      )}
+    </Panel>
+  )
+}
+/** Phones: the dice tray, riding in the floating row above the dock (the 3D dice fly into it). */
+export function CompactDice({ snap, store }: { snap: Snapshot; store: GameStore }) {
+  if (!snap.dice) return null
+  return (
+    <Panel className="pointer-events-auto flex shrink-0 items-center self-end p-2">
+      <DiceTray
+        dice={snap.dice}
+        speedFace={snap.speedFace}
+        roll={snap.diceRoll}
+        landing={snap.diceLanding}
+        speed={store.settings.speed}
+        reduced={store.settings.reducedMotion}
+      />
+    </Panel>
+  )
+}
+
+/**
+ * Phones: what the desktop shows in the left column, one sheet at a time: the tapped tile, else
+ * the recap of the last round, else the current hint. Null when there is nothing to show.
+ */
+export function InfoSheet({
+  snap,
+  store,
+  selected,
+  recap,
+  onCity,
+  onClose,
+  onCloseRecap,
+}: {
+  snap: Snapshot
+  store: GameStore
+  selected: number | null
+  recap: Recap | null
+  onCity: () => void
+  onClose: () => void
+  onCloseRecap: () => void
+}) {
+  const hint = snap.viewer !== null && !snap.busy ? hintFor(snap.state, snap.viewer) : null
+  const body =
+    selected !== null ? (
+      <SelectedSpace index={selected} snap={snap} store={store} onCity={onCity} onClose={onClose} />
+    ) : recap ? (
+      <RecapCard recap={recap} store={store} onClose={onCloseRecap} />
+    ) : hint ? (
+      <HintCard hint={hint} onCity={onCity} />
+    ) : null
+  if (!body) return null
+  return (
+    <Sheet kind="browse" onClose={onClose}>
+      {/* A tile's deed keeps its card width, centered; the hint and recap fill the sheet. */}
+      <div className={`flex flex-col px-3 pb-3 ${selected !== null ? 'items-center' : '[&>*]:w-full'}`}>
+        {body}
+      </div>
+    </Sheet>
+  )
+}
+
+/** Phones: the game log as a sheet, newest first. */
+export function LogSheet({ snap, onClose }: { snap: Snapshot; onClose: () => void }) {
+  const dot = { normal: 'bg-sky', good: 'bg-teal', bad: 'bg-alert', muted: 'bg-ink-muted' }
+  const tone = { normal: 'text-ink', good: 'text-teal', bad: 'text-alert', muted: 'text-ink-muted' }
+  return (
+    <Sheet kind="browse" onClose={onClose} aria-label="Game log">
+      <div className="flex flex-col">
+        <Eyebrow className="px-5 pb-2 text-ink-muted">Game log</Eyebrow>
+        <ol className="flex flex-col gap-2 px-5 pb-4 text-sm leading-relaxed">
+          {snap.log.map((e) => (
+            <li key={e.id} className={`flex gap-2.5 ${tone[e.tone]}`}>
+              <span className={`mt-2 size-1.5 shrink-0 rounded-full ${dot[e.tone]}`} />
+              <span className="min-w-0">{e.text}</span>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </Sheet>
   )
 }
 

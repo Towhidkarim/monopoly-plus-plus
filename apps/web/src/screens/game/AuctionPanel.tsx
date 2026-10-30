@@ -7,6 +7,8 @@ import type { GameStore, Snapshot } from '../../game/store.ts'
 import { cssHex } from '../../spaceInfo.ts'
 import { useReducedMotion } from './cardEnv.tsx'
 import { useDialogFocus } from './useDialogFocus.ts'
+import { useLayout } from '../../layout.ts'
+import { Sheet } from './Sheet.tsx'
 import { bidAction, raiseOptions } from './auctionBids.ts'
 import { familyName, familyOf, rgba, setProgress } from './deed.ts'
 import { FADE_MS, FLY_MS, SOLD_HOLD_MS, flyToChip } from './finale.ts'
@@ -89,6 +91,7 @@ export function AuctionPanel({ snap, store, turn }: { snap: Snapshot; store: Gam
   const rootRef = useRef<HTMLDivElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
   const dimRef = useRef<HTMLDivElement>(null)
+  const { compact } = useLayout()
   const deedRef = useRef<HTMLDivElement>(null)
   const ghostRef = useRef<HTMLDivElement>(null)
   const cardRefs = useRef<Record<number, HTMLDivElement | null>>({})
@@ -204,255 +207,259 @@ export function AuctionPanel({ snap, store, turn }: { snap: Snapshot; store: Gam
   }
   const placeBid = (amount: number) => turn.act(bidAction(amount))
 
+  const panel = (
+    <div ref={panelRef} className="flex max-h-full w-195 max-w-full">
+      <Panel
+        className={`relative flex w-full flex-col overflow-hidden ${compact ? 'rounded-none! border-0! bg-transparent! shadow-none! backdrop-blur-none!' : 'animate-rise rounded-[26px] bg-panel shadow-panel-lg'}`}
+      >
+        <section {...dialog.props} className="flex min-h-0 flex-1 flex-col" {...(fin ? { inert: true } : {})}>
+          <div className="flex items-center gap-5.5 border-b border-line bg-white/3 px-6.5 py-5.5 [@media(max-height:760px)]:py-3.5">
+            <div ref={deedRef} className="shrink-0 rotate-[-4deg]">
+              <DeedCard index={a.space} variant="compact" state="forSale" />
+            </div>
+            <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+              <Eyebrow className="flex items-center gap-2 text-xs tracking-[0.16em] text-accent">
+                <GavelIcon color="var(--color-accent)" />
+                Auction
+              </Eyebrow>
+              <h2 id={dialog.titleId} className="truncate font-display text-[30px] leading-tight font-bold">
+                {sp.name}
+              </h2>
+              <span className="text-sm text-ink-muted">
+                List price <Money value={sp.price} /> · {familyName(a.space)}, {family.indexOf(a.space) + 1}{' '}
+                of {family.length}
+              </span>
+              <span className="mt-1.5 flex min-h-6 flex-wrap gap-1.5 text-xs text-ink-muted">
+                {hist.space === a.space &&
+                  hist.list.map((b, i) => (
+                    <span
+                      key={`${b.amount}:${b.seat}`}
+                      className={`rounded-full px-2 py-0.75 ${i === hist.list.length - 1 ? 'animate-tag-pop bg-accent/16 font-bold text-gold' : 'bg-white/5'}`}
+                    >
+                      {nameOf(b.seat)} {fmtMoney(b.amount)}
+                    </span>
+                  ))}
+              </span>
+            </div>
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <div className="flex items-center justify-between gap-4 px-6.5 pt-5 pb-1.5">
+              <span className="flex items-center gap-3">
+                {shownLeader >= 0 ? (
+                  <TokenAvatar
+                    key={shownLeader}
+                    color={colorOf(shownLeader)}
+                    piece={store.setup.seats[shownLeader]!.piece}
+                    size={44}
+                    className="animate-tag-pop"
+                    shadow="inset 0 -3px 0 rgba(0,0,0,0.18), 0 0 0 4px rgba(245,181,74,0.55), 0 0 22px rgba(245,181,74,0.35)"
+                  />
+                ) : (
+                  <span className="flex size-11 items-center justify-center rounded-full border-[1.5px] border-dashed border-line text-ink-muted">
+                    <GavelIcon />
+                  </span>
+                )}
+                <span className="flex flex-col">
+                  <span className="text-xs text-ink-muted">High bid</span>
+                  <span className="text-base font-extrabold">
+                    {shownLeader < 0
+                      ? 'No bids yet'
+                      : `${nameOf(shownLeader)} ${nameOf(shownLeader) === 'You' ? 'lead' : 'leads'}`}
+                  </span>
+                </span>
+              </span>
+              <Money
+                key={shownHigh}
+                value={shownHigh}
+                className={`animate-pop font-display text-[52px] leading-none font-bold [text-shadow:0_0_24px_rgba(255,207,112,0.4)] ${shownLeader < 0 ? 'text-ink-muted' : 'text-gold'}`}
+              />
+            </div>
+
+            <div
+              className="grid gap-2.5 px-6.5 py-3"
+              style={{ gridTemplateColumns: `repeat(${Math.min(seats.length, 6)}, minmax(0, 1fr))` }}
+            >
+              {seats.map(({ pl, seat }) => {
+                const color = colorOf(seat)
+                const won = sold && seat === fin.winner
+                const out = fin ? !won : !a.bidders.includes(seat)
+                const turnNow = !fin && bidder === seat
+                const leads = shownLeader === seat
+                const status = won
+                  ? 'Winner'
+                  : out
+                    ? 'Passed'
+                    : turnNow
+                      ? human(seat)
+                        ? solo
+                          ? 'Your bid'
+                          : 'Bidding'
+                        : 'Thinking…'
+                      : leads
+                        ? `Leading ${fmtMoney(a.highBid)}`
+                        : 'Waiting'
+                const pill =
+                  won || (turnNow && human(seat))
+                    ? 'bg-accent text-accent-ink'
+                    : leads && !out
+                      ? 'bg-accent/18 text-gold'
+                      : 'bg-white/7 text-ink-muted'
+                return (
+                  <div
+                    key={pl.id}
+                    ref={(el) => {
+                      cardRefs.current[seat] = el
+                    }}
+                    className={`flex flex-col items-center gap-2 rounded-[18px] border-[1.5px] px-2.5 py-3.5 transition-[opacity,translate,background-color,border-color] duration-300 ${
+                      out ? 'translate-y-1 border-line bg-white/3 opacity-45' : 'border-line bg-white/3'
+                    }`}
+                    style={
+                      turnNow || won
+                        ? { borderColor: 'var(--color-accent)', background: 'rgba(245,181,74,0.08)' }
+                        : leads && !out
+                          ? { borderColor: 'rgba(245,181,74,0.45)' }
+                          : undefined
+                    }
+                  >
+                    <TokenAvatar color={color} piece={store.setup.seats[seat]!.piece} size={38} />
+                    <span className="max-w-full truncate font-display text-sm font-bold">{nameOf(seat)}</span>
+                    <span
+                      className={`rounded-full px-2.5 py-1 text-[11px] font-extrabold whitespace-nowrap ${pill} ${turnNow && !human(seat) ? 'animate-pulse' : ''}`}
+                    >
+                      {status}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+
+            {set && (
+              <div
+                className="mx-6.5 mt-1.5 flex items-center gap-2.5 rounded-[14px] border px-3.5 py-3 text-[13px] leading-snug"
+                style={{ background: rgba(groupColor, 0.1), borderColor: rgba(groupColor, 0.3) }}
+              >
+                <span className="size-3 shrink-0 rounded-[3px]" style={{ background: groupColor }} />
+                <span>
+                  {sp.name} would give you {set.mine} of {set.total} {set.name}.{' '}
+                  {set.mine < set.total ? set.note : ''}
+                </span>
+              </div>
+            )}
+            {viewer !== null && !fin && (
+              <AdviceLines
+                advice={buyAdvice(s, viewer, a.space, Math.max(a.highBid, 1))}
+                className="mx-6.5 mt-2.5"
+              />
+            )}
+          </div>
+
+          {/* The bid row stays put; only the middle scrolls on a short window. */}
+          <div className="flex shrink-0 flex-col gap-3 border-t border-line/60 px-6.5 pt-4 pb-5">
+            {myBid ? (
+              <>
+                <Eyebrow className="text-ink-muted">
+                  Your bid · you have <Money value={myCash} className="text-gold" />
+                </Eyebrow>
+                <div className="flex flex-wrap gap-2.5">
+                  {raises.map((r, i) => (
+                    <Btn
+                      key={r.key}
+                      kind="primary"
+                      autofocus={i === 0}
+                      onClick={() => placeBid(r.amount)}
+                      className="h-14 min-w-24 flex-1 flex-col gap-0! rounded-2xl px-2"
+                    >
+                      <Money value={r.amount} className="font-display text-[17px] leading-tight" />
+                      <span className="flex items-center gap-1.5 text-[11px] leading-tight font-extrabold opacity-75">
+                        {r.step}
+                        <Kbd>{r.key}</Kbd>
+                      </span>
+                    </Btn>
+                  ))}
+                  <label className="flex h-14 min-w-32 flex-[1.3] items-center gap-1.5 rounded-2xl border border-line bg-table px-3.5 focus-within:border-accent">
+                    <span className="font-display text-ink-muted">₵</span>
+                    <input
+                      value={custom}
+                      inputMode="numeric"
+                      onChange={(e) => setCustom(e.target.value.replace(/\D/g, '').slice(0, 7))}
+                      onKeyDown={(e) => e.key === 'Enter' && submitCustom()}
+                      placeholder="Custom"
+                      aria-label="Custom bid"
+                      className={`w-full min-w-0 bg-transparent font-display text-[17px] outline-none placeholder:text-ink-muted/70 ${custom && !typedOk ? 'text-alert' : 'text-ink'}`}
+                    />
+                  </label>
+                  {custom && (
+                    <Btn
+                      kind="primary"
+                      disabled={!typedOk}
+                      onClick={submitCustom}
+                      className="h-14 rounded-2xl px-5"
+                    >
+                      Bid
+                    </Btn>
+                  )}
+                  <Btn
+                    onClick={() => turn.act({ type: 'PASS_BID' })}
+                    className="h-14 w-23 rounded-2xl text-[15px]"
+                  >
+                    Pass
+                    <Kbd>P</Kbd>
+                  </Btn>
+                </div>
+              </>
+            ) : fin ? (
+              <div className="py-2 text-center text-[13px] text-ink-muted">
+                {sold
+                  ? `${nameOf(fin.winner)} won it for ${fmtMoney(fin.amount)}.`
+                  : 'Nobody wanted it. It stays on the market.'}
+              </div>
+            ) : (
+              <div className="py-2 text-center text-[13px] text-ink-muted">
+                {s.players[bidder]!.name} is deciding…
+              </div>
+            )}
+          </div>
+        </section>
+
+        {fin && (
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 top-9 flex justify-center"
+          >
+            {sold ? (
+              <Stamp word={`SOLD to ${nameOf(fin.winner)} · ${fmtMoney(fin.amount)}`} size={26} rotate={-7} />
+            ) : (
+              <Stamp word="NO SALE" color="#64748b" size={30} rotate={-7} />
+            )}
+          </div>
+        )}
+      </Panel>
+    </div>
+  )
+  const ghostCard = ghost && (
+    <div ref={ghostRef} className="absolute z-20" style={{ left: ghost.left, top: ghost.top }}>
+      <div className="rotate-[-4deg]">
+        <DeedCard index={a.space} variant="compact" state="forSale" />
+      </div>
+    </div>
+  )
+
+  // Phones: a sheet; the sold card's ghost flies from the sheet over everything to the winner's chip.
+  if (compact)
+    return (
+      <Sheet ref={rootRef} dimRef={dimRef} overlay={ghostCard}>
+        {panel}
+      </Sheet>
+    )
   return (
     <div
       ref={rootRef}
       className={`pointer-events-none absolute inset-0 z-10 flex justify-center px-4 pt-28 pb-4`}
     >
       <div ref={dimRef} aria-hidden="true" className="absolute inset-0 animate-fade bg-table/55" />
-      <div ref={panelRef} className="flex max-h-full w-195 max-w-full">
-        <Panel className="relative flex w-full animate-rise flex-col overflow-hidden rounded-[26px] bg-panel shadow-panel-lg">
-          <section
-            {...dialog.props}
-            className="flex min-h-0 flex-1 flex-col"
-            {...(fin ? { inert: true } : {})}
-          >
-            <div className="flex items-center gap-5.5 border-b border-line bg-white/3 px-6.5 py-5.5 [@media(max-height:760px)]:py-3.5">
-              <div ref={deedRef} className="shrink-0 rotate-[-4deg]">
-                <DeedCard index={a.space} variant="compact" state="forSale" />
-              </div>
-              <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                <Eyebrow className="flex items-center gap-2 text-xs tracking-[0.16em] text-accent">
-                  <GavelIcon color="var(--color-accent)" />
-                  Auction
-                </Eyebrow>
-                <h2 id={dialog.titleId} className="truncate font-display text-[30px] leading-tight font-bold">
-                  {sp.name}
-                </h2>
-                <span className="text-sm text-ink-muted">
-                  List price <Money value={sp.price} /> · {familyName(a.space)}, {family.indexOf(a.space) + 1}{' '}
-                  of {family.length}
-                </span>
-                <span className="mt-1.5 flex min-h-6 flex-wrap gap-1.5 text-xs text-ink-muted">
-                  {hist.space === a.space &&
-                    hist.list.map((b, i) => (
-                      <span
-                        key={`${b.amount}:${b.seat}`}
-                        className={`rounded-full px-2 py-0.75 ${i === hist.list.length - 1 ? 'animate-tag-pop bg-accent/16 font-bold text-gold' : 'bg-white/5'}`}
-                      >
-                        {nameOf(b.seat)} {fmtMoney(b.amount)}
-                      </span>
-                    ))}
-                </span>
-              </div>
-            </div>
-
-            <div className="min-h-0 flex-1 overflow-y-auto">
-              <div className="flex items-center justify-between gap-4 px-6.5 pt-5 pb-1.5">
-                <span className="flex items-center gap-3">
-                  {shownLeader >= 0 ? (
-                    <TokenAvatar
-                      key={shownLeader}
-                      color={colorOf(shownLeader)}
-                      piece={store.setup.seats[shownLeader]!.piece}
-                      size={44}
-                      className="animate-tag-pop"
-                      shadow="inset 0 -3px 0 rgba(0,0,0,0.18), 0 0 0 4px rgba(245,181,74,0.55), 0 0 22px rgba(245,181,74,0.35)"
-                    />
-                  ) : (
-                    <span className="flex size-11 items-center justify-center rounded-full border-[1.5px] border-dashed border-line text-ink-muted">
-                      <GavelIcon />
-                    </span>
-                  )}
-                  <span className="flex flex-col">
-                    <span className="text-xs text-ink-muted">High bid</span>
-                    <span className="text-base font-extrabold">
-                      {shownLeader < 0
-                        ? 'No bids yet'
-                        : `${nameOf(shownLeader)} ${nameOf(shownLeader) === 'You' ? 'lead' : 'leads'}`}
-                    </span>
-                  </span>
-                </span>
-                <Money
-                  key={shownHigh}
-                  value={shownHigh}
-                  className={`animate-pop font-display text-[52px] leading-none font-bold [text-shadow:0_0_24px_rgba(255,207,112,0.4)] ${shownLeader < 0 ? 'text-ink-muted' : 'text-gold'}`}
-                />
-              </div>
-
-              <div
-                className="grid gap-2.5 px-6.5 py-3"
-                style={{ gridTemplateColumns: `repeat(${Math.min(seats.length, 6)}, minmax(0, 1fr))` }}
-              >
-                {seats.map(({ pl, seat }) => {
-                  const color = colorOf(seat)
-                  const won = sold && seat === fin.winner
-                  const out = fin ? !won : !a.bidders.includes(seat)
-                  const turnNow = !fin && bidder === seat
-                  const leads = shownLeader === seat
-                  const status = won
-                    ? 'Winner'
-                    : out
-                      ? 'Passed'
-                      : turnNow
-                        ? human(seat)
-                          ? solo
-                            ? 'Your bid'
-                            : 'Bidding'
-                          : 'Thinking…'
-                        : leads
-                          ? `Leading ${fmtMoney(a.highBid)}`
-                          : 'Waiting'
-                  const pill =
-                    won || (turnNow && human(seat))
-                      ? 'bg-accent text-accent-ink'
-                      : leads && !out
-                        ? 'bg-accent/18 text-gold'
-                        : 'bg-white/7 text-ink-muted'
-                  return (
-                    <div
-                      key={pl.id}
-                      ref={(el) => {
-                        cardRefs.current[seat] = el
-                      }}
-                      className={`flex flex-col items-center gap-2 rounded-[18px] border-[1.5px] px-2.5 py-3.5 transition-[opacity,translate,background-color,border-color] duration-300 ${
-                        out ? 'translate-y-1 border-line bg-white/3 opacity-45' : 'border-line bg-white/3'
-                      }`}
-                      style={
-                        turnNow || won
-                          ? { borderColor: 'var(--color-accent)', background: 'rgba(245,181,74,0.08)' }
-                          : leads && !out
-                            ? { borderColor: 'rgba(245,181,74,0.45)' }
-                            : undefined
-                      }
-                    >
-                      <TokenAvatar color={color} piece={store.setup.seats[seat]!.piece} size={38} />
-                      <span className="max-w-full truncate font-display text-sm font-bold">
-                        {nameOf(seat)}
-                      </span>
-                      <span
-                        className={`rounded-full px-2.5 py-1 text-[11px] font-extrabold whitespace-nowrap ${pill} ${turnNow && !human(seat) ? 'animate-pulse' : ''}`}
-                      >
-                        {status}
-                      </span>
-                    </div>
-                  )
-                })}
-              </div>
-
-              {set && (
-                <div
-                  className="mx-6.5 mt-1.5 flex items-center gap-2.5 rounded-[14px] border px-3.5 py-3 text-[13px] leading-snug"
-                  style={{ background: rgba(groupColor, 0.1), borderColor: rgba(groupColor, 0.3) }}
-                >
-                  <span className="size-3 shrink-0 rounded-[3px]" style={{ background: groupColor }} />
-                  <span>
-                    {sp.name} would give you {set.mine} of {set.total} {set.name}.{' '}
-                    {set.mine < set.total ? set.note : ''}
-                  </span>
-                </div>
-              )}
-              {viewer !== null && !fin && (
-                <AdviceLines
-                  advice={buyAdvice(s, viewer, a.space, Math.max(a.highBid, 1))}
-                  className="mx-6.5 mt-2.5"
-                />
-              )}
-            </div>
-
-            {/* The bid row stays put; only the middle scrolls on a short window. */}
-            <div className="flex shrink-0 flex-col gap-3 border-t border-line/60 px-6.5 pt-4 pb-5">
-              {myBid ? (
-                <>
-                  <Eyebrow className="text-ink-muted">
-                    Your bid · you have <Money value={myCash} className="text-gold" />
-                  </Eyebrow>
-                  <div className="flex flex-wrap gap-2.5">
-                    {raises.map((r, i) => (
-                      <Btn
-                        key={r.key}
-                        kind="primary"
-                        autofocus={i === 0}
-                        onClick={() => placeBid(r.amount)}
-                        className="h-14 min-w-24 flex-1 flex-col gap-0! rounded-2xl px-2"
-                      >
-                        <Money value={r.amount} className="font-display text-[17px] leading-tight" />
-                        <span className="flex items-center gap-1.5 text-[11px] leading-tight font-extrabold opacity-75">
-                          {r.step}
-                          <Kbd>{r.key}</Kbd>
-                        </span>
-                      </Btn>
-                    ))}
-                    <label className="flex h-14 min-w-32 flex-[1.3] items-center gap-1.5 rounded-2xl border border-line bg-table px-3.5 focus-within:border-accent">
-                      <span className="font-display text-ink-muted">₵</span>
-                      <input
-                        value={custom}
-                        inputMode="numeric"
-                        onChange={(e) => setCustom(e.target.value.replace(/\D/g, '').slice(0, 7))}
-                        onKeyDown={(e) => e.key === 'Enter' && submitCustom()}
-                        placeholder="Custom"
-                        aria-label="Custom bid"
-                        className={`w-full min-w-0 bg-transparent font-display text-[17px] outline-none placeholder:text-ink-muted/70 ${custom && !typedOk ? 'text-alert' : 'text-ink'}`}
-                      />
-                    </label>
-                    {custom && (
-                      <Btn
-                        kind="primary"
-                        disabled={!typedOk}
-                        onClick={submitCustom}
-                        className="h-14 rounded-2xl px-5"
-                      >
-                        Bid
-                      </Btn>
-                    )}
-                    <Btn
-                      onClick={() => turn.act({ type: 'PASS_BID' })}
-                      className="h-14 w-23 rounded-2xl text-[15px]"
-                    >
-                      Pass
-                      <Kbd>P</Kbd>
-                    </Btn>
-                  </div>
-                </>
-              ) : fin ? (
-                <div className="py-2 text-center text-[13px] text-ink-muted">
-                  {sold
-                    ? `${nameOf(fin.winner)} won it for ${fmtMoney(fin.amount)}.`
-                    : 'Nobody wanted it. It stays on the market.'}
-                </div>
-              ) : (
-                <div className="py-2 text-center text-[13px] text-ink-muted">
-                  {s.players[bidder]!.name} is deciding…
-                </div>
-              )}
-            </div>
-          </section>
-
-          {fin && (
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-x-0 top-9 flex justify-center"
-            >
-              {sold ? (
-                <Stamp
-                  word={`SOLD to ${nameOf(fin.winner)} · ${fmtMoney(fin.amount)}`}
-                  size={26}
-                  rotate={-7}
-                />
-              ) : (
-                <Stamp word="NO SALE" color="#64748b" size={30} rotate={-7} />
-              )}
-            </div>
-          )}
-        </Panel>
-      </div>
-      {ghost && (
-        <div ref={ghostRef} className="absolute z-20" style={{ left: ghost.left, top: ghost.top }}>
-          <div className="rotate-[-4deg]">
-            <DeedCard index={a.space} variant="compact" state="forSale" />
-          </div>
-        </div>
-      )}
+      {panel}
+      {ghostCard}
     </div>
   )
 }

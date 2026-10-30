@@ -18,6 +18,8 @@ import type { GameStore, Snapshot } from '../../game/store.ts'
 import { cssHex } from '../../spaceInfo.ts'
 import { useReducedMotion } from './cardEnv.tsx'
 import { useDialogFocus } from './useDialogFocus.ts'
+import { useLayout } from '../../layout.ts'
+import { Sheet as PhoneSheet } from './Sheet.tsx'
 import { Stamp } from './cardMotion.tsx'
 import { flavorOf } from './cardInfo.ts'
 import { familyColor, familyName } from './deed.ts'
@@ -233,12 +235,153 @@ function Sheet({
 }) {
   const [confirm, setConfirm] = useState(false)
   const dialog = useDialogFocus({ active: live })
+  const { compact } = useLayout()
   const creditorName = v.creditor?.name ?? 'the bank'
   const total = Math.max(v.owed, v.cash + v.liquid)
   const pct = (x: number) => `${Math.max(0, Math.min(100, (x / total) * 100))}%`
   const out = leave?.out ?? false
   const id = store.setup.seats[v.seat]!.id
 
+  const panel = (
+    <section
+      className={`flex max-h-[calc(100vh-9rem)] w-140 max-w-full shrink-0 animate-rise flex-col overflow-hidden rounded-3xl border border-alert/40 bg-panel shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_0_4px_rgba(251,113,133,0.08),0_28px_60px_rgba(2,6,16,0.65)] ${leave && !reduced ? 'transition-opacity duration-300' : ''} ${leave ? 'opacity-60' : ''}`}
+    >
+      <div className="flex flex-col gap-3.5 px-6 pt-5.5 pb-4">
+        <Eyebrow className="text-xs text-rose-300">
+          You owe {creditorName} {fmtMoney(v.owed)} {REASON[v.reason] ?? ''}
+        </Eyebrow>
+        <h2
+          id={dialog.titleId}
+          className={`font-display leading-tight font-bold ${compact ? 'text-[26px]' : 'text-[32px]'}`}
+        >
+          Raise {fmtMoney(Math.max(0, v.need))} to pay
+        </h2>
+        <div className="flex flex-col gap-1.5">
+          <div aria-hidden="true" className="relative h-4 overflow-hidden rounded-lg bg-white/6">
+            <span className="absolute inset-y-0 left-0 bg-accent" style={{ width: pct(v.cash) }} />
+            <span
+              className="absolute inset-y-0 bg-[repeating-linear-gradient(135deg,rgba(94,234,212,0.55)_0_6px,rgba(94,234,212,0.2)_6px_12px]"
+              style={{ left: pct(v.cash), width: pct(Math.min(v.liquid, total - v.cash)) }}
+            />
+            <span
+              className="absolute -top-0.5 -bottom-0.5 w-[3px] bg-card shadow-[0_0_8px_rgba(255,255,255,0.7)]"
+              style={{ left: `calc(${pct(v.owed)} - 3px)` }}
+            />
+          </div>
+          <div className="flex justify-between text-xs text-ink-muted tabular-nums">
+            <strong className="font-bold text-gold">Cash {fmtMoney(v.cash)}</strong>
+            <span className="flex items-center gap-1.5">
+              <span aria-hidden="true" className="h-3 w-[3px] rounded-full bg-card" />
+              Owed {fmtMoney(v.owed)}
+            </span>
+            <span>
+              Everything below <strong className="font-bold text-teal">+{fmtMoney(v.liquid)}</strong>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {v.loan && <LoanOffer loan={v.loan} live={live} onTake={() => turn.act({ type: 'TAKE_LOAN' })} />}
+
+      <div className="flex min-h-14 flex-1 flex-col gap-0.5 overflow-y-auto px-3">
+        {v.options.map(({ a, title, detail: note }) => {
+          const picked = v.recommended.some((r) => r.type === a.type && 'space' in r && r.space === a.space)
+          return (
+            <div
+              key={`${a.type}${a.space}`}
+              className={`flex shrink-0 items-center gap-3 rounded-[14px] px-3 py-2.5 ${picked && v.enough ? 'bg-teal/6' : ''}`}
+            >
+              <DeedSwatch color={familyColor(a.space)} />
+              <div className="flex min-w-0 flex-1 flex-col">
+                <span className="truncate text-sm font-extrabold">{title}</span>
+                <span className="text-xs text-ink-muted">{note}</span>
+              </div>
+              <TealBtn disabled={!live} onClick={() => turn.act(a)}>
+                +{fmtMoney(raiseValue(a))}
+              </TealBtn>
+            </div>
+          )
+        })}
+        {v.options.length === 0 && (
+          <div className="px-3 py-3 text-sm text-ink-muted">Nothing left to sell or mortgage.</div>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-3 px-6 pt-4 pb-5.5">
+        {!v.enough && !v.loan?.legal && (
+          <div className="rounded-xl border border-alert/30 bg-alert/10 px-3.5 py-3 text-[13px] leading-relaxed">
+            Even selling and mortgaging everything leaves you {fmtMoney(v.need - v.liquid)} short. A trade
+            could still save you.
+          </div>
+        )}
+        {confirm ? (
+          <div className="flex flex-wrap items-center gap-2.5">
+            <span className="mr-auto text-sm text-ink-muted">
+              Everything you own goes to {creditorName}. Sure?
+            </span>
+            <Btn
+              kind="danger"
+              disabled={!live}
+              onClick={() => turn.act({ type: 'DECLARE_BANKRUPTCY' })}
+              className="h-12 rounded-2xl"
+            >
+              Yes, go bankrupt
+            </Btn>
+            <Btn kind="ghost" onClick={() => setConfirm(false)} className="h-12 rounded-2xl">
+              Keep playing
+            </Btn>
+          </div>
+        ) : (
+          // Phones: the plan button takes its own row, trade and bankrupt share the next.
+          <div
+            className={`flex items-center gap-2.5 ${compact ? 'flex-wrap [&>*:first-child]:basis-full' : ''}`}
+          >
+            {v.planActions.length > 0 && (
+              <Btn
+                autofocus={!v.loan?.legal}
+                kind={v.enough && !v.loan?.legal ? 'primary' : 'secondary'}
+                disabled={!live}
+                onClick={() => store.run(id, v.planActions)}
+                className="h-14 min-w-0 flex-1 rounded-2xl px-5 text-base"
+                title={
+                  v.enough
+                    ? 'Mortgages lone properties first, then sells houses where rent drops least'
+                    : undefined
+                }
+              >
+                {v.enough
+                  ? `Raise ${fmtMoney(v.need)} automatically`
+                  : `Raise everything (+${fmtMoney(v.planAmount)})`}
+              </Btn>
+            )}
+            <Btn
+              disabled={!live || !onTrade}
+              onClick={() => onTrade?.()}
+              className="h-14 rounded-2xl px-4.5 text-[15px]"
+            >
+              Offer a trade <Kbd>T</Kbd>
+            </Btn>
+            <button
+              type="button"
+              disabled={!live}
+              onClick={() => setConfirm(true)}
+              className="h-14 rounded-2xl px-3.5 text-sm font-extrabold text-rose-300 underline underline-offset-4 transition hover:text-rose-200 disabled:opacity-40"
+            >
+              Go bankrupt
+            </button>
+          </div>
+        )}
+      </div>
+    </section>
+  )
+
+  // Phones: a sheet without the paper bill (the header already says what is owed).
+  if (compact)
+    return (
+      <PhoneSheet {...dialog.props} {...(leave ? { inert: true } : {})}>
+        {panel}
+      </PhoneSheet>
+    )
   return (
     <div
       {...dialog.props}
@@ -250,132 +393,7 @@ function Sheet({
       >
         <Bill v={v} creditorName={creditorName} outcome={leave?.outcome ?? null} reduced={reduced} />
 
-        <section
-          className={`flex max-h-[calc(100vh-9rem)] w-140 max-w-full shrink-0 animate-rise flex-col overflow-hidden rounded-3xl border border-alert/40 bg-panel shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_0_4px_rgba(251,113,133,0.08),0_28px_60px_rgba(2,6,16,0.65)] ${leave && !reduced ? 'transition-opacity duration-300' : ''} ${leave ? 'opacity-60' : ''}`}
-        >
-          <div className="flex flex-col gap-3.5 px-6 pt-5.5 pb-4">
-            <Eyebrow className="text-xs text-rose-300">
-              You owe {creditorName} {fmtMoney(v.owed)} {REASON[v.reason] ?? ''}
-            </Eyebrow>
-            <h2 id={dialog.titleId} className="font-display text-[32px] leading-tight font-bold">
-              Raise {fmtMoney(Math.max(0, v.need))} to pay
-            </h2>
-            <div className="flex flex-col gap-1.5">
-              <div aria-hidden="true" className="relative h-4 overflow-hidden rounded-lg bg-white/6">
-                <span className="absolute inset-y-0 left-0 bg-accent" style={{ width: pct(v.cash) }} />
-                <span
-                  className="absolute inset-y-0 bg-[repeating-linear-gradient(135deg,rgba(94,234,212,0.55)_0_6px,rgba(94,234,212,0.2)_6px_12px]"
-                  style={{ left: pct(v.cash), width: pct(Math.min(v.liquid, total - v.cash)) }}
-                />
-                <span
-                  className="absolute -top-0.5 -bottom-0.5 w-[3px] bg-card shadow-[0_0_8px_rgba(255,255,255,0.7)]"
-                  style={{ left: `calc(${pct(v.owed)} - 3px)` }}
-                />
-              </div>
-              <div className="flex justify-between text-xs text-ink-muted tabular-nums">
-                <strong className="font-bold text-gold">Cash {fmtMoney(v.cash)}</strong>
-                <span className="flex items-center gap-1.5">
-                  <span aria-hidden="true" className="h-3 w-[3px] rounded-full bg-card" />
-                  Owed {fmtMoney(v.owed)}
-                </span>
-                <span>
-                  Everything below <strong className="font-bold text-teal">+{fmtMoney(v.liquid)}</strong>
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {v.loan && <LoanOffer loan={v.loan} live={live} onTake={() => turn.act({ type: 'TAKE_LOAN' })} />}
-
-          <div className="flex min-h-14 flex-1 flex-col gap-0.5 overflow-y-auto px-3">
-            {v.options.map(({ a, title, detail: note }) => {
-              const picked = v.recommended.some(
-                (r) => r.type === a.type && 'space' in r && r.space === a.space,
-              )
-              return (
-                <div
-                  key={`${a.type}${a.space}`}
-                  className={`flex shrink-0 items-center gap-3 rounded-[14px] px-3 py-2.5 ${picked && v.enough ? 'bg-teal/6' : ''}`}
-                >
-                  <DeedSwatch color={familyColor(a.space)} />
-                  <div className="flex min-w-0 flex-1 flex-col">
-                    <span className="truncate text-sm font-extrabold">{title}</span>
-                    <span className="text-xs text-ink-muted">{note}</span>
-                  </div>
-                  <TealBtn disabled={!live} onClick={() => turn.act(a)}>
-                    +{fmtMoney(raiseValue(a))}
-                  </TealBtn>
-                </div>
-              )
-            })}
-            {v.options.length === 0 && (
-              <div className="px-3 py-3 text-sm text-ink-muted">Nothing left to sell or mortgage.</div>
-            )}
-          </div>
-
-          <div className="flex flex-col gap-3 px-6 pt-4 pb-5.5">
-            {!v.enough && !v.loan?.legal && (
-              <div className="rounded-xl border border-alert/30 bg-alert/10 px-3.5 py-3 text-[13px] leading-relaxed">
-                Even selling and mortgaging everything leaves you {fmtMoney(v.need - v.liquid)} short. A trade
-                could still save you.
-              </div>
-            )}
-            {confirm ? (
-              <div className="flex flex-wrap items-center gap-2.5">
-                <span className="mr-auto text-sm text-ink-muted">
-                  Everything you own goes to {creditorName}. Sure?
-                </span>
-                <Btn
-                  kind="danger"
-                  disabled={!live}
-                  onClick={() => turn.act({ type: 'DECLARE_BANKRUPTCY' })}
-                  className="h-12 rounded-2xl"
-                >
-                  Yes, go bankrupt
-                </Btn>
-                <Btn kind="ghost" onClick={() => setConfirm(false)} className="h-12 rounded-2xl">
-                  Keep playing
-                </Btn>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2.5">
-                {v.planActions.length > 0 && (
-                  <Btn
-                    autofocus={!v.loan?.legal}
-                    kind={v.enough && !v.loan?.legal ? 'primary' : 'secondary'}
-                    disabled={!live}
-                    onClick={() => store.run(id, v.planActions)}
-                    className="h-14 min-w-0 flex-1 rounded-2xl px-5 text-base"
-                    title={
-                      v.enough
-                        ? 'Mortgages lone properties first, then sells houses where rent drops least'
-                        : undefined
-                    }
-                  >
-                    {v.enough
-                      ? `Raise ${fmtMoney(v.need)} automatically`
-                      : `Raise everything (+${fmtMoney(v.planAmount)})`}
-                  </Btn>
-                )}
-                <Btn
-                  disabled={!live || !onTrade}
-                  onClick={() => onTrade?.()}
-                  className="h-14 rounded-2xl px-4.5 text-[15px]"
-                >
-                  Offer a trade <Kbd>T</Kbd>
-                </Btn>
-                <button
-                  type="button"
-                  disabled={!live}
-                  onClick={() => setConfirm(true)}
-                  className="h-14 rounded-2xl px-3.5 text-sm font-extrabold text-rose-300 underline underline-offset-4 transition hover:text-rose-200 disabled:opacity-40"
-                >
-                  Go bankrupt
-                </button>
-              </div>
-            )}
-          </div>
-        </section>
+        {panel}
       </div>
     </div>
   )

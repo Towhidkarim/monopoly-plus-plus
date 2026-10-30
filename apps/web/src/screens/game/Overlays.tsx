@@ -40,9 +40,10 @@ export function CardPopup({ snap, store }: { snap: Snapshot; store: GameStore })
   return (
     <div
       {...dialog.props}
-      className={`absolute inset-x-0 top-24 bottom-0 flex items-start justify-center px-4 pt-20 ${c.waiting ? 'pointer-events-auto bg-table/55' : 'pointer-events-none'}`}
+      // A phone held sideways (short screen, D64): centered and scaled down, the card is taller than the screen.
+      className={`absolute inset-x-0 top-24 bottom-0 flex items-start justify-center px-4 pt-20 [@media(max-height:499px)]:top-0 [@media(max-height:499px)]:items-center [@media(max-height:499px)]:pt-0 ${c.waiting ? 'pointer-events-auto bg-table/55' : 'pointer-events-none'}`}
     >
-      <div className="flex flex-col items-center gap-[18px]">
+      <div className="flex flex-col items-center gap-[18px] [@media(max-height:499px)]:scale-[0.62]">
         <div className="relative h-[440px] w-[300px]">
           {/* The deck behind the drawn card. */}
           <div

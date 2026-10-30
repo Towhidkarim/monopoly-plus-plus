@@ -25,6 +25,7 @@ export function ActionDock({
   hoverSpace = null,
   onHoverSpace,
   compact = false,
+  tray,
 }: {
   snap: Snapshot
   store: GameStore
@@ -38,6 +39,8 @@ export function ActionDock({
   /** Opens the trade screen, or null when the viewer cannot trade. */
   onTrade: (() => void) | null
   compact?: boolean
+  /** Phones: the dice tray, at the end of the floating row. */
+  tray?: ReactNode
 }) {
   // The primary button is replaced (new key) whenever the action changes, for example Roll to End
   // turn. If keyboard focus was on it, put focus on its successor instead of dropping it on <body>.
@@ -72,22 +75,26 @@ export function ActionDock({
     return (
       <div data-inset="bottom" className="pointer-events-none absolute inset-x-0 bottom-0 px-safe pb-safe">
         <div className="relative mx-auto max-w-lg px-3 pb-3">
-          {extras && (
-            <div className="pointer-events-auto absolute inset-x-3 bottom-full mb-2 flex flex-col gap-2">
-              {turn.moment === 'move' ? (
-                <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
-                  <legend className="sr-only">Where to go</legend>
-                  {moves}
-                </fieldset>
-              ) : (
-                <div className="flex gap-2">
-                  {secondary.map((c) => (
-                    <DockButton key={c.label} onClick={c.run} compact>
-                      {c.label}
-                    </DockButton>
-                  ))}
-                </div>
-              )}
+          {(extras || tray) && (
+            // The floating row: secondary actions or the Speed die's choices, and the dice tray.
+            <div className="pointer-events-none absolute inset-x-3 bottom-full mb-2 flex items-end gap-2">
+              <div className="pointer-events-auto flex min-w-0 flex-1 flex-col gap-2">
+                {!extras ? null : turn.moment === 'move' ? (
+                  <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
+                    <legend className="sr-only">Where to go</legend>
+                    {moves}
+                  </fieldset>
+                ) : (
+                  <div className="flex gap-2">
+                    {secondary.map((c) => (
+                      <DockButton key={c.label} onClick={c.run} compact>
+                        {c.label}
+                      </DockButton>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {tray}
             </div>
           )}
           <nav
@@ -197,7 +204,7 @@ export function ActionDock({
               {primary.label.startsWith('Roll') && <Icon name="dice" size={24} />}
               {primary.label}
               {primary.hotkey && (
-                <span className="rounded-md bg-card px-2 py-[3px] font-sans text-[11px] font-extrabold text-card-ink shadow-keycap">
+                <span className="rounded-md bg-card px-2 py-[3px] pointer-coarse:hidden font-sans text-[11px] font-extrabold text-card-ink shadow-keycap">
                   {primary.hotkey.length === 1 ? primary.hotkey.toUpperCase() : primary.hotkey}
                 </span>
               )}

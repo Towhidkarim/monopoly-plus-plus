@@ -6,6 +6,7 @@ import { mortgageFee, reaction } from '../../game/trade.ts'
 import { cssHex } from '../../spaceInfo.ts'
 import { useReducedMotion } from './cardEnv.tsx'
 import { useDialogFocus } from './useDialogFocus.ts'
+import { Sheet } from './Sheet.tsx'
 import { Icon } from './icons.tsx'
 import type { TradeDraft } from './TradeComposer.tsx'
 import { BundleOnMat, DealNotes, Felt, Mat, ResultStamp, SpeechBubble } from './TradeParts.tsx'
@@ -151,7 +152,8 @@ function OfferCard({
 
   const sender = seats[offer.from]!
   return (
-    <section
+    <Sheet
+      as="section"
       {...dialog.props}
       className="pointer-events-auto absolute inset-x-0 top-24 bottom-0 flex items-center justify-center bg-table/60 p-3"
     >
@@ -255,6 +257,6 @@ function OfferCard({
           </Btn>
         </div>
       </Panel>
-    </section>
+    </Sheet>
   )
 }

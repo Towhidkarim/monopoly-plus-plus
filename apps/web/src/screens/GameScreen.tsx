@@ -12,6 +12,7 @@ import { buildableGroups } from '@skyline/bots'
 import { cityOf } from '../game/setup.ts'
 import { applyCursorPref, type CursorPref } from '../cursors.ts'
 import { landingOdds } from '../game/odds.ts'
+import { hintFor } from '../game/hints.ts'
 import { RecapTracker, type Recap } from '../game/recap.ts'
 import { BarkMapper } from '../game/barks.ts'
 import { skyLevel, type SkyPref } from '../game/sky.ts'
@@ -32,7 +33,7 @@ import { OfferPanel } from './game/OfferPanel.tsx'
 import { TradeComposer, type TradeDraft } from './game/TradeComposer.tsx'
 import { SPEEDS, fmtMoney, type SpeedChoice } from './game/format.ts'
 import { CardPopup, GameMenu, GameOver, HelpOverlay } from './game/Overlays.tsx'
-import { ActivityFeed, LeftColumn } from './game/SidePanels.tsx'
+import { ActivityFeed, CompactDice, InfoSheet, LeftColumn, LogSheet } from './game/SidePanels.tsx'
 import { TurnBanner } from './game/TurnBanner.tsx'
 import { turnView, type TurnView } from './game/turn.ts'
 
@@ -90,6 +91,9 @@ export function GameScreen({
   const [help, setHelp] = useState(() => initialPanel() === 'help')
   const [menu, setMenu] = useState(false)
   const [showLog, setShowLog] = useState(false)
+  // Phones: the hint or recap sheet, and what the hint button last showed (for its dot).
+  const [infoOpen, setInfoOpen] = useState(false)
+  const [infoSeen, setInfoSeen] = useState<string | null>(null)
 
   // "While you waited": a recap when a human's turn on this screen comes back (game/recap.ts).
   const [recap, setRecap] = useState<Recap | null>(null)
@@ -266,6 +270,9 @@ export function GameScreen({
     persist()
   }
   const select = (space: number | null) => handle?.board.select(space)
+  // Phones: the hint button opens the recap before the roll, else the current hint.
+  const phoneHint = compact && viewer !== null && !snap.busy ? hintFor(snap.state, viewer) : null
+  const infoKey = preRoll && recap ? `recap-${snap.presented.round}` : (phoneHint?.text ?? null)
   const toggleCity = () => viewer !== null && setCityOpen((v) => !v)
 
   const onKey = (e: KeyboardEvent) => {
@@ -344,6 +351,16 @@ export function GameScreen({
                 landscape={landscape}
                 onHelp={() => setHelp(true)}
                 onMenu={() => setMenu((v) => !v)}
+                onLog={() => setShowLog(true)}
+                onInfo={
+                  infoKey
+                    ? () => {
+                        setInfoSeen(infoKey)
+                        setInfoOpen(true)
+                      }
+                    : null
+                }
+                infoDot={infoKey !== null && infoKey !== infoSeen}
                 barks={barks}
                 banner={<TurnBanner snap={snap} store={store} turn={turn} cityOpen={cityOpen} compact />}
               />
@@ -402,7 +419,31 @@ export function GameScreen({
               hoverSpace={hoverSpace}
               onHoverSpace={setHoverSpace}
               compact={compact}
+              tray={compact ? <CompactDice snap={snap} store={store} /> : null}
             />
+            {/* Phones: the left column and the log as sheets, out of the way during decisions. */}
+            {compact && !focus && !cityOpen && (selected !== null || infoOpen) && (
+              <InfoSheet
+                snap={snap}
+                store={store}
+                selected={selected}
+                recap={preRoll ? recap : null}
+                onCity={() => {
+                  setInfoOpen(false)
+                  select(null)
+                  setCityOpen(true)
+                }}
+                onClose={() => {
+                  setInfoOpen(false)
+                  select(null)
+                }}
+                onCloseRecap={() => {
+                  setRecap(null)
+                  setInfoOpen(false)
+                }}
+              />
+            )}
+            {compact && showLog && !focus && <LogSheet snap={snap} onClose={() => setShowLog(false)} />}
             <CalloutLayer store={store} />
             <AuctionPanel snap={snap} store={store} turn={turn} />
             <BuyMoment snap={snap} store={store} turn={turn} onCity={() => setCityOpen(true)} />

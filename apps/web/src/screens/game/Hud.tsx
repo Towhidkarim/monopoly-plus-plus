@@ -181,6 +181,7 @@ function HudButton({
   label,
   title,
   touch = false,
+  disabled = false,
 }: {
   children: ReactNode
   onClick: () => void
@@ -188,6 +189,7 @@ function HudButton({
   title: string
   /** Phone: always a 44 px touch target. */
   touch?: boolean
+  disabled?: boolean
 }) {
   return (
     <button
@@ -195,7 +197,8 @@ function HudButton({
       aria-label={label}
       title={title}
       onClick={onClick}
-      className={`flex size-11 ${touch ? '' : 'max-[1100px]:size-9'} items-center justify-center rounded-[14px] border border-line bg-panel text-ink shadow-[inset_0_1px_0_rgba(255,255,255,0.07)] ${FX} enabled:hover:bg-panel-2 enabled:hover:text-gold`}
+      disabled={disabled}
+      className={`relative flex size-11 disabled:opacity-35 ${touch ? '' : 'max-[1100px]:size-9'} items-center justify-center rounded-[14px] border border-line bg-panel text-ink shadow-[inset_0_1px_0_rgba(255,255,255,0.07)] ${FX} enabled:hover:bg-panel-2 enabled:hover:text-gold`}
     >
       {children}
     </button>
@@ -277,6 +280,9 @@ export function CompactHud({
   landscape,
   onHelp,
   onMenu,
+  onLog,
+  onInfo,
+  infoDot,
   barks = {},
   banner,
 }: {
@@ -285,6 +291,12 @@ export function CompactHud({
   landscape: boolean
   onHelp: () => void
   onMenu: () => void
+  /** Opens the game log sheet. */
+  onLog: () => void
+  /** Opens the hint or recap sheet; null when there is nothing to show. */
+  onInfo: (() => void) | null
+  /** Something new behind the hint button (a fresh recap or hint). */
+  infoDot: boolean
   barks?: Readonly<Record<string, { text: string; key: number }>>
   banner?: ReactNode
 }) {
@@ -302,6 +314,16 @@ export function CompactHud({
   )
   const buttons = (
     <div className="pointer-events-auto flex shrink-0 gap-1.5">
+      {/* Always there (dimmed when empty), so the row does not shift while bots play. */}
+      <HudButton touch onClick={onInfo ?? (() => {})} disabled={!onInfo} label="Hint" title="Hint">
+        <Icon name="bulb" size={18} />
+        {infoDot && (
+          <span className="absolute top-1.5 right-1.5 size-2.5 animate-pop rounded-full bg-accent shadow-[0_0_0_2px_var(--color-panel)]" />
+        )}
+      </HudButton>
+      <HudButton touch onClick={onLog} label="Game log" title="Game log">
+        <Icon name="log" size={18} />
+      </HudButton>
       <HudButton
         touch
         onClick={() => sound.setSettings({ muted: !muted })}
@@ -415,10 +437,7 @@ export function CompactHud({
           </>
         ) : (
           <>
-            <span className="pointer-events-auto flex flex-1 items-center gap-2">
-              <Logo />
-              {round}
-            </span>
+            <span className="pointer-events-auto flex flex-1 items-center">{round}</span>
             {buttons}
             {chips}
           </>
