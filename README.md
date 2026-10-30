@@ -4,6 +4,12 @@
 
 **Roll. Buy. Build. Scheme. Bankrupt your friends.** All in a glowing little city where the trains run, the windows light up at dusk, and every dice roll *feels* good.
 
+### ▶️ [Play it now at skyline.towhidkarim.dev](https://skyline.towhidkarim.dev/)
+
+<p align="center">
+  <img src="docs/screenshots/readme-game.png" alt="The Skyline board at dusk: a city of lit windows around the ring, with four tokens and the turn banner" width="860">
+</p>
+
 ```
 pnpm install
 pnpm dev      # http://localhost:5173
@@ -58,6 +64,45 @@ A Web Audio mixer with reverb, a code-driven synth, and a pack of CC0 casino sam
 - Runs on a **Cloudflare Worker plus one SQLite-backed Durable Object per room**. The room logic is portable, so a Node host could replace Cloudflare later.
 
 > The online stack is built and tested end to end. First public deploy and real-world play sessions are next on the list.
+
+---
+
+## 📸 The moments
+
+Some of my favourite moments, straight from the game. Nothing is mocked up.
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/screenshots/readme-buy.png" alt="Buy Foundry Way for 120, or put it up for auction">
+      <br><sub><b>Going shopping.</b> Buy it now, or hand it to the auction and let the bots fight over it.</sub>
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/screenshots/readme-auction.png" alt="An auction for Foundry Way with Juno leading at 3 coins">
+      <br><sub><b>Going, going...</b> Juno is leading at ₵3. Juno is about to get a bargain, and Juno knows it.</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/screenshots/readme-build.png" alt="A finished Market set, with the hint about houses multiplying rent">
+      <br><sub><b>Build, baby, build.</b> A full set means houses multiply the rent. The city grows one brick at a time.</sub>
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/screenshots/readme-bus.png" alt="A roll of 4, 3 and a bus, with the bus move on the Speed die">
+      <br><sub><b>Speed die.</b> A third amber die unlocks the bus. Move by one die or both, and pick your moment.</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/screenshots/readme-phone.png" alt="The board on a phone in portrait, with the dock at the bottom">
+      <br><sub><b>In your pocket.</b> The whole city fits a phone in portrait, and the dock stays in reach of your thumb.</sub>
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/screenshots/readme-over.png" alt="The results screen: Atlas won, with a podium, final standings and a chart of the game">
+      <br><sub><b>Game over.</b> A podium, the final standings, and a chart that shows who took the lead, and when.</sub>
+    </td>
+  </tr>
+</table>
 
 ---
 
