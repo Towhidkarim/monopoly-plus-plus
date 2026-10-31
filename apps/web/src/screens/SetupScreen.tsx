@@ -108,12 +108,16 @@ export function SetupScreen({
             <p className="text-[15px] text-ink-muted">Build the city. Bankrupt your rivals.</p>
           </div>
 
-          <div className="lg:hidden">{cityPill}</div>
+          <div className="lg:hidden">
+            <CityPill citySeed={citySeed} onReroll={() => setCitySeed(randomSeed())} wide />
+          </div>
 
           {saved && (
             <div className="flex shrink-0 items-stretch overflow-hidden rounded-[14px] bg-card font-card-body text-card-ink shadow-card">
               <span className="flex flex-1 flex-col gap-0.5 px-4 py-3">
-                <span className="font-card text-[17px] font-extrabold">Resume your last game</span>
+                <span className="font-card text-[17px] leading-tight font-extrabold max-sm:text-[15px]">
+                  Resume your last game
+                </span>
                 <span className="text-xs text-card-muted">
                   {saved.setup.seats.length} players ·{' '}
                   {MODES.find((m) => m.preset === saved.setup.preset)?.label} · {saved.actions.length} moves
@@ -124,7 +128,7 @@ export function SetupScreen({
               <button
                 type="button"
                 onClick={() => onStart(saved.setup, saved)}
-                className="px-5 font-card text-base font-extrabold text-[#8a6318] transition-colors hover:bg-black/[0.06] hover:text-[#7a5a14] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                className="px-5 font-card text-base font-extrabold whitespace-nowrap text-[#8a6318] max-sm:px-4 transition-colors hover:bg-black/[0.06] hover:text-[#7a5a14] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               >
                 Continue →
               </button>
@@ -133,7 +137,7 @@ export function SetupScreen({
 
           <div className="flex flex-col gap-2.5">
             <Eyebrow className="text-ink-muted">Mode</Eyebrow>
-            <div className="grid grid-cols-3 gap-2.5 pt-1">
+            <div className="grid grid-cols-3 gap-2.5 pt-1 max-sm:grid-cols-1 max-sm:gap-2">
               {MODES.map((m) => {
                 const on = preset === m.preset
                 return (
@@ -145,14 +149,14 @@ export function SetupScreen({
                       setPreset(m.preset)
                       setTwists((t) => ({ ...t, ...PRESET_TWISTS[m.preset] }))
                     }}
-                    className={`relative flex flex-col overflow-hidden rounded-[14px] bg-card text-left font-card-body text-card-ink transition-[translate,box-shadow,scale] duration-200 ease-spring active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
+                    className={`relative flex flex-col overflow-hidden rounded-[14px] max-sm:flex-row bg-card text-left font-card-body text-card-ink transition-[translate,box-shadow,scale] duration-200 ease-spring active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
                       on
                         ? '-translate-y-1 shadow-[0_0_0_3px_#f5b54a,0_14px_26px_rgba(2,6,16,0.5)]'
                         : 'shadow-[0_8px_18px_rgba(2,6,16,0.4),0_2px_0_#e4dccb] hover:-translate-y-1 hover:shadow-[0_12px_22px_rgba(2,6,16,0.45),0_2px_0_#e4dccb]'
                     }`}
                   >
                     <span
-                      className="block w-full px-3 py-2.5 font-card text-[17px] font-extrabold"
+                      className="block w-full px-3 py-2.5 font-card text-[17px] font-extrabold max-sm:flex max-sm:w-[106px] max-sm:shrink-0 max-sm:items-center"
                       style={{
                         background: m.color,
                         color: m.ink,
@@ -162,7 +166,9 @@ export function SetupScreen({
                     >
                       {m.label}
                     </span>
-                    <span className="px-3 pt-2.5 pb-3 text-xs leading-[1.4] text-[#3d4757]">{m.blurb}</span>
+                    <span className="px-3 pt-2.5 pb-3 text-xs leading-[1.4] text-[#3d4757] max-sm:self-center max-sm:py-2.5 max-sm:pr-9">
+                      {m.blurb}
+                    </span>
                     {on && (
                       <span
                         aria-hidden="true"
@@ -211,60 +217,93 @@ export function SetupScreen({
             {seats.map((seat, i) => (
               <div
                 key={seat.id}
-                className="flex items-center gap-2.5 rounded-[14px] border border-line/60 bg-white/[0.04] px-2.5 py-2"
+                className="flex flex-wrap items-center gap-2.5 rounded-[14px] border border-line/60 bg-white/[0.04] px-2.5 py-2 max-sm:gap-y-2"
               >
                 <TokenAvatar color={cssHex(seat.color)} piece={seat.piece} size={36} />
-                <input
-                  value={seat.name}
-                  onChange={(e) => update(i, { name: e.target.value.slice(0, 14) || ' ' })}
-                  aria-label={`Player ${i + 1} name`}
-                  className="h-[38px] min-w-0 flex-1 rounded-[10px] border border-line bg-table px-3 text-sm font-bold text-ink outline-none focus:border-accent/60"
-                />
-                <div className="flex gap-0.5 rounded-[10px] bg-table p-[3px]">
-                  {(['human', 'bot'] as const).map((kind) => {
-                    const on = seat.kind === kind
-                    return (
-                      <button
-                        key={kind}
-                        type="button"
-                        aria-pressed={on}
-                        onClick={() => update(i, { kind })}
-                        className={`h-[30px] rounded-lg px-2.5 text-xs font-extrabold ${SEG_FX} ${
-                          on ? SEG_ON : SEG_OFF
-                        }`}
-                      >
-                        {kind === 'human' ? 'Human' : 'Bot'}
-                      </button>
-                    )
-                  })}
-                </div>
-                <label className="relative flex h-[30px] items-center rounded-[10px] border border-line text-xs font-bold text-ink-muted transition-colors hover:bg-white/5 hover:text-ink">
-                  <select
-                    value={seat.piece}
-                    onChange={(e) =>
-                      update(i, { piece: PIECES.find((p) => p.kind === e.target.value)?.kind ?? seat.piece })
-                    }
-                    aria-label={`Player ${i + 1} piece`}
-                    className="h-full appearance-none rounded-[10px] bg-transparent pr-6 pl-2.5 outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
-                  >
-                    {PIECES.map((p) => (
-                      <option key={p.kind} value={p.kind} className="bg-panel text-ink">
-                        {p.label}
-                      </option>
-                    ))}
-                  </select>
+                {/* The pencil says the name is editable. */}
+                <label className="relative flex min-w-0 flex-1">
+                  <input
+                    value={seat.name}
+                    onChange={(e) => update(i, { name: e.target.value.slice(0, 14) || ' ' })}
+                    aria-label={`Player ${i + 1} name`}
+                    placeholder="Name"
+                    className="peer h-[38px] w-full min-w-0 rounded-[10px] border border-line bg-table pr-8 pl-3 text-sm font-bold text-ink outline-none focus:border-accent/60"
+                  />
                   <svg
-                    width="10"
-                    height="10"
-                    viewBox="0 0 10 10"
+                    width="13"
+                    height="13"
+                    viewBox="0 0 16 16"
                     aria-hidden="true"
-                    className="pointer-events-none absolute right-2"
+                    className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-ink-muted opacity-70 peer-focus:opacity-0"
                   >
-                    <path d="M2 4 L5 7 L8 4" fill="none" stroke="#a8b1c4" strokeWidth="1.6" />
+                    <path
+                      d="M10.5 2.5 L13.5 5.5 L5.5 13.5 H2.5 V10.5 Z M9 4 L12 7"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinejoin="round"
+                    />
                   </svg>
                 </label>
+                <div className="flex items-center gap-2.5 max-sm:basis-full">
+                  <div className="flex gap-0.5 rounded-[10px] bg-table p-[3px]">
+                    {(['human', 'bot'] as const).map((kind) => {
+                      const on = seat.kind === kind
+                      return (
+                        <button
+                          key={kind}
+                          type="button"
+                          aria-pressed={on}
+                          onClick={() => update(i, { kind })}
+                          className={`h-[30px] rounded-lg px-2.5 text-xs font-extrabold ${SEG_FX} ${
+                            on ? SEG_ON : SEG_OFF
+                          }`}
+                        >
+                          {kind === 'human' ? 'Human' : 'Bot'}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  <label className="relative flex h-[30px] items-center rounded-[10px] border border-line text-xs font-bold text-ink-muted transition-colors hover:bg-white/5 hover:text-ink max-sm:flex-1">
+                    <select
+                      value={seat.piece}
+                      onChange={(e) =>
+                        update(i, {
+                          piece: PIECES.find((p) => p.kind === e.target.value)?.kind ?? seat.piece,
+                        })
+                      }
+                      aria-label={`Player ${i + 1} piece`}
+                      className="h-full appearance-none rounded-[10px] bg-transparent pr-6 pl-2.5 outline-none max-sm:w-full focus-visible:ring-2 focus-visible:ring-accent/60"
+                    >
+                      {PIECES.map((p) => (
+                        <option key={p.kind} value={p.kind} className="bg-panel text-ink">
+                          {p.label}
+                        </option>
+                      ))}
+                    </select>
+                    <svg
+                      width="10"
+                      height="10"
+                      viewBox="0 0 10 10"
+                      aria-hidden="true"
+                      className="pointer-events-none absolute right-2"
+                    >
+                      <path d="M2 4 L5 7 L8 4" fill="none" stroke="#a8b1c4" strokeWidth="1.6" />
+                    </svg>
+                  </label>
+                </div>
               </div>
             ))}
+            {/* Same dice seed, same rolls: for replaying a game. Out of the sticky footer so it stays short on phones. */}
+            <label className="flex items-center justify-end gap-2 px-1 text-xs text-ink-muted">
+              Dice seed
+              <input
+                type="number"
+                value={seed}
+                onChange={(e) => setSeed(Number(e.target.value) || 0)}
+                className="w-24 rounded-md border border-line bg-table px-2 py-1 font-mono text-ink outline-none focus:border-accent/60"
+              />
+            </label>
           </div>
 
           {/* Sticky: Start game stays visible however short the window is. */}
@@ -282,31 +321,22 @@ export function SetupScreen({
                     seats: seats.map((s) => ({ ...s, name: s.name.trim() || s.id })),
                   })
                 }
-                className="h-16 flex-1 rounded-[18px] text-xl shadow-gold-lg [@media(max-height:860px)]:h-14"
+                className="h-16 min-w-0 flex-1 rounded-[18px] text-xl whitespace-nowrap shadow-gold-lg max-sm:h-14 max-sm:text-lg [@media(max-height:860px)]:h-14"
               >
                 Start game
               </Btn>
               <Btn
                 onClick={onOnline}
                 title="Play with friends on their own devices"
-                className="h-16 gap-2 rounded-[18px] border-line px-5 text-base [@media(max-height:860px)]:h-14"
+                className="h-16 shrink-0 gap-2 rounded-[18px] border-line px-5 text-base whitespace-nowrap max-sm:h-14 max-sm:gap-1.5 max-sm:px-3.5 max-sm:text-sm [@media(max-height:860px)]:h-14"
               >
                 <Icon name="globe" size={18} />
                 Play online
               </Btn>
             </div>
-            <div className="flex items-center justify-between gap-3 text-xs text-ink-muted">
-              <span>Hotseat: everyone here takes turns on this screen.</span>
-              <label className="flex items-center gap-2">
-                Dice seed
-                <input
-                  type="number"
-                  value={seed}
-                  onChange={(e) => setSeed(Number(e.target.value) || 0)}
-                  className="w-24 rounded-md border border-line bg-table px-2 py-1 font-mono text-ink outline-none focus:border-accent/60"
-                />
-              </label>
-            </div>
+            <p className="text-center text-xs text-ink-muted">
+              Hotseat: everyone takes turns on this screen.
+            </p>
           </div>
         </section>
       </div>
@@ -315,16 +345,28 @@ export function SetupScreen({
 }
 
 /** "Your next city · seed N" with a cream New city button. */
-function CityPill({ citySeed, onReroll }: { citySeed: number; onReroll: () => void }) {
+function CityPill({ citySeed, onReroll, wide }: { citySeed: number; onReroll: () => void; wide?: boolean }) {
   return (
-    <div className="inline-flex items-center gap-2.5 rounded-full border border-line bg-panel py-2.5 pr-3 pl-4 shadow-[0_12px_28px_rgba(2,6,16,0.5)]">
-      <span className="text-[13px] text-ink-muted">
-        Your next city · seed <strong className="font-extrabold text-ink tabular-nums">{citySeed}</strong>
-      </span>
+    <div
+      className={`items-center gap-2.5 rounded-full border border-line bg-panel py-2.5 pr-3 pl-4 shadow-[0_12px_28px_rgba(2,6,16,0.5)] ${wide ? 'flex w-full justify-between shadow-none' : 'inline-flex'}`}
+    >
+      {wide ? (
+        // Phones: two deliberate lines rather than a wrap mid-phrase.
+        <span className="flex min-w-0 flex-col text-[13px] leading-tight text-ink-muted">
+          Your next city
+          <span>
+            seed <strong className="font-extrabold text-ink tabular-nums">{citySeed}</strong>
+          </span>
+        </span>
+      ) : (
+        <span className="text-[13px] text-ink-muted">
+          Your next city · seed <strong className="font-extrabold text-ink tabular-nums">{citySeed}</strong>
+        </span>
+      )}
       <button
         type="button"
         onClick={onReroll}
-        className="flex h-9 items-center gap-1.5 rounded-full bg-card px-3.5 text-[13px] font-extrabold text-card-ink shadow-keycap transition-[translate,scale,filter] duration-200 ease-spring hover:-translate-y-px hover:brightness-[1.06] active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        className="flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-card px-3.5 whitespace-nowrap text-[13px] font-extrabold text-card-ink shadow-keycap transition-[translate,scale,filter] duration-200 ease-spring hover:-translate-y-px hover:brightness-[1.06] active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
           <rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="#1f2a3d" strokeWidth="2.2" />

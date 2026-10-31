@@ -119,7 +119,7 @@ export function MyCity({
           <Icon name="close" size={16} />
         </button>
       </header>
-      <div className="grid grid-cols-3 gap-2 px-5 pb-3.5">
+      <div className="grid grid-cols-3 gap-2 px-5 pb-3.5 max-sm:gap-1.5 max-sm:px-3.5">
         <Stat label="Cash">
           <TickingMoney value={me.cash} className="text-gold" />
         </Stat>
@@ -128,7 +128,7 @@ export function MyCity({
           {me.bankrupt ? (
             'Out'
           ) : (
-            <span className="flex items-center gap-1.5">
+            <span className="flex items-center gap-1.5 max-sm:gap-1">
               <MedalIcon rank={rank} />
               {ordinal(rank)} <span className="text-[13px] font-semibold text-ink-muted">of {alive}</span>
             </span>
@@ -490,10 +490,15 @@ function buildBlocker(levels: number[], mortgaged: boolean, houseCost: number): 
 }
 
 function Stat({ label, children }: { label: string; children: ReactNode }) {
+  // Narrow phones: tighter label and value so three tiles fit; a label that still wraps keeps the values aligned at the bottom.
   return (
-    <div className="flex flex-col gap-0.5 rounded-[14px] border border-line/60 bg-white/4 px-3 py-2.5 [@media(max-height:760px)]:py-1.5">
-      <div className="text-[11px] font-extrabold tracking-widest text-ink-muted uppercase">{label}</div>
-      <div className="font-display text-xl font-bold tabular-nums">{children}</div>
+    <div className="flex flex-col justify-between gap-0.5 rounded-[14px] border border-line/60 bg-white/4 px-3 py-2.5 max-sm:px-2.5 [@media(max-height:760px)]:py-1.5">
+      <div className="text-[11px] leading-tight font-extrabold tracking-widest text-ink-muted uppercase max-sm:text-[10px] max-sm:tracking-wider">
+        {label}
+      </div>
+      <div className="font-display text-xl font-bold whitespace-nowrap tabular-nums max-sm:text-lg">
+        {children}
+      </div>
     </div>
   )
 }
@@ -503,7 +508,7 @@ function RowName({ name, onFocus, bold }: { name: string; onFocus: () => void; b
     <button
       type="button"
       onClick={onFocus}
-      className={`min-w-0 truncate rounded-sm text-left text-sm transition-colors hover:text-gold hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${bold ? 'font-extrabold' : 'font-bold'}`}
+      className={`min-w-0 rounded-sm text-left text-sm leading-tight [overflow-wrap:anywhere] transition-colors hover:text-gold hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${bold ? 'font-extrabold' : 'font-bold'}`}
       title="Show on the board"
     >
       {name}

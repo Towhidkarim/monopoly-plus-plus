@@ -72,6 +72,9 @@ export interface BoardListeners {
 
 const MORPH_MS = 750
 
+/** How long a finger rests on a tile before it opens (a tap opens it on release). */
+const HOLD_MS = 380
+
 /** The beat a bankrupt piece holds before it lifts away (sounds wait for it too). */
 export const BANKRUPT_HOLD_MS = 440
 
@@ -800,9 +803,14 @@ export class Board {
 
   private frameCap = 0
   private pointersDown = 0
+  /** A finger held still on the board: how long, and where (null when no hold is running). */
+  private hold: { since: number; x: number; y: number } | null = null
+  /** The hold already opened a tile, so the release that follows is not a tap. */
+  private holdFired = false
 
   private releasePointer(): void {
     this.pointersDown = Math.max(0, this.pointersDown - 1)
+    this.hold = null
     this.applyFrameCap()
   }
 
@@ -811,6 +819,7 @@ export class Board {
     // Hit-stop: the world nearly freezes for a beat; the camera (and its shake) keeps going.
     const dt = this.freezeMs > 0 ? real * 0.03 : real
     this.freezeMs = Math.max(0, this.freezeMs - real)
+    this.stepHold()
     this.animator.step(dt)
     const t = this.viewT
     this.veilBuildings()
@@ -951,6 +960,12 @@ export class Board {
       this.pointersDown++
       this.applyFrameCap()
       this.camera.onPointerDown(e)
+      this.holdFired = false
+      const lone = e.pointerType === 'touch' && this.pointersDown === 1
+      this.hold =
+        lone && e.nativeEvent.target === this.app.canvas
+          ? { since: performance.now(), x: e.global.x, y: e.global.y }
+          : null
     })
     stage.on('globalpointermove', (e) => {
       this.camera.onPointerMove(e)
@@ -968,7 +983,7 @@ export class Board {
       this.refreshCursor()
     })
     stage.on('pointertap', (e) => {
-      if (this.camera.dragging) return
+      if (this.camera.dragging || this.holdFired) return
       // A finger has no hover before the tap: pick the tile under it now.
       this.pick(e)
       this.select(this.hovered === this.selected ? null : this.hovered)
@@ -985,9 +1000,31 @@ export class Board {
       this.setHover(null)
       return
     }
-    const local = this.world.toLocal(e.global)
+    this.setHover(this.tileUnder(e.global))
+  }
+
+  private tileUnder(point: { x: number; y: number }): number | null {
+    const local = this.world.toLocal(point)
     const { col, row } = unproject(local.x, local.y, 0, this.viewT)
-    this.setHover(tileAt(col, row))
+    return tileAt(col, row)
+  }
+
+  /** Press and hold opens the tile under the finger without waiting for the release. */
+  private stepHold(): void {
+    const hold = this.hold
+    if (!hold) return
+    if (this.camera.dragging || this.pointersDown !== 1 || this.morphing) {
+      this.hold = null
+      return
+    }
+    // Wall time, not the ticker's capped frame time: a slow frame must not stretch the hold.
+    if (performance.now() - hold.since < HOLD_MS) return
+    this.hold = null
+    const index = this.tileUnder(hold)
+    if (index === null) return
+    this.holdFired = true
+    this.select(index)
+    navigator.vibrate?.(12)
   }
 
   private setHover(index: number | null): void {
