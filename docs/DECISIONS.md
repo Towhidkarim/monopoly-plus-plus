@@ -579,3 +579,11 @@ During a decision (buy, auction, debt, offer, trade) the left column and activit
 - **Press and hold on a tile** opens it after 380 ms without lifting the finger (a light vibration where supported), and the release that follows does not close it again. The hold is timed by wall clock in the board's tick, since Pixi caps the ticker's frame time at 100 ms. A tap still opens the tile on release. `tools/dev/touch.js` gained `hold(x, y, ms)`.
 - Verified in Orca at 345 x 690 (synthetic touches for the sheet levels; the hold by driving the board tick, since a background tab gets no frames); not yet on a real phone.
 
+## D70. Cheaper card repaints: bitmap paper grain under the content, one layer while dealing (2026-10-31)
+
+The deal and flip of a property card hitched a little on desktop and more on phones. The motion itself is compositor-only (transform and opacity), so the cost was in re-rasterizing the card, which happens when the deal starts, when the flip starts and when the card lands at full size:
+
+- **Paper grain:** the `paper` utility drew an SVG `feTurbulence` noise filter, which the browser re-renders on every raster, and multiplied it over the content (`mix-blend-mode`, an isolated blend group). The grain is now a 160 px bitmap made once at startup (`paperGrain.ts`, the `--paper-grain` variable; the SVG stays as the fallback), and it sits in the paper under the content (`isolation: isolate`, `z-index: -1`) with no blend mode. Side by side with the old look it is the same on the cream; the dark art panels no longer carry grain.
+- **One layer while dealing:** `CardStage` hints `will-change: transform, opacity` on the dealing card for the deal and the flip, so it is rastered once instead of as it scales; the hint goes with the 3D context when the card rests, so its text is rasterized crisp.
+- Not profiled: Orca has no profiler and a background tab gets few frames. The developer feel-tests on desktop and a phone; if the phone still hitches, the next suspect is the board's WebGL frame competing for the GPU during the card moment (cap the board's frame rate while a deal plays).
+

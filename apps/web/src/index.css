@@ -278,10 +278,14 @@
   outline: none;
 }
 
-/* Card stock: a fine grain and a faint warm falloff toward the edges, multiplied over the card
-   (text included, like print on paper). The card needs `position: relative` and a radius. */
+/* Card stock: a fine grain and a faint warm falloff toward the edges, in the paper under the card's
+   content. The card needs `position: relative` and a radius. The grain is a bitmap made at startup
+   (`--paper-grain`, paperGrain.ts); the SVG noise is only the fallback. It used to be multiplied over
+   the content, which cost an isolated blend group on every repaint of a moving card (D70). */
 @utility paper {
+  isolation: isolate;
   &::after {
+    z-index: -1;
     content: '';
     position: absolute;
     inset: 0;
@@ -289,8 +293,10 @@
     pointer-events: none;
     background-image:
       radial-gradient(120% 90% at 50% 35%, transparent 55%, rgba(120, 92, 48, 0.1)),
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.45 0 0 0 0 0.36 0 0 0 0 0.22 0 0 0 0.5 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
-    mix-blend-mode: multiply;
+      var(
+        --paper-grain,
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.45 0 0 0 0 0.36 0 0 0 0 0.22 0 0 0 0.5 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E")
+      );
     opacity: 0.32;
   }
 }

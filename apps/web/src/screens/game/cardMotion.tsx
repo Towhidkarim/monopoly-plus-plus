@@ -172,6 +172,10 @@ export function CardStage({
           animation: `card-deal ${CARD_MS.deal}ms cubic-bezier(0.2, 0.9, 0.3, 1) backwards`,
           '--deal-x': `${dealFrom?.x ?? -360}px`,
           '--deal-y': `${dealFrom?.y ?? 140}px`,
+          // One layer, rastered once, for the whole deal and flip: without the hint the browser
+          // re-rasters the card as it scales up and again when the flip starts (D70). Dropped with
+          // the 3D context once the card rests, so its text is rasterized crisp.
+          ...(flipping ? { willChange: 'transform, opacity' } : {}),
         } as CSSProperties)
       : {}
   const d3 = flipping ? ({ transformStyle: 'preserve-3d' } as const) : undefined
